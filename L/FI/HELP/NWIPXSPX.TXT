@@ -1,0 +1,1163 @@
+;
+;-------------------------------------------------------------------
+!TOPIC 1925 NWIPXSPX
+
+There are two types of NetWare advanced peer-to-peer messaging services.
+Datagram services are implemented using IPX, and session services are
+implemented using SPX.
+
+IPX stands for Internetwork Packet eXchange protocol. It is Novell's
+implementation of the Internetwork Datagram Packet Protocol designed by
+Xerox. Using it applications can communicate directly with other
+workstations, servers or devices.
+
+The following routines relate to IPX services:
+
+!NOWRAP
+  1926Declarations        1943IPXAllocEventRec
+  1944IPXAllocPacket      1945IPXCancelEvent
+  1946IPXCloseSocket      1947IPXEventComplete
+  1948IPXFreeEventRec     1949IPXFreePacket
+  1950IPXInternetAddress  1951IPXListen
+  1952IPXOpenSocket       1953IPXOpenUniqueSocket
+  1954IPXRelinquish       1955IPXSend
+  1956IPXServicesAvail
+!WRAP
+
+NetWare also implements a high level node-to-node communication
+facility called SPX (Sequenced Packet eXchange Protocol). SPX is
+based on the Sequenced Packet Protocol defined by Xerox.
+
+Building upon IPX services, SPX provides a guaranteed delivery system
+for packets of data. SPX automatically selects appropriate timeout and
+retransmission counts based on the physical characteristics of the network
+hardware. Hence, applications using SPX need not be concerned with the
+details of the guaranteed delivery system.
+
+A receiver of SPX messages must make more than one event control block
+available to handle incoming messages. The SPX routines in the NWIPXSPX
+unit make this easy by automatically managing a pool of event control
+blocks. When an application establishes an SPX connection, it simply
+specifies the number of event control blocks and the maximum size of each
+data packet.
+
+The following routines relate to SPX services:
+
+!NOWRAP
+  1926Declarations       1957SPXAbortConn
+  1958SPXAllocEventRec   1959SPXCancelListenForConn
+  1960SPXECBsListening   1961SPXEstablishConn
+  1962SPXEventComplete   1963SPXFreeEventRec
+  1964SPXGetConnStatus   1965SPXListenForConn
+  1966SPXPacketReceived  1967SPXReactivateECB
+  1968SPXSend            1969SPXServicesAvail
+  1970SPXTerminateConn
+!WRAP
+;
+;-------------------------------------------------------------------
+!TOPIC 1926 Declarations,NWIPXSPX
+!NOINDEX
+
+The 1925NWIPXSPX unit declares the following constants, types and variables:
+
+!NOWRAP
+  1927IPXAllNodes             1928IPXMaxDataSize
+  1929SPXMaxDataSize          1930SPXMaxPoolCount
+  1931SPXRetryCount           1932SPXWatchDog
+  1933PPacket                 1934TipxHeader
+  1935TipxFragment            1936TipxECB
+  1937IPXEventServiceRoutine  1938TipxEventRec
+  1939TspxEventRec            1940TspxHeader
+  1941TspxPoolECB             1942TspxStatus
+!WRAP
+
+Please note that many of the types described above need not be accessed
+directly by an application. Descriptions are included to illustrate the
+hierarchy of information leading to the high level types passed as
+parameters to the NWIPXSPX routines.
+
+Although the data types refer to standard Pascal identifiers, you should
+know that NetWare reverses the byte ordering of almost all Word and
+LongInt fields. That is, the most significant byte is stored first instead
+of last. The high level routines in NWIPXSPX reverse the order as and when
+necessary, for example when storing a socket number you pass as a
+parameter.
+;
+;-------------------------------------------------------------------
+!TOPIC 1927 IPXAllNodes
+!NOINDEX
+const
+  IPXAllNodes : PhysicalNodeAddress = ($FF,$FF,$FF,$FF,$FF,$FF);
+
+When passed as a node address to an IPX send routine, this value indicates
+that the message should be sent to all nodes. Novell warns that not all
+hardware configurations support this special address. Even when it is
+supported, only nodes that are listening through the specified socket will
+actually receive the message. A destination address of IPXAllNodes is not
+allowed for SPX messages.
+;
+;-------------------------------------------------------------------
+!TOPIC 1928 IPXMaxDataSize
+!NOINDEX
+const
+  IPXMaxDataSize = 546;
+
+The maximum number of bytes of data in an IPX packet. More modern networks
+can support a larger IPX packet size (and hence a larger amount of data),
+but the 1925NWIPXSPX unit does not provide a means of determining whether such
+a network is available. In addition, some inter-network routers do not
+support large IPX packets.
+;
+;-------------------------------------------------------------------
+!TOPIC 1929 SPXMaxDataSize
+!NOINDEX
+const
+  SPXMaxDataSize = 534;
+
+The maximum number of bytes of data in an SPX packet.
+;
+;-------------------------------------------------------------------
+!TOPIC 1930 SPXMaxPoolCount
+!NOINDEX
+const
+  SPXMaxPoolCount = 16;
+
+The maximum number of event control blocks that can be actively listening
+for SPX messages in a 'listen pool'. Although this value can be increased,
+it generally does not make sense to do so.
+;
+;-------------------------------------------------------------------
+!TOPIC 1931 SPXRetryCount
+!NOINDEX
+const
+  SPXRetryCount : Byte = 0;
+
+The retry count for SPX operations. A value of zero indicates that SPX
+should use its predetermined count; any other value is used explicitly.
+;
+;-------------------------------------------------------------------
+!TOPIC 1932 SPXWatchDog
+!NOINDEX
+const
+  SPXWatchDog : Boolean = False;
+
+Specifies whether to activate the SPX Watchdog process. If SPXWatchDog is
+True, then an SPX connection uses a special monitor feature to ensure that
+this connection stays active. Essentially, the SPX driver sends small
+packets regularly to the partner to test whether the partner is still
+present or not. If the connection is broken, 1966SPXPacketReceived returns
+True with a special packet data type.
+;
+;-------------------------------------------------------------------
+!TOPIC 1933 PPacket
+!NOINDEX
+type
+  PPacket = Pointer;
+
+A variable of this type is returned from 1944IPXAllocPacket. It is a pointer
+to a generic buffer that is used to hold messages that are transmitted
+with IPX and SPX.
+;
+;-------------------------------------------------------------------
+!TOPIC 1934 TipxHeader
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  PipxHeader = ^TipxHeader;
+  TipxHeader = record
+      CheckSum        : Word;
+      Len             : Word;
+      TransportControl: Byte;
+      PacketType      : Byte;
+      Destination     : IPXAddress;
+      Source          : IPXAddress;
+    end;
+!WRAP
+
+Used by IPX to manage a message. CheckSum is used internally for error
+control. Len is the length of the transmitted packet, including the header
+and data. Valid lengths range from 30 to 576. TransportControl is used
+internally. Destination and Source specify the internetwork addresses of
+the receiver and sender of the message, respectively. TipxHeader fields
+are managed for you by the 1925NWIPXSPX unit and by the IPX driver itself, so
+you will use them for read-only purposes, if at all. The field you will
+reference most often is Source to find out who sent a particular message.
+;
+;-------------------------------------------------------------------
+!TOPIC 1935 TipxFragment
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  TipxFragment = record
+      Data : Pointer;
+      Size : Word;
+    end;
+!WRAP
+
+Holds the address and size of a "fragment". A packet is a collection of
+fragments, which are often used to ease the receiver's job of separating
+the packet's components.
+;
+;-------------------------------------------------------------------
+!TOPIC 1936 TipxECB
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  TipxECB = record
+    Link            : Pointer;
+    ESRAddress      : Pointer;
+    InUse           : Byte;
+    CompletionCode  : Byte;
+    SocketNumber    : Word;
+    IPXWorkSpace    : LongInt;
+    DriverWorkSpace : array[1..12] of Byte;
+    ImmediateAddress: PhysicalNodeAddress;
+    FragmentCount   : Word;
+    FD1             : TipxFragment;
+    FD2             : TipxFragment;
+  end;
+!WRAP
+
+The control block for an IPX event; an event is the process of sending or
+listening for a message. Although the 1925NWIPXSPX unit manages the contents
+of this record for you, a little description might clarify how it works.
+
+ESRAddress holds the address of an "event service routine" (ESR). If the
+pointer isn't Nil, the IPX driver will call the routine it points to when
+an event is complete. This forms the basis for interrupt driven messaging
+protocols. If you want to use an event service routine, write a procedure
+of type 1937IPXEventServiceRoutine and pass it to the 1943IPXAllocEventRec
+routine. This takes care of setting up the ESRAddress field for you.
+
+The InUse field is initialized to zero before submitting an event control
+block to IPX. IPX sets the field to a non-zero value to specify the
+event's status. When the field is zero again, the event is complete.
+Once an event is complete, CompletionCode specifies its outcome. See the
+1947IPXEventComplete function for a list of the possible values.
+
+SocketNumber is the socket being used for communication.
+
+ImmediateAddress holds the address of a node within the current network.
+If the message originated from, or is destined for, another network,
+ImmediateAddress holds the address of the internetwork bridge node. The
+NWIPXSPX unit initializes this field when it builds an IPX event control
+block.
+
+A data packet can be composed of several fragments (see 1935TipxFragment). The first fragment
+must always begin with a 1934TipxHeader. Remaining fragments can hold the
+actual packet data. The NWIPXSPX unit always uses two fragments, one for
+the header and the other for the data. The sum of the Size fields of all
+the individual fragments must not exceed 576 bytes.
+;
+;-------------------------------------------------------------------
+!TOPIC 1937 IPXEventServiceRoutine
+!NOINDEX
+type
+  IPXEventServiceRoutine = procedure (FromAES : boolean;
+                                      IPXEvent : PipxEventRec);
+
+Procedure prototype for a Pascal event service routine (ESR). An ESR is
+called by the IPX driver when an event completes. The FromAES boolean
+defines whether the event completion came from the Asynchronous Event
+Scheduler (AES) or not. In your programming this will normally be False.
+IPXEvent is a pointer to the management record whose event was completed.
+
+Your ESR must be extremely short and fast because it is called with
+interrupts off (do not turn interrupts on because the code that calls your
+ESR is not reentrant), and it cannot call any DOS or BIOS services.
+
+Generally you will only use an ESR on listen type events, in which case
+you can copy the message received onto a queue and resubmit the listen
+event. In Windows applications, another good suggestion is to send the
+main application a message to say that the listen event completed.
+
+The ESR routine is installed by passing it as a parameter to
+1943IPXAllocEventRec.
+;
+;-------------------------------------------------------------------
+!TOPIC 1938 TipxEventRec
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  PipxEventRec = ^TipxEventRec;
+  TipxEventRec = record
+    ECB     : TipxECB;
+    Header  : TipxHeader;
+    Next    : PipxEventRec;
+    UserESR : IPXEventServiceRoutine;
+  end;
+!WRAP
+
+The high level type used by 1925NWIPXSPX to manage IPX messages. A variable of
+this type must be allocated by 1943IPXAllocEventRec by the calling program and
+passed to the various IPX message routines. IPXAllocEventRec initializes
+the fields. The ECB field describes the message itself with pointers to
+its contents and information about message routing and status. The Header
+field describes the source and destination of the message. The Next field
+enables the NWIPXSPX routines to form an internal linked list of
+TipxEventRec variables, and the UserESR field is the event service routine
+that is called when the event completes. The routines in the NWIPXSPX unit
+initialize and maintain all fields for you.
+
+See also:  1934TipxHeader  1936TipxECB  1937IPXEventServiceRoutine
+;
+;-------------------------------------------------------------------
+!TOPIC 1939 TspxEventRec
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  PspxEventRec = ^TspxEventRec;
+  TspxEventRec = record
+    ECB        : TipxECB;
+    Header     : TspxHeader;
+    AmConnected: boolean;
+    ConnID     : word;
+    Next       : PspxEventRec;
+    PacketSize : word;
+    PoolCount  : byte;
+    QueueCount : byte;
+    Pool       : array [1..SPXMaxPoolCount] of PspxPoolECB;
+    Queue      : array [1..SPXMaxPoolCount] of byte;
+  end;
+!WRAP
+
+The high level type used by 1925NWIPXSPX to manage SPX messages. A variable of
+this type must be allocated by 1958SPXAllocEventRec by the calling program and
+passed to the various SPX message routines.
+
+The ECB and Header fields are used to establish and terminate a
+connection. The AmConnected field is initially False and is set to True by
+the NWIPXSPX unit when a connection is established, in which case the
+ConnID field contains the connection ID for this SPX session. When the
+connection is broken either by calling 1970SPXTerminateConn or 1957SPXAbortConn or
+by some other problem, the NWIPXSPX routines set the AmConnected flag to
+False again and clear the connection number field.
+
+The Next field enables the NWIPXSPX unit to maintain a linked list of
+TspxEventRecs. The PacketSize field is the buffer size that you passed to
+the SPXAllocEventRec routines. The PoolCount and QueueCount fields are the
+numbers of listen buffers in the pool and the number of listen buffers
+that have received a message and are awaiting processing. The Pool field
+is the array of listen buffers for this event management record. The Queue
+field is an array of indexes of listen buffers that are awaiting
+processing.
+
+The routines in the NWIPXSPX unit initialize and maintain the values in
+the TspxEventRec, you should not alter any values yourself.
+;
+;-------------------------------------------------------------------
+!TOPIC 1940 TspxHeader
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  PspxHeader = ^TspxHeader;
+  TspxHeader = record
+      IPXHeader      : TipxHeader;
+      ConnectControl : Byte;
+      DataStreamType : Byte;
+      SourceConnID   : Word;
+      DestConnID     : Word;
+      SequenceNo     : Word;
+      AcknowledgeNo  : Word;
+      AllocationNo   : Word;
+    end;
+!WRAP
+
+Used by SPX to manage a message. All fields are maintained internally by
+the 1925NWIPXSPX unit and the SPX driver.
+;
+;-------------------------------------------------------------------
+!TOPIC 1941 TspxPoolECB
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  PspxPoolECB = ^TspxPoolECB;
+  TspxPoolECB = record
+      PoolECB    : TipxECB;
+      PoolHeader : TspxHeader;
+      PoolData   : Array[1..SPXMaxDataSize] of Byte;
+    end;
+!WRAP
+
+Used by the 1925NWIPXSPX unit to manage a pool of listen buffers for an SPX
+connection. A single listen buffer is a variable of this type; the
+1939TspxEventRec variable allocated by 1958SPXAllocEventRec tracks an array of
+these buffers. The PoolData field is just large enough to contain a buffer
+of the size specified during a call to SPXAllocEventRec. The PoolECB field
+is an IPX event control block that listens for incoming SPX messages, the
+PoolHeader field is an SPX header defining the source and destination of
+the SPX message.
+;
+;-------------------------------------------------------------------
+!TOPIC 1942 TspxStatus
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  TspxStatus = record
+    State                   : Byte;
+    Flag                    : Byte;
+    SourceConn              : Word;
+    DestConn                : Word;
+    SequenceNum             : Word;
+    AckNum                  : Word;
+    AllocNum                : Word;
+    RemoteAckNum            : Word;
+    RemoteAllocNum          : word;
+    ConnSocket              : Word;
+    ImmediateAdd            : PhysicalNodeAddress;
+    Destination             : IPXAddress;
+    RetransmitCount         : Word;
+    EstimatedRoundTripDelay : Word;
+    RetransmittedPackets    : Word;
+    SuppressedPackets       : Word;
+   end;
+!WRAP
+
+The data structure returned by 1964SPXGetConnStatus. The most important result
+returned by this function is its return code, which indicates whether the
+connection still exists. The information in the structure itself may be
+useful in rare situations. 1925NWIPXSPX swaps byte ordering as necessary to
+bring the structure to PC standards before returning the structure. Here
+is a brief summary of the fields.
+
+State can take on four values: 1 - waiting to receive an establish
+connection packet; 2 - attempting to establish a connection by sending
+establish packets; 3 - connection established; 4 - the remote has
+terminated its half of the connection.
+
+If bit 1 of Flag is set (i.e. (Flag and $02)<>0), the SPX watchdog is
+monitoring the connection. The SPX watchdog watches for connections that
+aren't used for a long period of time. The other bits of this field are
+used internally by SPX.
+
+SourceConn and DestConn are the connection ID numbers of the local and
+remote nodes respectively.
+
+SequenceNum and AckNum are packet numbers assigned internally by SPX.
+These numbers increase sequentially from zero and wrap back to zero when
+they reach 0xFFFF. SequenceNum is the number of the next packet the local
+station will send. AckNum is the number of the next packet the local
+station expects to receive.
+
+AllocNum is the highest packet number the local station can receive given
+the number of available listening IPX event control blocks. This number is
+increased as the local station adds (or reactivates) control blocks in the
+listen pool. SPX uses this field to implement flow control.
+RemoteAckNum and RemoteAllocNum are analogous to AckNum and AllocNum, but
+they refer to the packet numbers the remote station expects to receive
+from the local station.
+
+ConnSocket is the socket number the local station is using to send and
+receive SPX packets. ImmediateAdd is the address of a node on the current
+network. If the entire connection is on one network, ImmediateAdd is the
+remote station. Otherwise, it is the address of a bridge device.
+
+Destination is the complete address of the remote station, including the
+socket number that it is using to send and receive SPX packets.
+
+RetransmitCount indicates the number of times since SPX was loaded that
+SPX has attempted to retransmit an unacknowledged packet before
+determining that the remote station has become unreachable.
+
+EstimatedRoundTripDelay is the number of clock ticks that SPX waits before
+assuming that a packet is lost and retransmitting. RetransmittedPackets is
+the number of retransmitted packets that were acknowledged by the remote
+station. SuppressedPackets is the number of packets the local station has
+discarded because they were duplicates of previously received packets or
+because they were outside of the allowable packet number range.
+;
+;-------------------------------------------------------------------
+!TOPIC 1943 IPXAllocEventRec
+!NOINDEX
+function 1925NWIPXSPX.IPXAllocEventRec(ESR : IPXEventServiceRoutine) : PipxEventRec;
+
+Allocate and return a pointer to a 1938TipxEventRec.
+
+You must allocate an IPX event record  prior to sending or
+receiving an IPX message. The TipxEventRec variable must remain accessible
+to the IPX driver until the operation is complete.
+
+IPXAllocEventRec returns Nil if there is insufficient free memory to
+satisfy the request.
+
+See also:  1944IPXAllocPacket  1948IPXFreeEventRec
+;
+;-------------------------------------------------------------------
+!TOPIC 1944 IPXAllocPacket
+!NOINDEX
+function 1925NWIPXSPX.IPXAllocPacket(Size : word) : PPacket;
+
+Allocate and return a pointer to a data packet buffer.
+
+All buffers that are used for message transmission via IPX or SPX must be
+allocated with this routine.
+
+IPXAllocPacket returns Nil if there is insufficient free memory to satisfy
+the request.
+
+See also:  1943IPXAllocEventRec  1949IPXFreePacket
+;
+;-------------------------------------------------------------------
+!TOPIC 1945 IPXCancelEvent
+!NOINDEX
+function 1925NWIPXSPX.IPXCancelEvent(IPXEvent : PipxEventRec) : Byte;
+
+Cancel any pending IPX event.
+
+After an event is successfully cancelled, the application can reuse the
+event variable IPXEvent. If you call 1947IPXEventComplete after cancelling an
+event, it returns True and a CompletionCode of $FC.
+
+A status code is returned in the function result:
+
+!NOWRAP
+;!TABLE
+  $00  Success.
+  $F9  Event was active but couldn't cancel it.
+  $FF  Event was not active.
+!WRAP
+;
+;-------------------------------------------------------------------
+!TOPIC 1946 IPXCloseSocket
+!NOINDEX
+procedure 1925NWIPXSPX.IPXCloseSocket(Socket : Word);
+
+Close the specified socket.
+
+Closing a socket automatically cancels any pending messages that are
+associated with the socket. Any further incoming packets are ignored.
+Attempting to close a socket that is not open has no effect.
+
+Transient (non-TSR) applications must close all their sockets before
+returning to DOS. Even if the sockets were opened with the Forever flag
+set to False, there exists a small window of time after the application
+has halted and before the IPX manager can close the socket when an
+incoming packet might cause a system crash. It is best to define an exit
+procedure that closes all open sockets no matter how the program
+terminates.
+
+If you are using event service routines, note that IPXCloseSocket cannot
+be called within the service routine.
+
+See also:  1952IPXOpenSocket  1953IPXOpenUniqueSocket
+;
+;-------------------------------------------------------------------
+!TOPIC 1947 IPXEventComplete
+!NOINDEX
+function 1925NWIPXSPX.IPXEventComplete(IPXEvent : PipxEventRec;
+                          var CompletionCode : Byte) : Boolean;
+
+Return the status of a pending IPX event.
+
+IPXEvent is the event to check. When IPXEventComplete returns True, the
+event is complete. In this case, CompletionCode returns the status of the
+event. If IPXEventComplete returns False, the value of CompletionCode is
+undefined.
+
+Call IPXEventComplete after submitting an IPX event with 1955IPXSend or
+1951IPXListen. If either function was called with the WaitForCompletion flag
+set to True, then IPXEventComplete is guaranteed to return True on the
+first call. Otherwise, the program should poll IPXEventComplete until it
+returns True. In the meantime, the application can continue to do other
+work.
+
+Each call to IPXEventComplete generates a call to 1954IPXRelinquish, which
+gives the IPX driver an opportunity to service pending events. If the
+application spends a significant amount of time between calls to
+IPXEventComplete, it should call IPXRelinquish regularly to assure that
+incoming packets are detected.
+
+CompletionCode can return several values, including:
+
+!NOWRAP
+;!TABLE
+  $00  Packet was sent or received successfully.
+  $FC  Send or listen request was cancelled.
+  $FD  Malformed packet
+  $FE  Packet is undeliverable
+  $FF  Unable to send packet
+!WRAP
+;
+;-------------------------------------------------------------------
+!TOPIC 1948 IPXFreeEventRec
+!NOINDEX
+procedure 1925NWIPXSPX.IPXFreeEventRec(IPXEvent : PipxEventRec);
+
+Free an event record allocated by 1943IPXAllocEventRec.
+
+All event records allocated using IPXAllocEventRec should be freed by
+calling IPXFreeEventRec. Otherwise heap space that is no longer in use
+remains allocated.
+;
+;-------------------------------------------------------------------
+!TOPIC 1949 IPXFreePacket
+!NOINDEX
+procedure 1925NWIPXSPX.IPXFreePacket(P : PPacket);
+
+Free a packet buffer allocated by 1944IPXAllocPacket.
+
+All packet buffers allocated using IPXAllocPacket should be freed by
+calling IPXFreePacket. Otherwise heap space that is no longer in use
+remains allocated.
+;
+;-------------------------------------------------------------------
+!TOPIC 1950 IPXInternetAddress
+!NOINDEX
+procedure 1925NWIPXSPX.IPXInternetAddress(var Address : IPXAddress);
+
+Return the internetwork address of the calling workstation.
+
+The network number and physical node address of the caller are returned by
+this function. The network number is returned in hi-lo order, which is the
+format expected by other functions to which the address is passed. The
+third member of the 1461IPXAddress type, the Socket, is not initialized by
+this call. The functions to which an IPXAddress variable is passed do not
+expect Socket to be initialized.
+
+See also:  1706nwGetInternetAddress
+;
+;-------------------------------------------------------------------
+!TOPIC 1951 IPXListen
+!NOINDEX
+function 1925NWIPXSPX.IPXListen(IPXEvent : PipxEventRec; Socket : Word;
+                   WaitForCompletion : Boolean; MaxPacketSize : Word;
+                   DataPacket : PPacket) : Byte;
+
+Initialize IPX data structures to receive a packet, and submit the event
+to IPX.
+
+The structure pointed to by IPXEvent is initialized by IPXListen; it
+maintains all the information required for managing the message. The
+caller must specify a Socket number for the transmission. Sender and
+receiver must agree on a socket number. IPXListen will open the socket
+if it isn't already open.
+
+When WaitForCompletion is False, IPXListen returns immediately after
+submitting the request to listen. In this case, the calling application
+can continue with other tasks, but it must poll the 1947IPXEventComplete
+function to determine when the event is complete. If WaitForCompletion is
+True, IPXListen itself polls until the event is complete. The completion
+code returned by IPXEventComplete indicates whether a message was actually
+received.
+
+MaxPacketSize specifies the maximum number of bytes to receive, not
+including the header information managed internally by IPXListen. The
+largest allowable packet size is 546 bytes (1928IPXMaxDataSize). DataPacket is
+a pointer to a variable of any type, as long as the variable is large
+enough to hold at least the number of bytes specified by MaxPacketSize.
+This DataPacket buffer must have been allocated by 1944IPXAllocPacket.
+
+A status code is returned in function result:
+
+!NOWRAP
+;!TABLE
+  $00  Success.
+  $01  MaxPacketSize too large.
+  $FE  Socket table full.
+!WRAP
+
+See also:  1946IPXCloseSocket  1952IPXOpenSocket  1955IPXSend
+;
+;-------------------------------------------------------------------
+!TOPIC 1952 IPXOpenSocket
+!NOINDEX
+function 1925NWIPXSPX.IPXOpenSocket(Socket : Word; Forever : Boolean) : Byte;
+
+Open a socket for use by IPX or SPX.
+
+Sender and receiver must agree on a socket number in order to communicate.
+Sockets numbered from $4000 to $7FFF are available for use by any
+application.
+
+When Forever is True, the socket remains open until explicitly closed,
+even after the current program terminates. Otherwise, the IPX driver
+closes it automatically when the program ends. Setting Forever True would
+be useful for a TSR that requires IPX services.
+
+The 1955IPXSend and 1951IPXListen routines open the requested socket when they are
+called, if necessary. Thus IPXOpenSocket might be most useful for
+determining that a socket can be opened before an application proceeds too
+far.
+
+Even though the IPX driver automatically closes sockets when Forever is
+set False, it is still recommended that the application explicitly close
+its own sockets.
+
+A status code is returned in function result:
+
+!NOWRAP
+;!TABLE
+  $00  Success.
+  $FE  Socket table is full.
+  $FF  Socket already open.
+!WRAP
+
+See also:  1946IPXCloseSocket  1953IPXOpenUniqueSocket
+;
+;-------------------------------------------------------------------
+!TOPIC 1953 IPXOpenUniqueSocket
+!NOINDEX
+function 1925NWIPXSPX.IPXOpenUniqueSocket(var Socket : Word; Forever : Boolean) : Byte;
+
+Open and return a unique socket number.
+
+This function works like 1952IPXOpenSocket, but it returns a socket number
+instead of having one passed to it. The returned socket is any valid
+available socket found by the IPX driver. The difficulty in using this
+routine is that the socket number must usually be communicated to the
+receiving partner using other means.
+
+A status code is returned in function result:
+
+!NOWRAP
+;!TABLE
+  $00  Success.
+  $FE  Socket table is full.
+!WRAP
+
+See also:  1946IPXCloseSocket
+;
+;-------------------------------------------------------------------
+!TOPIC 1954 IPXRelinquish
+!NOINDEX
+procedure 1925NWIPXSPX.IPXRelinquish;
+
+Temporarily relinquish application control to the IPX driver.
+
+This procedure serves one of two purposes, depending on whether it is
+invoked from a non-dedicated file server or a workstation. On a server,
+this function temporarily suspends the calling process so that the server
+program gets CPU resources immediately. Similarly, on a workstation, the
+NetWare shell gets temporary control during which it can check for
+incoming and outgoing messages.
+
+This procedure should be called frequently while an application waits for
+an IPX or SPX event to complete. 1947IPXEventComplete automatically calls
+IPXReliquish. However, if an application performs significant processing
+between calls to IPXEventComplete, it is wise to call IPXRelinquish
+regularly so that the driver can process incoming messages.
+;
+;-------------------------------------------------------------------
+!TOPIC 1955 IPXSend
+!NOINDEX
+function 1925NWIPXSPX.IPXSend(IPXEvent : PipxEventRec;
+                 Receiver : IPXAddress; Socket : Word;
+                 WaitForCompletion : Boolean; DataPacketSize : Word;
+                 DataPacket : PPacket) : Byte;
+
+Initialize IPX data structures to send a packet, and submit the event to
+IPX.
+
+The event record pointed to by IPXEvent is initialized by IPXSend and
+maintains all the information required for managing the message. The
+IPXEvent variable must be obtained by calling 1943IPXAllocEventRec.
+
+The caller must initialize Receiver to specify where the packet should go.
+The caller must also specify a Socket number for the transmission. Sender
+and receiver must agree on a socket number. IPXSend opens the socket if
+it isn't already open.
+
+When WaitForCompletion is False, IPXSend returns immediately after
+submitting the request to send. In this case, the calling application can
+continue with other tasks, but it must poll the 1947IPXEventComplete function
+to determine when the event is complete. If WaitForCompletion is True,
+IPXSend itself polls until the event is complete. Because IPX messages are
+not confirmed by the receiver, it's generally fast and safe to pass True
+to allow the send to finish before IPXSend returns. If WaitForCompletion
+is True, the status of the send is returned in the function result;
+otherwise call IPXEventComplete to determine the status.
+
+DataPacketSize specifies the number of bytes to send, not including the
+header information managed internally by IPXSend. The largest allowable
+packet size is 546 bytes. DataPacket is a pointer to a variable of any
+type, as long as the variable holds at least the number of bytes specified
+by DataPacketSize. The DataPacket buffer must be obtained by calling
+1944IPXAllocPacket.
+
+A status code is returned in function result:
+
+!NOWRAP
+;!TABLE
+  $00  Success.
+  $01  DataPacketSize too large.
+  $FE  Socket table full.
+!WRAP
+
+See also:  1946IPXCloseSocket  1951IPXListen  1952IPXOpenSocket
+;
+;-------------------------------------------------------------------
+!TOPIC 1956 IPXServicesAvail
+!NOINDEX
+function 1925NWIPXSPX.IPXServicesAvail : Boolean;
+
+Determine whether IPX services are available.
+
+You must call this routine before using any of the IPX or SPX functions.
+When this routine returns True, it also initializes a pointer that is
+used to make calls to the IPX driver.
+
+If IPXServicesAvail returns False, no IPX driver is available and you must
+not call any other IPX or SPX routines.
+
+See also:  1969SPXServicesAvail
+;
+;-------------------------------------------------------------------
+!TOPIC 1957 SPXAbortConn
+!NOINDEX
+procedure 1925NWIPXSPX.SPXAbortConn(SPXEvent : PspxEventRec);
+
+Abruptly terminate an existing SPX connection.
+
+SPXAbortConn does not notify the connection partner of the decision to
+break the connection. The partner will eventually discover that the
+connection is no longer valid when it sends a packet or attempts to
+terminate the connection. If the connection was established with the SPX
+Watchdog feature (see the SPXWatchdog typed constant earlier in this
+section), the partner will receive a failed connection message the next
+time the monitor tests the connection.
+
+This routine is designed to unilaterally break a connection when a serious
+error condition is encountered. Under most circumstances, 1970SPXTerminateConn
+should be called instead.
+
+See also:  1961SPXEstablishConn  1970SPXTerminateConn
+;
+;-------------------------------------------------------------------
+!TOPIC 1958 SPXAllocEventRec
+!NOINDEX
+function 1925NWIPXSPX.SPXAllocEventRec(NumECBs : byte;
+                          MaxPacketSize : word) : PspxEventRec;
+
+Allocate an SPX event record and associated buffers.
+
+NumECBs specifies the number of message buffers, each of size
+MaxPacketSize bytes, allocated for the SPX event record. NumECBs must
+always be at least equal to two. NumECBs can be no more than
+1930SPXMaxPoolCount, which defaults to 16. Because SPX has automatic flow
+control, the choice of NumECBs is primarily a matter of performance.
+
+MaxPacketSize must be in the range from 1 to 1929SPXMaxDataSize (534).
+If NumECBs or MaxPacketSize is outside of the valid range, or if there is
+insufficient memory to allocate the structure, SPXAllocEventRec returns
+nil.
+
+See also:  1944IPXAllocPacket  1963SPXFreeEventRec
+;
+;-------------------------------------------------------------------
+!TOPIC 1959 SPXCancelListenForConn
+!NOINDEX
+procedure 1925NWIPXSPX.SPXCancelListenForConn(SPXEvent : PspxEventRec);
+
+Cancel an outstanding listen for connection event.
+
+This routine cancels a call to 1965SPXListenForConn that hasn't completed yet. Because
+a connection number is not assigned until that event completes, you cannot use the
+1970SPXTerminateConn or 1957SPXAbortConn routines.
+;
+;-------------------------------------------------------------------
+!TOPIC 1960 SPXECBsListening
+!NOINDEX
+function 1925NWIPXSPX.SPXECBsListening(SPXEvent : PspxEventRec) : Byte;
+
+Determine how many listen buffers are actively listening.
+
+This function returns a number in the range from zero to NumECBs (as
+passed to 1958SPXAllocEventRec). If no buffers are listening, all of the
+connection's data buffers are already filled with incoming data and the
+sending side of the connection is blocked from sending further messages.
+If all buffers are listening, no received messages are pending.
+
+See also:  1964SPXGetConnStatus  1967SPXReactivateECB
+;
+;-------------------------------------------------------------------
+!TOPIC 1961 SPXEstablishConn
+!NOINDEX
+function 1925NWIPXSPX.SPXEstablishConn(SPXEvent : PipxEventRec; Receiver : IPXAddress;
+                          LocalSocket : Word; RemoteSocket : Word
+                          WaitForCompletion : Boolean) : Byte;
+
+Establish an SPX connection with a listening partner.
+
+An initial message is sent to the partner's internetwork address in an
+attempt to create an SPX connection. If the partner responds correctly,
+then a communication channel is established. The partner must call
+1965SPXListenForConn in order to establish its side of the link.
+
+The caller must initialize Receiver to specify the partner's address.
+The caller must also specify two socket numbers for the connection: the
+first socket is used by the local program (LocalSocket) to communicate
+with its SPX driver and the other is used by the remote program to
+communicate with *its* SPX driver. These two socket numbers must be
+different. The sender and receiver must agree on the two socket numbers.
+SPXEstablishConn opens the local socket if it isn't already open.
+
+When WaitForCompletion is False, SPXEstablishConn returns immediately
+after submitting the request to establish a connection. In this case, the
+calling application can continue with other tasks, but it must poll the
+1962SPXEventComplete function to determine when the event is complete. If
+WaitForCompletion is True, SPXEstablishConn itself polls until the event
+is complete.
+
+The SPX connection ID eventually established by this function is stored in
+the SPXEvent variable.
+
+A status code is returned in the function result:
+
+!NOWRAP
+;!TABLE
+  $00  Success.
+  $EF  Local connection table is full.
+  $FD  Malformed packet (NETWARE internal error).
+  $FE  The socket table is full.
+!WRAP
+
+Call 1970SPXTerminateConn to cancel an SPXEstablishConn call that's in
+progress.
+
+See also:  1706nwGetInternetAddress  1968SPXSend
+
+;
+;-------------------------------------------------------------------
+!TOPIC 1962 SPXEventComplete
+!NOINDEX
+function 1925NWIPXSPX.SPXEventComplete(SPXEvent : PspxEventRec;
+                          var CompletionCode : Byte) : Boolean;
+
+Poll the status of an SPX event to determine when the event is complete.
+
+This routine is necessary because SPX messaging services are asynchronous.
+When an application calls 1961SPXEstablishConn, 1965SPXListenForConn, or 1968SPXSend
+and the WaitForCompletion parameter is False, SPX submits a message header
+to a queue and returns immediately.
+
+Only later, when the message has made its way to the receiver and a
+confirmation is received, is the event considered complete. At that time,
+the caller can check the outcome, e.g., whether the connection was
+established or the message was successfully sent. SPXEventComplete returns
+True when the specified event is complete; False otherwise. It is never
+safe to call one of these functions using the same SPXEvent variable until
+the previous event is complete.
+
+When SPXEventComplete returns True, CompletionCode returns a status code:
+
+!NOWRAP
+;!TABLE
+  $00  Event completed successfully.
+  $EC  Connection terminated by remote partner.
+  $ED  Target failed to answer.
+  $EE  Invalid connection ID in SPXEvent variable.
+  $EF  Local connection table is full.
+  $FC  Event cancelled.
+  $FD  Malformed packet.
+  $FE  The socket table is full.
+  $FF  Underlying socket not open. (NETWARE internal error)
+!WRAP
+
+Each call to SPXEventComplete generates a call to 1954IPXRelinquish, which
+gives the IPX driver an opportunity to service pending IPX and SPX events.
+If the application spends a significant amount of time between calls to
+SPXEventComplete, it should call IPXRelinquish regularly to assure that
+incoming packets are detected.
+
+See also:  1947IPXEventComplete
+;
+;-------------------------------------------------------------------
+!TOPIC 1963 SPXFreeEventRec
+!NOINDEX
+procedure 1925NWIPXSPX.SPXFreeEventRec(SPXEvent : PspxEventRec);
+
+Free an SPX event record and associated buffers.
+
+All SPX event records allocated using 1958SPXAllocEventRec should be freed by
+calling SPXFreeEventRec. Otherwise heap space that is no longer in use
+remains allocated. For protected mode DOS and Windows applications, a DPMI
+callback and selector resource would also remain allocated.
+;
+;-------------------------------------------------------------------
+!TOPIC 1964 SPXGetConnStatus
+!NOINDEX
+function 1925NWIPXSPX.SPXGetConnStatus(SPXEvent : PspxEventRec;
+                          var ConnStatus : TSPXStatus) : byte;
+
+Return the status of an existing connection.
+
+This function can be called after calling 1961SPXEstablishConn even if this
+event have not completed successfully. It can also be called after a
+connection is established. The function returns zero if the SPXEvent refers
+to a valid SPX connection. When the function returns zero, the structure
+pointed to by ConnStatus is initialized to contain information about the
+connection.
+
+A status code is returned in the function result:
+
+!NOWRAP
+;!TABLE
+  0x00 Success.
+  0xEE No such connection.
+!WRAP
+;
+;-------------------------------------------------------------------
+!TOPIC 1965 SPXListenForConn
+!NOINDEX
+function 1925NWIPXSPX.SPXListenForConn(SPXEvent : PspxEventRec; LocalSocket : Word;
+                          WaitForCompletion : Boolean) : Byte;
+
+Listen for an SPX connection from a sending partner.
+
+This function is the counterpart of the 1961SPXEstablishConn function. For a
+connection to be established, one side must listen with SPXListenForConn,
+and the other side must call with SPXEstablishConn.
+
+The caller must specify a socket number (LocalSocket) for the connection.
+This socket is used for communicating with the local SPX driver, and must
+be the same socket that the partner specifies in the RemoteSocket
+parameter when it calls SPXEstablishConn. SPXListenForConn opens the
+specified socket if it isn't already open.
+
+When WaitForCompletion is False, SPXListenForConn returns immediately
+after submitting the request to establish a connection. In this case, the
+calling application can continue with other tasks, but it must poll the
+1962SPXEventComplete function to determine when the event is complete. If
+WaitForCompletion is True, SPXListenForConn itself polls until the event
+is complete.
+
+If you pass True for WaitForCompletion and SPXListenForConn returns zero
+(i.e. successful), then it automatically stores the SPX connection ID in
+the SPXEvent variable in the ConnID field. If you pass False so that
+SPXListenForConn returns immediately, a subsequent successful call to
+SPXEventComplete stores the connection ID in the same field.
+
+A status code is returned in the function result:
+
+!NOWRAP
+;!TABLE
+  $00  Event submitted successfully.
+  $EF  Local connection table is full.
+  $FE  The socket table is full.
+!WRAP
+
+You can cancel an outstanding call to SPXListenForConn (one that is not complete)
+by calling 1959SPXCancelListenForConn.
+;
+;-------------------------------------------------------------------
+!TOPIC 1966 SPXPacketReceived
+!NOINDEX
+function 1925NWIPXSPX.SPXPacketReceived(SPXEvent : PspxEventRec; var Index : Byte;
+                           var DataType : Byte; var CompletionCode : Byte;
+                           var DataPtr : Pointer) : Boolean;
+
+Return True if an SPX packet was received.
+
+An application that is waiting to receive SPX messages must call this
+routine in a loop. SPXPacketReceived checks the internal queue of received
+messages and returns True when the queue is not empty. The queue is
+updated in the background by an SPX event service routine.
+
+When SPXPacketReceived returns True, the Index parameter is set to the
+internal index number of the listen buffer holding the received message.
+Your application doesn't need to use this number except to pass it to
+1967SPXReactivateECB, which indicates that the application has processed the
+message and the listen buffer can be reused by SPX.
+
+The variable pointed to by DataType is also initialized when a message is
+received. DataType always contains the value zero for messages sent by
+your application. Non-zero values indicate a message sent by SPX itself.
+
+The variable pointed to by CompletionCode holds the final status of the
+IPX event record used to manage this particular packet. Any non-zero value
+indicates that there was an error receiving the packet.
+
+The variable pointed to by DataPtr gets a pointer to the actual data
+buffer. Data buffers were allocated when 1958SPXAllocEventRec was called, and
+DataPtr returns one of these pointers. You can pass the address of any
+pointer in this position, and then use that pointer to process the
+received message.
+;
+;-------------------------------------------------------------------
+!TOPIC 1967 SPXReactivateECB
+!NOINDEX
+procedure 1925NWIPXSPX.SPXReactivateECB(SPXEvent : PspxEventRec; Index : byte);
+
+Reactivate the specified listen buffer.
+
+After an application receives a message (via 1966SPXPacketReceived) and
+completely processes the message, it must call SPXReactivateECB to inform
+SPX that the listen buffer can be reused.
+
+The Index parameter must be the same value that was returned by
+SPXPacketReceived. If Index is outside of the valid range of indexes,
+SPXReactivateECB does nothing.
+;
+;-------------------------------------------------------------------
+!TOPIC 1968 SPXSend
+!NOINDEX
+function 1925NWIPXSPX.SPXSend(SPXEvent : PspxEventRec; WaitForCompletion : Boolean;
+                 DataPacketSize : Word; DataPacket : PPacket) : Byte;
+
+Send a data packet using SPX services.
+
+SPXEvent must have been allocated previously by a call to
+1958SPXAllocEventRec, and an SPX connection must have been established by a
+successful (completed) call to 1961SPXEstablishConn or 1965SPXListenForConn. The DataPacket
+pointer must have been allocated by calling 1944IPXAllocPacket.
+
+The packet is any user-defined data type up to 534 bytes in size. Pass the
+size of the packet as the DataPacketSize parameter. The actual length of
+the message is not known to the receiver, so if packets of varying sizes
+are sent, the application should store the packet length somewhere within
+the packet itself. The packet length should not exceed the maximum size
+specified by the receiver when it called SPXAllocEventRec.
+
+The SPXSend event is asynchronous in the same sense that establishing the
+connection is. Therefore, if WaitForCompletion is False, an SPXSend must
+be followed by repeated calls to 1962SPXEventComplete. Similarly, the
+DataPacket buffer must remain static until the SPXSend is complete.
+;
+;-------------------------------------------------------------------
+!TOPIC 1969 SPXServicesAvail
+!NOINDEX
+function 1925NWIPXSPX.SPXServicesAvail(var Version : Word; var MaxSPXConn : Word;
+                          var AvailSPXConn : Word) : Boolean;
+
+Determine if SPX services are available and, if so, return version
+information.
+
+You must call this function before using any of the other SPX functions.
+
+SPXServicesAvail returns True if SPX is available. In this case it also
+returns SPXVersion, which is the SPX version number with the major part in
+the high byte. MaxSPXConn is the maximum number of SPX connections
+possible. AvailSPXConn is the currently available number of SPX
+connections.
+
+See also:  1956IPXServicesAvail
+;
+;-------------------------------------------------------------------
+!TOPIC 1970 SPXTerminateConn
+!NOINDEX
+procedure 1925NWIPXSPX.SPXTerminateConn(SPXEvent : PspxEventRec);
+
+Terminate an existing SPX connection.
+
+SPXTerminateConn sends a packet to the other end of the connection
+indicating that the connection should be broken. SPX automates the
+receiver's acknowledgement of the message and also completes the
+disconnection process. The associated connection ID is returned to the
+free pool.
+
+SPXTerminateConn internally waits for the local SPX driver to report that
+the connection was successfully terminated. Then the routine closes the
+local socket that was being used for communicating to the SPX driver and
+clears out the relevant fields in the SPXEvent variable. On return from
+SPXTerminateConn, the SPXEvent variable can either be reused to establish
+another connection, or can be freed by calling 1963SPXFreeEventRec.
+
+See also:  1957SPXAbortConn  1961SPXEstablishConn

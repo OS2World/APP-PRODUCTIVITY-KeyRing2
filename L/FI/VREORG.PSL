@@ -1,0 +1,74 @@
+(**************************************************************)
+(*    B-Tree Isam Variable Records Reorg Ver 5.51             *)
+(*   Copyright (C) 1988-1991 Dipl.Math. Ralf Nagel            *)
+(*   Copyright (C) 1991-1994 ENZ EDV-Beratung GmbH            *)
+(*                All rights reserved                         *)
+(*   Modified and used under license by TurboPower Software   *)
+(**************************************************************)
+
+(***Moved to VREORG.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$F-,V-,B-,S-,I-,R-}
+  {$IFDEF CanAllowOverlays}
+    {$O+,F+}
+  {$ENDIF}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+
+
+Unit VReorg;                                                      {!!.50mod}
+ ***)
+
+Interface
+
+Uses
+  Filer,     {!!.TP}
+  Restruct,
+  Reindex;
+
+  Procedure ReorgVFileBlock ( FBlName        : IsamFileBlockName;
+                              DatSLen        : LongInt;
+                              NumberOfKeys   : Word;
+                              IID            : IsamIndDescr;
+                              DatSLenOld     : LongInt;
+                              MaxDiffBytes   : Word;
+                              FuncBuildKey   : Pointer;
+                              ProcChangeDatS : Pointer );
+    {-Reorganizes a variable record length fileblocks data and index
+      structure}
+
+
+Implementation
+
+  Procedure ReorgVFileBlock ( FBlName        : IsamFileBlockName;
+                              DatSLen        : LongInt;
+                              NumberOfKeys   : Word;
+                              IID            : IsamIndDescr;
+                              DatSLenOld     : LongInt;
+                              MaxDiffBytes   : Word;
+                              FuncBuildKey   : Pointer;
+                              ProcChangeDatS : Pointer );
+
+  Var
+    Dummy : Boolean;
+
+  Begin
+    RestructFileBlock ( FBlName, DatSLen, DatSLenOld, True, MaxDiffBytes,
+        FuncChangeDatS (ProcChangeDatS), BTNoCharConvert, Nil );
+    If Not IsamOK Then Exit;
+    If NumberOfKeys > 0 Then Begin
+      ReIndexFileBlock ( FBlName, NumberOfKeys, IID, True,
+          Reindex.FuncBuildKey (FuncBuildKey), True, Dummy,
+          BTNoCharConvert, Nil );
+    End;
+  End;
+
+
+(***Moved to VREORG.PAS***  !!.TP
+{$IFDEF InitAllUnits}
+Begin
+{$ENDIF}
+End.
+ ***)

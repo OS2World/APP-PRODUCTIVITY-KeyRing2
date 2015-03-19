@@ -1,0 +1,255 @@
+{***************************************************************************
+* Filename: ~modname~
+* Version:  ~version~
+* Date:     ~date~ @ ~time~
+* Group:    ~group~
+* Release:  ~release~
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* Version   Date     Time    Programmer   Description
+* 1.0       1  Feb 2003 2131    KMcCoy       virgin
+* 1.1       20 Feb 2003 1728    KMcCoy       Improved scaling aesthetics; fixed bar width bug
+* ~log~
+*
+*
+* ~notes~
+* Description
+* -----------
+* Generic Bar Graph class using GD Library
+*
+*
+* ~notesend~
+*
+***************************************************************************
+
+}
+{$A+,B-,D+,E+,F+,G+,I+,L+,N+,O+,P+,Q+,R+,S+,T-,V-,X+,Y+}
+
+UNIT GDBAR;
+
+INTERFACE
+USES
+    CLASSES,
+    GD,
+    GDGRAPH;
+
+TYPE
+    PBarGraph          = ^TBarGraph;
+
+    {The bar graph plotter object}
+    TBarGraph  = CLASS(TGDGraph)
+                         MySelf         : TBarGraph;
+                         CONSTRUCTOR Create(FullExtent    : TExtentRange); // i.e. 640x480
+                         DESTRUCTOR Destroy; override;
+                         {plot data, grid, labels, headers and markers to canvas}
+                         PROCEDURE RenderGraph; virtual;
+
+
+                         PRIVATE
+                             {drop pen and move to new location, drawing}
+                         PROCEDURE PlotBar(X, Y, Width : DOUBLE; Color : LONGINT);
+                             {move pen to new location, drop pen and draw to second location}
+
+                         FUNCTION GetXScaleWidth  : LONGINT;
+                         FUNCTION GetYScaleHeight : LONGINT;
+                         PUBLIC
+                         MyBarWidth     : DOUBLE;
+                         PROPERTY BarWidth:DOUBLE read MyBarWidth write MyBarWidth;
+                     END;
+
+IMPLEMENTATION
+USES
+    ERRORLOG,
+    Strings,
+    Math,
+    OS2BASE,
+    SysUtils,
+    UTIAM,
+    VPUTILS;
+CONST
+    BadReal = 9.9E300;
+    LEADING = 1.1;
+    {------------}
+
+    {instantiate a grid plotter object}
+    CONSTRUCTOR TBarGraph.Create(FullExtent : TExtentRange); // i.e. 640x480
+    BEGIN
+        INHERITED Create(FullExtent);
+        MySelf := Self;
+    END;
+
+    {------------}
+
+    DESTRUCTOR TBarGraph.Destroy;
+    BEGIN
+        inherited Destroy;
+    END;
+
+    {------------}
+
+    // plot a single bar on the graph
+    PROCEDURE TBarGraph.PlotBar(X, Y, Width : DOUBLE; Color : LONGINT);
+    VAR
+        Pt1,
+        Pt2 : TPoint;
+    BEGIN
+        TranslateXY(X, Y, Pt1);
+        TranslateXY(X + Width, MyYMinSc, Pt2);
+        gdImageFilledRectangle(MyIm, Pt1.X, Pt1.Y, Pt2.X, Pt2.Y, Color);
+        gdImageRectangle(MyIm, Pt1.X, Pt1.Y, Pt2.X, Pt2.Y, Black);
+
+    END;
+
+    {------------}
+
+    PROCEDURE FillSort(VAR Sort : TChannelSort);
+    VAR
+        Ch : TPlotChannel;
+    BEGIN
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO
+            Sort[Ch] := Ch;
+    END;
+
+    {------------}
+
+    PROCEDURE TBarGraph.RenderGraph;
+    VAR
+        X,
+        Y              : DOUBLE;
+        ItemIndex      : LONGINT;
+        XY1            : TPlotCoord;
+        XY2            : TPlotCoord;
+        Tc,
+        Ch             : TPlotChannel;
+        UnSorted         : BOOLEAN;
+        I,
+        MaxCount,
+        MaxXLabelWidth,
+        MaxYLabelHeight,
+        Black,
+        White,
+        Red,
+        Green,
+        Blue : LONGINT;
+        BRect : TBoundingRect;
+        Strg : STRING;
+        Sort : TChannelSort;
+    BEGIN
+        LogError(EDEBUG, 'BarGraph RenderGraph', 'Entry', Iam);
+        try
+            try
+                INHERITED RenderGraph; // calc viewports and whatnot
+                LogError(EDEBUG, 'BarGraph RenderGraph', 'after inherited rendergraph', Iam);
+
+                Draw3dPanel;
+                LogError(EDEBUG, 'BarGraph RenderGraph', 'after draw3d', Iam);
+
+                DrawTextRegions;
+                LogError(EDEBUG, 'BarGraph RenderGraph', 'after drawtextreg', Iam);
+
+                DrawScales;
+                LogError(EDEBUG, 'BarGraph RenderGraph', 'after drawscales', Iam);
+
+                MaxCount := 0;
+
+                FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+                    IF MyData[Ch].DL = NIL THEN
+                        CONTINUE;
+                    MaxCount := Max(MaxCount, MyData[Ch].DL.Count);
+                END;
+                LogError(EDEBUG, 'BarGraph RenderGraph', 'maxcount='+Int2Str(MaxCount), Iam);
+
+                // bubble sort the channels, such that the tallest bars plot first
+                // and are overlayed by the lower ones (making all of them visible)
+                FOR I := 0 TO MaxCount-1 DO BEGIN
+                    FillSort(Sort);
+                    REPEAT
+                        UnSorted := FALSE;
+                        FOR Ch := LOW(Ch) TO PRED(HIGH(Ch)) DO BEGIN
+                            IF (MyData[Sort[Ch]].DL = NIL) OR (MyData[Sort[Ch]].DL.Count < I) THEN
+                                CONTINUE;
+                            IF (MyData[Sort[SUCC(Ch)]].DL = NIL) OR (MyData[Sort[SUCC(Ch)]].DL.Count < I) THEN
+                                CONTINUE;
+                            // get two adjacent channels on the same column
+                            // assumes each column has the same X-axis value!
+                            TPlotPoint(MyData[Sort[Ch]].DL.Items[I]).GetVal(XY1);
+                            TPlotPoint(MyData[Sort[SUCC(Ch)]].DL.Items[I]).GetVal(XY2);
+                            // swap indices
+                            IF XY1.Y < XY2.Y THEN BEGIN
+                                Tc := Sort[Ch];
+                                Sort[Ch] := Sort[SUCC(Ch)];
+                                Sort[SUCC(Ch)] := Tc;
+                                UnSorted := TRUE;
+                                BREAK;
+                            END;
+                        END;
+                    UNTIL NOT UnSorted;
+
+                    FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+                        IF (MyData[Sort[Ch]].DL = NIL) OR (MyData[Sort[Ch]].DL.Count < I) THEN
+                            CONTINUE;
+                        // use indirect sort to look up the data channels in the right order
+                        TPlotPoint(MyData[Sort[Ch]].DL.Items[I]).GetVal(XY1);
+                        LogError(EDEBUG, 'BarGraph RenderGraph', Format('Plotting XY=%g,%g', [xy.x, xy.y]), Iam);
+
+                        PlotBar(XY1.X, XY1.Y, MyBarWidth, MyData[Sort[Ch]].Color);
+                    END;
+
+                END;
+                DrawMarkers;
+                LogError(EDEBUG, 'BarGraph RenderGraph', 'after drawmarkers', Iam);
+            finally
+                LogError(EDEBUG, 'BarGraph RenderGraph', 'finally block', Iam);
+            end;
+        except
+            LogError(EERROR, 'BarGraph RenderGraph', 'Exception caught', Iam);
+        end;
+    END;
+
+    {------------}
+
+    FUNCTION TBarGraph.GetXScaleWidth  : LONGINT;
+    VAR
+        Strg : STRING;
+        Ch   : TPlotChannel;
+        T,
+        W,
+        I : LONGINT;
+        XY : TPlotCoord;
+        PP : TPlotPoint;
+        BRect          : TBoundingRect;
+    BEGIN
+        W := 0;
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+            IF MyData[Ch].DL = NIL THEN
+                CONTINUE;
+
+            FOR I := 0 to MyData[Ch].DL.Count-1 DO BEGIN
+                TPlotPoint(MyData[Ch].DL.Items[I]).GetVal(XY);
+                Strg := Format(XScaleFormat, [XY.X]) + #0;
+                gdImageStringFT(NIL, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, 10, 10, @Strg[1]);
+                T := BRect.URX - BRect.ULY;
+                IF T > W THEN
+                    W := T;
+            END;
+        END;
+        Result := W;
+    END;
+
+    {------------}
+
+    FUNCTION TBarGraph.GetYScaleHeight : LONGINT;
+    BEGIN
+        Result := CalcStringHeight(MyLabelFont, MyLabelPointSize, 0.0, 'H');
+    END;
+
+    {------------}
+
+END.
+
+    {------------}
+    {------------}
+

@@ -1,0 +1,254 @@
+This file contains information you need to install KeyRing/2,
+and additional information not included in the product documentation.
+
+This README file is divided into the following categories:
+   -  Before You Install KeyRing/2
+       -Software Requirements
+       -Hardware Requirements
+   -  Download Instructions
+   -  Installing KeyRing/2
+   -  Getting Help
+   -  Late-Breaking News
+   -  Trademarks
+   -  Your Satisfaction
+
+
+Before You Install KeyRing/2
+---------------------------------
+   Software Requirements
+   ---------------------
+   OS/2 Warp 3.0 or Warp 4.0
+   WarpIN installer from OS/2 Netlabs
+
+   Optional Software
+   -----------------
+   Netscape for OS/2 (any version that supports DDE)
+
+   Hardware Requirements
+   ---------------------
+   486 CPU or better
+   32 Mb RAM 
+   Sufficient free disk space for installation and database file
+   (approx 2.5 Mb)
+
+-------------------------------------------
+KeyRing/2 Download Instructions
+-------------------------------------------
+
+   If you are downloading using Netscape, remember to hold the Shift key down 
+   when you click on the web page download link to KR2.WPI.  If you fail to 
+   do so, your screen will fill with junk characters and the file will not 
+   be downloaded!
+
+   If you are downloading the demo, read this entire file! There is a missing
+   file you must obtain from IDK, Inc. before you will be able to encrypt
+   your database!
+
+-------------------------------------------
+KeyRing/2 Installation Instructions:
+-------------------------------------------
+
+1. Create an empty directory on your hard drive.  Skip to step 4 if you have
+   downloaded the installation files from the Internet. 
+   
+2. Insert KeyRing/2 floppy 1 of 3 into drive A:
+
+3. Open an OS/2 command line session, CD to the new directory and run:
+
+	[C:\emptydir] a:\kr2inst
+
+   KR2INST will ask you to swap disks several times.  Follow the on-screen 
+   instructions to completion.  
+
+4. Check your system for an existing installation of WarpIN, the OS/2 
+   installer by OS/2 Netlabs.  If WarpIN has already been installed, skip to
+   step 6.
+
+5. Either download or unzip C:\emptydir\WarpIN2.ZIP. The latest version of 
+   WarpIN can be found at:
+	
+	http://amor.rz.hu-berlin.de/~h0444vnd/warpin.htm
+
+   The OS/2 Netlabs page can be found at:
+
+	http://www.netlabs.org/
+
+   You may wish to move WarpIN.EXE and its associated files to its own 
+   directory. It creates a small database that it needs to access 
+   during upgrades and de-installs. 
+
+   Run WarpIN.EXE. 
+
+   This "installs the installer".  WarpIN creates a folder on your desktop.  
+   You may drag this folder to your System or Programs folder if you like.
+
+   WarpIN is a generic installer/deinstaller that can be used with products 
+   other than KeyRing/2.  You only have to do this step once. 
+
+6. Open the directory folder where you downloaded/extracted the KeyRing/2 
+   product files, and double click on KR2.WPI. WarpIN should launch and show 
+   you the various packages found in the installation archive file.  
+
+7. If this is an initial installation and you have not yet registered:
+
+	Select the first two packages, "KeyRing/2" and "Demo Registration". 
+	Optionally, you may install the "Startup Sounds for KeyRing/2"
+
+   If you have registered (paid) and want to reinstall from floppies or from
+   your existing KR2.WPI file:
+   
+   	Select packages other than the "Demo Registration".  Selecting Demo 
+   	will overwrite your key file, and you will have to reinstall it 
+   	separately.
+
+8. Click the WarpIN "Next" button and select an Installation directory, if 
+   you don't want to use C:\KR2.  You may install on a FAT or HPFS partition.  
+   Networked drives are OK.  If you want to use long file names for your 
+   files you must use an HPFS partition. Proceed through the WarpIN 
+   instructions and finish the installation. WarpIN will create a folder on 
+   your desktop and populate it with icons.  
+
+9. If you are installing from floppies, your installation is complete!  Skip 
+   to Step 11.
+
+10. If you downloaded the KeyRing/2 product files from the internet, you must
+   now contact IDK, Inc. to obtain the appropriate encryption module. North
+   American and Canadian users will receive the 448 bit Blowfish encryption 
+   module. Users outside of North America, will receive the 48 bit DES 
+   encryption module.
+
+   IDK Inc. is in the process of obtaining a crypto export license to allow
+   export of the stronger Blowfish encryption module to users outside North
+   America.  KeyRing/2 already contains a migration path from DES to 
+   Blowfish - If you start out with DES encryption, you will be able to 
+   upgrade to Blowfish for free - if and when we receive US Government 
+   approval to export the stronger encryption version.
+
+   Send an Email to IDK, Inc. and provide us your snail mail address.  We will
+   send you the (small) encryption module as an email attachment, upon 
+   verification of your address. North American users must not export the 
+   Blowfish encryption module outside the USA and Canada.
+
+11. Note: The first time you run KeyRing/2, it may ask you to supply a 
+registration code to activate your key file. Your registration code is found 
+in the KeyRing/2 Information folder.  Double click on the Registration Code 
+icon to view the code.  Cut and paste the 16 character code into the 
+KeyRing/2 registration code dialog box when asked.  This code is NOT your 
+master password!
+
+12. Read the manual found in the KeyRing/2 desktop folder for further 
+information. 
+
+13. If KeyRing/2 complains about a missing VROBJ.DLL, then copy the enclosed
+VROBJ.DLL to your D:\OS2\DLL directory.  Replace "D:" with your OS/2 boot 
+drive letter. VROBJ.DLL is used by a wide variety of software, so don't 
+delete it if you uninstall KeyRing/2.
+
+14. You may safely erase KR2.WPI after installation. You can download a new
+copy from the Internet or use your installation floppies to recreate this 
+file.
+
+Note: If this is an unregistered demo version, your database files will
+have a maximum lifetime of 30 days. After 30 days your database will "go to 
+sleep" until you register.  You can create new database files with KeyRing/2 
+to "restart the clock". Registration will allow you access to your expired
+database files, if any.
+
+
+
+**********************************************************************
+                           Warning!
+Resetting your computer clock will make the demo version of KeyRing/2 
+inoperative and your database files inaccessible.
+**********************************************************************
+
+After you register, you *may* change your computer clock without harming 
+KeyRing/2. 
+
+Contact IDK, Inc. for a special registration key if you would like to 
+evaluate KeyRing/2 in a mobile environment where it is necessary to change 
+the computer clock.
+
+--------------
+Deinstallation
+--------------
+
+Note: You do not need to deinstall to upgrade.  
+
+1. Open your WarpIN folder
+
+2. Start WarpIN by double clicking on the WarpIN icon.
+
+3. Select the KeyRing/2 packages you want to deinstall with your mouse. Be 
+   careful not to delete any other software you have installed with WarpIN 
+   that you don't want to deinstall.
+
+4. Right-click on a selected package and then click on the Deinstall menu 
+   item.  WarpIN will remove the files and the KeyRing/2 folder from your 
+   desktop.
+
+For safety reasons, deinstallation does not remove your KR2.INI file 
+(contains setup information) and any PWX (encrypted database files full 
+of your secrets).  It also does not delete any MSX files that contain 
+language internationalization information. 
+
+After deinstallation is complete you can manually shred the KR2 directory 
+folder to delete any remaining files.
+
+
+Thank you for trying KeyRing/2!
+
+-----------------------------------------------------------------
+
+
+Getting Help
+------------
+   Press F1 or use the pull-down help menu inside KeyRing/2
+      
+Documentation
+-------------
+   Double click on the KR2.INF file.  It should open up the master help file
+   documentation for KeyRing/2
+
+Service and Technical Support
+Defect Reporting
+-----------------------------
+   See "Your satisfaction" below
+
+
+Late-Breaking News
+------------------
+See the INF file for the latest news about KeyRing/2. The Revision History
+page always has the latest info about changes to KR2. 
+
+Your Satisfaction
+-----------------
+Your satisfaction with IDK is important to us.  If you are not totally
+satisfied with this product, please contact us at kr2@idk-inc.com.
+
+Tell us what is not meeting your expectations and why you are
+dissatisfied.  Provide your registration code, name, your organizations's 
+name, and your telephone number so that we can contact you.  We will work 
+with you to resolve your concerns.
+
+To contact us, use any of these:
+        o Telephone in the USA and Canada: 
+              (805) 492-9190    0800-1830 m-f, Pacific time
+        o FAX 
+              (805) 492-1533
+        o Internet: 
+              kr2@idk-inc.com
+        o Compuserve
+              72470,1233
+        o Snail Mail
+              IDK, Inc.
+              2217 Aspenpark Court
+              Thousand Oaks, California 91362-1731
+              USA
+
+Trademarks
+------------
+Copyright (c) 2000, IDK, Inc.
+All rights reserved
+
+All products mentioned are the property of their copyright holders.

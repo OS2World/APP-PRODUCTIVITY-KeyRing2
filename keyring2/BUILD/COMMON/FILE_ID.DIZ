@@ -1,0 +1,17 @@
+KeyRing/2, a secure password keeper for OS/2 v1.4
+Locks up your passwords in a vault
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+- Keep all your WWW/ISP passwords, lock combinations, bank PINs,
+  software registration codes and other secrets under a single, 
+  high security master password
+- Blowfish 448 bit encryption (North American version)
+- DES 48 bit encryption (Export version)
+- User customizable database sorts your passwords and other 
+  secrets by type.
+- Tracks the length of time you have been using a password
+      Warns you of expired passwords
+- Launches Netscape for OS/2 to secure URL sites
+      Communicates with Netscape via DDE 
+- Extensive INF help
+- Drag and Drop Presentation Manager interface
+- 32 bit Native OS/2 applicaton

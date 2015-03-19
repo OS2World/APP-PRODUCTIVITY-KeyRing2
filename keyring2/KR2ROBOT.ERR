@@ -1,0 +1,26 @@
+**********
+
+L1: Copy of kregistr.pax Failed
+L2: etFatal + File not found
+Error Date: 06-23-2005 18:22:20
+MEMUSED: 88796
+ERRORADDR: E:\l\dgu\DGLIB.PAS#1320 $0002B280 TID=1
+Cmdline: -n 
+G:\KEYRING2\KR2ROBOT.EXE
+Exe date: 23 Jun 2005 18:19:58
+Platform: VP2
+PrgRel: ~release~
+
+**********
+
+L1: Copy of kregistr.pax Failed
+L2: etFatal + File not found
+Error Date: 06-23-2005 18:30:15
+MEMUSED: 88796
+ERRORADDR: E:\l\dgu\DGLIB.PAS#1320 $0002B280 TID=1
+Cmdline: -n 
+G:\KEYRING2\KR2ROBOT.EXE
+Exe date: 23 Jun 2005 18:26:34
+Platform: VP2
+PrgRel: ~release~
+

@@ -1,0 +1,2060 @@
+{***************************************************************************
+* Filename: ~modname~
+* Version:  ~version~
+* Date:     ~date~ @ ~time~
+* Group:    ~group~
+* Release:  ~release~
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* $KLog$
+* Change Date: 03-02-2000 13:30:03 By: K_McCoy
+*    added dest path code to movefile
+*
+*
+*
+*
+*
+* ~notes~
+* Description
+* -----------
+* Generic string and file handling routines
+*
+* ~notesend~
+* ~nokeywords~
+*
+****************************************************************************
+
+}
+{$IFDEF VIRTUALPASCAL}
+{$A+,B-,E+,F-,G+,H-,I-,N-,O+,P-,Q-,R-,S-,T-,V-,X+,Y+}
+{$D+,L+}
+{&LocInfo+}
+{$ELSE}
+{$A+,B-,E+,F-,G+,I-,N-,O+,P-,Q-,R-,S-,T-,V-,X+,Y+}
+{$ENDIF}
+UNIT DGLib;
+
+INTERFACE
+USES
+    Dos,
+    {$IFNDEF DLL}
+    KERROR,
+    {$ENDIF}
+    OpDate
+    {$IFDEF VirtualPascal}
+    ,OS2BASE,
+    Math,
+    OS2DEF,
+    Use32
+    {$ENDIF}
+    ;
+TYPE
+    TTxtLines      = (E25Line, E50Line);
+    TElipse        = (EElipsNone, EELipsLeft, EELipsRight);
+    TWDCompare     = (EFileError, EOlder, ENewer, ESameDate);
+
+CONST
+    TFString       : ARRAY[BOOLEAN] OF STRING[5] = ('False', 'True');
+
+    {stuff a drive letter into a path}
+FUNCTION ForceDrive(Path : STRING; Drive : STRING) : STRING;
+
+    {Invert a string}
+FUNCTION ReverseStrg(Strg : STRING) : STRING;
+
+    {using the supplied january index into the printer sysmsgs,}
+    {create a string containing today's spelled out date       }
+    {$IFNDEF DLL}
+FUNCTION LongDate(JanuaryMsg : WORD; Dt : Date) : STRING;
+    {$ENDIF}
+
+    {force path onto name}
+FUNCTION ForcePath(Path, Name : STRING) : STRING;
+
+    {erase a file, with return code}
+FUNCTION EraseFile(Name : STRING) : WORD;
+
+    {erase a file, ignoring R/O flag, with return code}
+FUNCTION RMFile(Name : STRING) : WORD;
+
+    {$IFDEF VIRTUALPASCAL}
+    {erase files in single directory that match wildcard - ignore RO flag}
+FUNCTION RMFiles(Name : STRING{$IFNDEF DLL}; COP : CylonP{$ENDIF}) : WORD;
+
+    {delete files in tree until MinFree disk bytes are free on the startpath drive}
+PROCEDURE RMRFUntilEnoughFree(StartPath, WildCard : STRING{$IFNDEF DLL}; COP : CylonP{$ENDIF}; Statline:byte; MinFree : ULONG);
+{$ENDIF}
+
+    {delete all files in a directory tree - ignore R/O flag}
+PROCEDURE RMRF(StartPath, WildCard : STRING {$IFNDEF DLL} ; COP : CylonP {$ENDIF} ; StatLine : BYTE);
+
+
+    {$IFNDEF VirtualPascal}
+    {delete all like-named files in a directory tree}
+PROCEDURE KillFilesInTree(P : STRING {$IFNDEF DLL} ; COP : CylonP {$ENDIF} );
+
+
+    {delete empty subdirectories in a tree}
+FUNCTION KillEmptySubDirs(P : STRING {$IFNDEF DLL} ; COP : CylonP {$ENDIF} ) : BOOLEAN;
+
+    {recurse FromDir and copy all files found to ToDir - without old tree structure}
+FUNCTION FlattenTreeAndCopy(FromDir, ToDir : STRING {$IFNDEF DLL} ; COP : CylonP {$ENDIF} ) : BOOLEAN;
+
+
+    {$ENDIF}
+    {change (or not) the attributes of a file}
+FUNCTION ChmodFile(Name : STRING; RO, Sys, Arc, Hid : INTEGER) : WORD;
+
+FUNCTION MoveFile(Src, Dest : STRING {$IFNDEF DLL} ; COP : CylonP {$ENDIF} ) : BOOLEAN;
+
+    {recursively create a directory or child directory, even if parent does not exist}
+PROCEDURE DrillDir(Path : STRING);
+
+    {$IFNDEF DLL}
+    {set the number of text lines per screen}
+PROCEDURE SetScreenLines(Lines : TTxtLines);
+    {$ENDIF}
+
+    {build a charset (set of char) one char at a time}
+PROCEDURE BuildCharSet(VAR S; C : CHAR);
+
+    {this function is analogous to the C function, strtok().             }
+FUNCTION StrTok(Buf, Delim : PCHAR) : PCHAR;
+
+    {right pad a string to Width characters, ignoring existing control}
+    {characters                                                       }
+FUNCTION PadCtrl(Strg : STRING; Width : BYTE) : STRING;
+
+    {pad or truncate a string to width characters, ignoring existing control}
+    {characters}
+FUNCTION PadTrimCtrl(Strg : STRING; Width : BYTE) : STRING;
+
+    {Either pad or trim a string to Width (force string length with spaces)}
+FUNCTION PadTrim(Strg : STRING; Width : BYTE) : STRING;
+
+    {Either leftpad or trim a string to Width (force string length with spaces)}
+FUNCTION LeftPadTrim(Strg : STRING; Width : BYTE) : STRING;
+
+    {truncate string (if necessary) at Width}
+FUNCTION TruncStr(Strg : STRING; Width : BYTE) : STRING;
+
+    {truncate string (if necessary) at Width}
+FUNCTION TruncStrElips(Strg : STRING; Width : BYTE; Elips : TElipse) : STRING;
+
+    {filter out control characters from a string}
+FUNCTION StripCtrl(Strg : STRING) : STRING;
+
+    {rename a file}
+FUNCTION ReNameFile(OldName, NewName : STRING) : BOOLEAN;
+
+    {return string position of string centered on column Col}
+FUNCTION CenterOnColumn(Strg : STRING; Col : BYTE) : BYTE;
+
+    {overwrite Orig at Start with Istrg; Trim substr at Maxcol; Return Buffer}
+FUNCTION StuffStringOnCol(Orig,   {original string}
+                          IStrg          : STRING; {string to overlay on orig}
+                          Start,  {starting position of overlay}
+                          MaxCol, {max column width for IStrg}
+                          MaxLen         : BYTE; {max Orig length}
+                          Elip           : BOOLEAN) : STRING; {add elipsis on trunc strg?}
+
+    {rename file extension to numeric value from 000-999}
+FUNCTION ReNameRandExt(OldName : STRING) : BOOLEAN;
+    {find last position of Ch in Strg}
+FUNCTION LastPos(Strg : STRING; Ch : CHAR) : BYTE;
+
+    {create empty, closed temp file}
+FUNCTION DGGetTempFileName(PathName       : STRING;
+                           Ext            : STRING;
+                           VAR TempFileName : STRING) : BOOLEAN;
+
+FUNCTION DGGetTempFileNameNew(PathName       : STRING;
+                              Ext            : STRING;
+                              VAR TempFileName : STRING) : BOOLEAN;
+
+FUNCTION GetFileLastWriteDate(FName : STRING; VAR DTR : DateTimeRec) : BOOLEAN;
+
+    {    TWDCompare     = (EFileError, EOlder, ENewer, ESameDate)}
+FUNCTION CompareFileWriteDates(FName1, FName2 : STRING) : TWDCompare;
+
+    {create empty, closed text temp file and return handle}
+FUNCTION GetTempTextFileHandle(PathName       : STRING;
+                               Ext            : STRING;
+                               VAR TempFileName : STRING;
+                               VAR f          : TEXT) : BOOLEAN;
+
+
+    {$IFDEF VirtualPascal}
+PROCEDURE PruneTextFile(Filename:STRING; MaxSize:LONGINT);
+
+{load a stringtable resource from a DLL}
+FUNCTION DLLLoadStr(ModHand : HModule; Indx : LONGINT) : STRING;
+
+{create empty, closed untyped temp file and return handle}
+FUNCTION GetTempFileHandle(PathName : string;
+                             Ext : STRING;
+                             var TempFileName : string;
+                             var F : FILE) : BOOLEAN;
+
+
+{rename Oldname to tempfile, use newext if provided; return TempFileName}
+FUNCTION RenameToTemp(OldName,
+                      NewExt : STRING;
+                      VAR TempFileName : STRING;
+                      Touch : BOOLEAN):BOOLEAN;
+
+{return simple string interpretation of Date}
+FUNCTION CreateDateFilePrefix(D:Date):STRING;
+FUNCTION CreateRandomSuffix : STRING;
+
+{reciprocal function of above}
+FUNCTION CreateDateFromFilePrefix(Strg:STRING):Date;
+
+FUNCTION GetFileInfo(FName:shortSTRING; VAR DTR : DateTimeRec; VAR Size, Attr : ULONG) : BOOLEAN;
+
+FUNCTION ExecuteChildPgm(ProgName, Parameters:STRING; WaitForCompletion:BOOLEAN) : APIRet;
+FUNCTION PStrToPas(P : PString):STRING;
+{$ENDIF}
+    {Return string containing VCS revision - handles RCS and SAP}
+FUNCTION StripRevision(RcsVer, SAPVer : STRING) : STRING;
+
+    {$IFNDEF DLL}
+    {lanugage independent y/n t/f strings}
+FUNCTION YesNoStrg(b : BOOLEAN) : STRING;
+FUNCTION TrueFalseStrg(b : BOOLEAN) : STRING;
+    {$ENDIF}
+
+    {return string contining VCS date/time of a file}
+FUNCTION StripTime(RcsTime, SAPTime : STRING) : STRING;
+
+    {return PChar pointer to string on heap}
+FUNCTION CreatePChar(Strg : STRING) : PCHAR;
+
+FUNCTION FmtLongIntCommas(V : LONGINT) : STRING;
+    {$IFDEF VirtualPascal}
+FUNCTION FmtRealCommas(V:EXTENDED):STRING;
+{$ENDIF}
+FUNCTION DgCopyFile(FromFile, ToFile : STRING) : BOOLEAN;
+
+FUNCTION GetNthLineFromTextFile(Name : STRING; N : LONGINT) : STRING;
+FUNCTION FindLineInTextFile(Name, Keyword : STRING; Instance : LONGINT) : STRING;
+FUNCTION CreateOrAppendTxt(Name : STRING; VAR T : TEXT) : BOOLEAN; {create a new file or append to existing one}
+FUNCTION CreateOrAppendUntyped(Name : STRING; VAR f : FILE) : BOOLEAN;
+FUNCTION AppendTxtToEnd(ParentFile, FileToAppend : STRING) : BOOLEAN;
+    {remove a block of text from a text file. Start/Stop strings must be in column 1}
+FUNCTION RemoveTextBlock(FileName, BlockStartString, BlockStopString : STRING) : BOOLEAN;
+FUNCTION RLECompress(Strg : STRING; EscChar : CHAR) : STRING;
+FUNCTION RLEDecompress(Strg : STRING; EscChar : CHAR) : STRING;
+
+    {---------------}
+
+IMPLEMENTATION
+
+USES
+    {$IFNDEF DLL}
+    MSGMGR,
+    OpCRT,
+    OpCol16,
+    {$ENDIF}
+    OpDos,
+    OpRoot,
+    OpString,
+    Strings,
+    {$IFDEF VirtualPascal}
+    SysUtils,
+    {$ELSE}
+    SHARE,
+    {$ENDIF}
+    UTTIMDAT
+    {$IFNDEF DLL}
+    ,
+    UTIAM
+    {$ENDIF}
+    ;
+
+    {$IFNDEF DLL}
+    {set the number of text lines per screen}
+    PROCEDURE SetScreenLines(Lines : TTxtLines);
+    BEGIN
+        CASE Lines OF
+            E25Line :
+                SelectFont8x8(FALSE);
+            E50Line :
+                SelectFont8x8(TRUE);
+        END;
+    END;
+    {$ENDIF DLL}
+
+    {-----------------}
+
+    {erase a file}
+    FUNCTION EraseFile(Name : STRING) : WORD;
+    VAR
+        f              : FILE;
+        Res            : WORD;
+    BEGIN
+        Res := IORESULT;
+        {$I-}
+        ASSIGN(f, Name);
+        ERASE(f);
+        Res := IORESULT;
+        {$I+}
+        EraseFile := Res;
+    END;
+
+    {-----------------}
+
+    {erase a file - ignore R/O Flag}
+    FUNCTION RMFile(Name : STRING) : WORD;
+    VAR
+        f              : FILE;
+        Res            : WORD;
+    BEGIN
+        Res := IORESULT;
+        {$I-}
+        ASSIGN(f, Name);
+        GetFAttr(f, Res);
+        Res := Res AND (NOT ReadOnly);
+        SetFattr(f, Res);
+        ERASE(f);
+        Res := IORESULT;
+        {$I+}
+        RMFile := Res;
+    END;
+
+    {-----------------}
+
+    {erase a file - ignore R/O Flag}
+    FUNCTION ChmodFile(Name : STRING; RO, Sys, Arc, Hid : INTEGER) : WORD;
+    VAR
+        f              : FILE;
+        Res            : WORD;
+        FUNCTION SetFlg(Flg, Bits, Orig : INTEGER) : WORD;
+        BEGIN
+            SetFlg := Orig;
+
+            IF Flg = 0 THEN
+                EXIT;
+
+            IF Flg > 0 THEN
+                Orig := Orig OR Bits
+            ELSE
+                Orig := Orig AND (NOT Bits);
+
+            SetFlg := Orig;
+        END;
+    BEGIN
+        Res := IORESULT;
+        {$I-}
+        ASSIGN(f, Name);
+
+        GetFAttr(f, Res);
+
+        Res := SetFlg(RO, 1, Res);
+        Res := SetFlg(Hid, 2, Res);
+        Res := SetFlg(Sys, 4, Res);
+        Res := SetFlg(Arc, $20, Res);
+
+        SetFattr(f, Res);
+        Res := IORESULT;
+
+        {$I+}
+        ChmodFile := Res;
+    END;
+
+    {-----------------}
+
+    PROCEDURE DrillDir(Path : STRING);
+    VAR
+        Dest,
+        Strg           : STRING;
+        I              : BYTE;
+    BEGIN
+        Path := FExpand(Path);
+        Strg := '';
+        FOR I := 1 TO WordCount(Path, ['\']) DO BEGIN
+            Strg := Strg + ExtractWord(I, Path, ['\']) + '\';
+            Dest := COPY(Strg, 1, LENGTH(Strg) - 1);
+            IF NOT IsDirectory(Dest) THEN
+                {$I-}
+                MKDIR(Dest);
+            {$I+}
+        END;
+    END;
+
+    {------------}
+
+
+    FUNCTION MoveFile(Src, Dest : STRING {$IFNDEF DLL} ; COP : CylonP {$ENDIF} ) : BOOLEAN;
+    VAR
+        T,
+        f              : FILE;
+        Strg           : STRING;
+        TResult        : WORD;
+        I              : WORD;
+        Buff           : PCHAR;
+    CONST
+        BuffSize       = $FFF0;
+    BEGIN
+        MoveFile := FALSE;
+        IF NOT GetMemCheck(Buff, BuffSize) THEN
+            EXIT;
+
+        ASSIGN(f, Src);
+        RESET(f, 1);
+
+        IF NOT IsDirectory(JustPathName(Dest)) THEN
+            DrillDir(JustPathName(Dest));
+
+        {dest is a path only - no filename?}
+        IF JustFileName(Dest) = '' THEN
+            Dest := AddBackSlash(Dest) + JustFileName(Src); {use source name in dest directory}
+
+        ASSIGN(T, Dest);
+        {$I-}
+        REWRITE(T, 1);
+        TResult := IORESULT;
+        IF TResult <> 0 THEN BEGIN
+            {$IFNDEF DLL}
+            DispErrorDeluxe('Problem opening ' + Dest, ErrorMessage(TResult), TRUE, Iam);
+            {$ENDIF}
+            CLOSE(f);
+            EXIT;
+        END;
+
+        REPEAT
+            {$IFNDEF DLL}
+            IF COP <> NIL THEN
+                COP^.UpDate;
+            {$ENDIF}
+            BLOCKREAD(f, Buff^, BuffSize, TResult);
+            BLOCKWRITE(T, Buff^, TResult, I);
+        UNTIL TResult <> BuffSize;
+
+        CLOSE(f);
+        CLOSE(T);
+
+        IF I = TResult THEN
+            ERASE(f)              {do file delete here - copied ok}
+            {$IFNDEF DLL}
+        ELSE
+            DispErrorDeluxe('Copy Failed: ' + Dest, 'Disk full?', TRUE, Iam);
+        {$ELSE}
+        ELSE BEGIN
+            FreeMemCheck(Buff, BuffSize);
+            MoveFile := FALSE;
+            EXIT;
+        END;
+        {$ENDIF}
+
+        FreeMemCheck(Buff, BuffSize);
+        MoveFile := TRUE;
+    END;
+
+    {-----------------}
+
+    {stuff a drive letter into a path}
+    FUNCTION ForceDrive(Path : STRING; Drive : STRING) : STRING;
+    VAR
+        Strg           : STRING;
+    BEGIN
+        ForceDrive := Path;
+
+        IF LENGTH(Path) < 2 THEN
+            EXIT;
+
+        IF LENGTH(Drive) = 0 THEN
+            EXIT;
+
+        IF NOT(UPCASE(Drive[1]) IN ['A'..'Z']) THEN
+            EXIT;
+
+        IF (LENGTH(Drive) > 1) AND (Drive[2] <> ':') THEN
+            EXIT;
+
+        Drive[0] := #1;
+
+        IF Path[2] = ':' THEN BEGIN
+            Path[1] := Drive[1];
+            ForceDrive := Path;
+            EXIT;
+        END;
+
+        ForceDrive := Drive + ':' + Path;
+    END;
+
+    {---------------}
+
+    {using the supplied january index into the printer sysmsgs,}
+    {create a string containing today's spelled out date       }
+
+    {$IFNDEF DLL}
+    FUNCTION LongDate(JanuaryMsg : WORD; Dt : OpDate.Date) : STRING;
+    VAR
+        D,
+        M,
+        Y              : INTEGER;
+    BEGIN
+        LongDate := '';
+        IF PrnMsgP = NIL THEN BEGIN
+            DispErrorDeluxe('Uninitialized printer language', '', TRUE, Iam);
+            EXIT;
+        END;
+        DateToDMY(Dt, D, M, Y);
+        LongDate := Long2Str(D) + PrnMsgP^.SysMsg(JanuaryMsg + M - 1) + Long2Str(Y);
+    END;
+    {$ENDIF DLL}
+
+    {-------------------}
+
+    {force path onto name}
+    FUNCTION ForcePath(Path, Name : STRING) : STRING;
+    BEGIN
+        ForcePath := AddBackSlash(JustPathName(Path)) + JustFileName(Name);
+    END;
+
+    {-------------------}
+
+    {this function is analogous to the C function, strtok().             }
+    {input: Buff, a string to tokenize                                   }
+    {       Delim a string that delineates each token                    }
+    {usage: Initialize this function by passing in a string in Buf and   }
+    {       a delimiter string.  In future calls, pass NIL as the Buf    }
+    {       parameter.  strtok will step through buf, returning pointers }
+    {       to the next available token.  Strtok returns NIL when no more}
+    {       tokens exist.  Note that Buf has its Delim substrings set to }
+    {       #0, so make a copy if you don't want it destroyed.           }
+
+    FUNCTION StrTok(Buf, Delim : PCHAR) : PCHAR;
+    CONST
+        LastBufPtr     : PCHAR = NIL;
+    VAR
+        P              : PCHAR;
+    BEGIN
+        StrTok := NIL;
+
+        IF Buf <> NIL THEN
+            LastBufPtr := Buf;
+
+        IF (LastBufPtr = NIL) OR (Delim = NIL) THEN
+            EXIT;
+
+        P := StrPos(LastBufPtr, Delim);
+
+        IF P <> NIL THEN
+            P^ := #0
+        ELSE
+            EXIT;
+
+        StrTok := LastBufPtr;
+
+        INC(P, StrLen(Delim));
+
+        LastBufPtr := P;
+    END;
+
+    {-----------------}
+
+    {returns length of string, ignoring control characters}
+    FUNCTION LengthCtrl(Strg : STRING) : BYTE;
+    VAR
+        I,
+        Ctr            : BYTE;
+    BEGIN
+        Ctr := 0;
+        FOR I := 1 TO LENGTH(Strg) DO
+            IF Strg[I] >= ' ' THEN
+                INC(Ctr);
+        LengthCtrl := Ctr;
+    END;
+
+    {-----------------}
+
+    {right pad a string to Width characters, ignoring existing control}
+    {characters                                                       }
+    FUNCTION PadCtrl(Strg : STRING; Width : BYTE) : STRING;
+    VAR
+        CurLen         : BYTE;
+    BEGIN
+        CurLen := LengthCtrl(Strg);
+        IF CurLen > Width THEN BEGIN
+            PadCtrl := Strg;
+            EXIT;
+        END;
+        PadCtrl := Strg + CharStr(' ', Width - CurLen);
+    END;
+
+    {-----------------}
+
+    {pad or truncate a string to width characters, ignoring existing control}
+    {characters}
+    FUNCTION PadTrimCtrl(Strg : STRING; Width : BYTE) : STRING;
+    VAR
+        CurLen         : BYTE;
+    BEGIN
+        CurLen := LengthCtrl(Strg);
+        IF CurLen > Width THEN
+            Strg[0] := CHAR(Width)
+        ELSE
+            PadTrimCtrl := PadCtrl(Strg, Width);
+    END;
+
+    {-----------------}
+
+    {pad or truncate a string to width characters characters}
+    FUNCTION PadTrim(Strg : STRING; Width : BYTE) : STRING;
+    VAR
+        CurLen         : BYTE;
+    BEGIN
+        CurLen := LENGTH(Strg);
+
+        IF CurLen > Width THEN
+            Strg[0] := CHAR(Width)
+        ELSE
+            Strg := Pad(Strg, Width);
+
+        PadTrim := Strg;
+    END;
+
+    {-----------------}
+
+    {leftpad or truncate a string to width characters characters}
+    FUNCTION LeftPadTrim(Strg : STRING; Width : BYTE) : STRING;
+    VAR
+        CurLen         : BYTE;
+    BEGIN
+        CurLen := LENGTH(Strg);
+
+        IF CurLen > Width THEN
+            Strg[0] := CHAR(Width)
+        ELSE
+            Strg := LeftPad(Strg, Width);
+
+        LeftPadTrim := Strg;
+    END;
+
+    {-----------------}
+
+    FUNCTION TruncStr(Strg : STRING; Width : BYTE) : STRING;
+    BEGIN
+        IF LENGTH(Strg) > Width THEN
+            Strg[0] := CHAR(Width);
+        TruncStr := Strg;
+    END;
+
+    {-----------------}
+
+    {truncate string (if necessary) at Width;  conditionally insert elipsis if truncated}
+    FUNCTION TruncStrElips(Strg : STRING; Width : BYTE; Elips : TElipse) : STRING;
+    BEGIN
+        IF LENGTH(Strg) > Width THEN
+            CASE Elips OF
+                EElipsNone :
+                    Strg := TruncStr(Strg, Width);
+                EELipsLeft :
+                    Strg := '...' + COPY(Strg, (LENGTH(Strg) - Width) + 4, 255);
+                EELipsRight :
+                    Strg := TruncStr(Strg, Width - 3) + '...';
+            END;
+
+        TruncStrElips := Strg;
+    END;
+
+    {-----------------}
+
+    {filter out control characters from a string}
+    FUNCTION StripCtrl(Strg : STRING) : STRING;
+    VAR
+        I,
+        J              : BYTE;
+        S              : STRING;
+    BEGIN
+        S[0] := #0;
+        J := 0;
+        FOR I := 1 TO LENGTH(Strg) DO
+            IF Strg[I] >= ' ' THEN BEGIN
+                INC(J);
+                S[J] := Strg[I];
+            END;
+
+        S[0] := CHAR(J);
+        StripCtrl := S;
+    END;
+
+    {-----------------}
+
+    FUNCTION ReNameFile(OldName, NewName : STRING) : BOOLEAN;
+    VAR
+        f              : FILE;
+        Stat           : WORD;
+    BEGIN
+        ASSIGN(f, OldName);
+        {$I-}
+        RENAME(f, NewName);
+        Stat := IORESULT;
+        ReNameFile := Stat = 0;
+        {$I+}
+    END;
+
+    {-----------------}
+
+    FUNCTION CenterOnColumn(Strg : STRING; Col : BYTE) : BYTE;
+    VAR
+        N              : INTEGER;
+    BEGIN
+        N := Col - (LENGTH(Strg) DIV 2);
+        IF N < 1 THEN
+            N := 1;
+        CenterOnColumn := N;
+    END;
+
+    {------------}
+
+    FUNCTION CreateDateFilePrefix(D : OpDate.Date) : STRING;
+    VAR
+        Day,
+        Month,
+        Year           : INTEGER;
+        Strg           : STRING;
+    BEGIN
+        DateToDMY(D, Day, Month, Year);
+        IF Year < 1997 THEN BEGIN
+            Strg := 'ZZZ';
+            EXIT;
+        END;
+
+        DEC(Day);
+        DEC(Month);
+        Year := Year - 1997;
+
+        Strg[0] := CHAR(3);
+        Strg[1] := CHAR(ORD('A') + Year);
+        Strg[2] := CHAR(ORD('A') + Month);
+        IF Day <= 25 THEN
+            Strg[3] := CHAR(ORD('A') + Day)
+        ELSE
+            Strg[3] := CHAR(ORD('0') + Day - 26);
+
+        CreateDateFilePrefix := Strg;
+    END;
+
+    {-----------------}
+
+    FUNCTION CreateRandomSuffix : STRING;
+    VAR
+        I              : BYTE;
+        Strg           : STRING;
+    BEGIN
+        Strg := '';
+        FOR I := 1 TO 5 DO
+            Strg := Strg + CHAR(ORD('A') + RANDOM(26));
+        CreateRandomSuffix := Strg;
+    END;
+
+    {-----------------}
+
+    FUNCTION DGGetTempFileName(PathName       : STRING;
+                               Ext            : STRING;
+                               VAR TempFileName : STRING) : BOOLEAN;
+    VAR
+        NLoops,
+        L              : LONGINT;
+        f              : FILE;
+        Strg           : STRING;
+        I,
+        Day,
+        Month,
+        Year           : INTEGER;
+    BEGIN
+        {$IFDEF VirtualPascal}
+        TempFileName := '';
+        NLoops := 0;
+        DGGetTempFileName := FALSE;
+        REPEAT
+            INC(NLoops);
+            Strg := CreateDateFilePrefix(Today) + CreateRandomSuffix;
+            TempFileName := AddBackSlash(PathName) + Strg + '.' + Ext;
+            if not ExistFile(TempFileName) then begin
+                assign(F, TempFileName);
+                rewrite(F, 1);
+                close(F);
+                DGGetTempFileName := TRUE;
+                EXIT;
+            end;
+        UNTIL NLoops > 100;
+        {$ELSE}
+        FOR NLoops := 1 TO 100 DO BEGIN
+            DGGetTempFileName := GetTempFileName(PathName, TempFileName) = 0;
+            IF Ext = '' THEN
+                BREAK;            {guaranteed unique}
+            IF ReNameFile(TempFileName, ForceExtension(TempFileName, Ext)) THEN BEGIN
+                TempFileName := ForceExtension(TempFileName, Ext);
+                BREAK;            {found unique with current extension}
+            END;
+        END;
+        {$ENDIF}
+    END;
+
+    {------------}
+
+    FUNCTION DGGetTempFileNameNew(PathName       : STRING;
+                                  Ext            : STRING;
+                                  VAR TempFileName : STRING) : BOOLEAN;
+    VAR
+        NLoops,
+        L              : LONGINT;
+        f              : FILE;
+        Strg           : STRING;
+        I,
+        Day,
+        Month,
+        Year           : INTEGER;
+    BEGIN
+        TempFileName := '';
+        NLoops := 0;
+        DGGetTempFileNameNew := FALSE;
+        REPEAT
+            INC(NLoops);
+            Strg := CreateDateFilePrefix(Today) + CreateRandomSuffix;
+            TempFileName := AddBackSlash(PathName) + Strg + '.' + Ext;
+            IF NOT ExistFile(TempFileName) THEN BEGIN
+                ASSIGN(f, TempFileName);
+                REWRITE(f, 1);
+                CLOSE(f);
+                DGGetTempFileNameNew := TRUE;
+                EXIT;
+            END;
+        UNTIL NLoops > 100;
+    END;
+
+    {------------}
+
+    FUNCTION GetFileLastWriteDate(FName : STRING; VAR DTR : DateTimeRec) : BOOLEAN;
+        {$IFDEF VIRTUALPASCAL}
+    var
+        Size,
+        Attr : ULONG;
+    {$ENDIF}
+    BEGIN
+        {$IFDEF VIRTUALPASCAL}
+        GetFileLastWriteDate := GetFileInfo(FName, DTR, Size, Attr);
+        {$ELSE}
+        GetFileLastWriteDate := GetFileDTR(FName, DTR);
+        {$ENDIF}
+    END;
+
+    {------------}
+
+    FUNCTION CompareFileWriteDates(FName1, FName2 : STRING) : TWDCompare;
+    VAR
+        DTR1,
+        DTR2           : DateTimeRec;
+    BEGIN
+        CompareFileWriteDates := EFileError;
+
+        IF NOT GetFileLastWriteDate(FName1, DTR1) THEN
+            EXIT;
+
+        IF NOT GetFileLastWriteDate(FName2, DTR2) THEN
+            EXIT;
+
+        CASE DTRCompare(DTR1, DTR2) OF
+            Less :
+                CompareFileWriteDates := EOlder;
+            Greater :
+                CompareFileWriteDates := ENewer;
+            EQUAL :
+                CompareFileWriteDates := ESameDate;
+        END;
+    END;
+
+    {------------}
+
+    {$IFDEF VirtualPascal}
+
+    FUNCTION GetFileInfo(FName:shortSTRING; VAR DTR : DateTimeRec; VAR Size, Attr : ULONG) : BOOLEAN;
+    var
+        Res,
+        Count: ULong;
+
+        SR: FileFindBuf3;
+        PathZ: array [0..SizeOf(STRING)-1] of Char;
+        HDir           : ULONG;
+        Time :     longint;
+        FDateTime: KDateTimeRec absolute Time;
+    begin
+        GetFileInfo := FALSE;
+        move(Fname[1], PathZ, length(Fname));
+        PathZ[length(Fname)] := #0;
+        {StrPCopy(PathZ, FName);}
+        HDir := hdir_Create;
+        Count := 1;
+        Res := DosFindFirst(PathZ, HDir, Anyfile, SR, SizeOf(SR), Count, fil_Standard);
+        if Res = 0 then begin
+            GetFileInfo := TRUE;
+            with SR do begin
+                Attr := attrFile;
+                with fdatetime do begin
+                    FTime := ftimelastwrite;
+                    FDate := fDatelastwrite;
+                end;
+                Size := cbFile;
+            end;
+            PackedToDateTime(Time, DTR);
+            DosFindClose(HDir);
+        end;
+    END;
+
+    {------------}
+
+   {create empty, closed untyped temp file and return handle}
+   FUNCTION GetTempFileHandle(PathName : string;
+                             Ext : STRING;
+                             var TempFileName : string;
+                             var F : FILE) : BOOLEAN;
+   var
+        NLoops,
+        OFM,
+        L : LONGINT;
+        Strg : STRING;
+        I,
+        Day,
+        Month,
+        Year : INTEGER;
+    begin
+        TempFileName := '';
+        NLoops := 0;
+        GetTempFileHandle := FALSE;
+        REPEAT
+            INC(NLoops);
+            Strg := CreateDateFilePrefix(Today) + CreateRandomSuffix;
+            TempFileName := AddBackSlash(PathName) + Strg + '.' + Ext;
+            if not ExistFile(TempFileName) then begin
+                assign(F, TempFileName);
+                {$I-}
+                rewrite(F, 1);
+                close(F);
+                L := IORESULT;
+                {$I+}
+                FileMode := OFM;
+                GetTempFileHandle := TRUE;
+                EXIT;
+            end;
+        UNTIL NLoops > 100;
+
+    end;
+
+    {-----------------}
+
+    FUNCTION ExecuteChildPgm(ProgName, Parameters:STRING; WaitForCompletion:BOOLEAN) : APIRet;
+  Var
+    LoadError    : Array[0..cchMaxPath] of Char; // Error info from DosExecPgm
+    ChildRC      : ResultCodes; // Results from child process
+    pidChild     : Pid;         // pid for child process
+    rc           : ApiRet;      // Return code
+    uchEnvString : Array[0..13] of Char;       // Environment string
+    uchArgString : PChar;       // Argument string
+    CmdLine : STRING;
+
+  begin
+    uchEnvString[0] := #0;
+    // The argument string consists of the following:
+    //    - the name of the program (followed by a nil)
+    //    - any parameters supplied to the program (followed by 2 nils)
+    //    Only 1 #0 is explicitly specified at the end of this string.
+    //    ASCIIZ strings end with a #0 already, giving us 2 #0s
+
+    CmdLine := CmdLine + #0;
+    Parameters := ' '+ Parameters + ' '#0#0;
+    uchArgString := CreatePCHAR(CmdLine+Parameters);
+
+
+    rc := DosExecPgm(
+      LoadError,           // Object name buffer
+      sizeof(LoadError),   // Length of object name buffer
+      exec_AsyncResult,    // Asynchronous/Trace flags
+      uchArgString,        // Argument string
+      uchEnvString,        // Environment string
+      ChildRC,             // Returns pid of process on an
+                           // asynchronous request
+      'CHKDSK.COM');       // Program file name
+
+    if rc <> No_Error then
+    begin
+      Writeln('DosExecPgm error: return code = ',rc);
+      Halt(1);
+    end;
+
+    rc := DosWaitChild(
+      dcwa_Process,    // Look at only the process specified
+      dcww_Wait,       // Wait until a child terminates
+      ChildRC,         // Termination codes returned
+      pidChild,        // pid of terminating process
+      ChildRC.codeTerminate);   // Process (pid) to look at
+
+    if rc <> No_Error then
+    begin
+      Writeln('DosWaitChild error: return code = ',rc);
+      Halt(1);
+    end
+    else
+    begin
+      Writeln('Child complete.  Termination Code: ', ChildRC.codeTerminate);
+      // The coderesult is explicitly set by the other program
+      Writeln('                      Return Code: ', ChildRC.codeResult);
+    end;
+
+  end;
+
+    {-----------------}
+
+    FUNCTION PStrToPas(P : PString):STRING;
+    begin
+        PStrToPas := '';
+        if p = nil then
+            exit;
+        PStrToPas := P^;
+    end;
+
+    {-----------------}
+  {$ENDIF}
+
+    {-----------------}
+
+    FUNCTION ReNameRandExt(OldName : STRING) : BOOLEAN;
+    VAR
+        NLoops,
+        L              : LONGINT;
+        f              : FILE;
+        Strg           : STRING;
+    BEGIN
+        NLoops := 0;
+        ReNameRandExt := FALSE;
+        IF NOT ExistFile(OldName) THEN
+            EXIT;                 {nothing to rename}
+        REPEAT
+            Strg := ForceExtension(OldName, LeftPadCh(Long2Str(NLoops), '0', 3));
+            IF NOT ExistFile(Strg) THEN BEGIN
+                ReNameRandExt := ReNameFile(OldName, Strg);
+                EXIT;
+            END;
+            INC(NLoops);
+        UNTIL NLoops > 999;
+        {$IFNDEF DLL}
+        DispErrorDeluxe('RenameRand overflow', '', TRUE, Iam);
+        {$ENDIF}
+    END;
+
+    {-----------------}
+
+    FUNCTION CreateDateFromFilePrefix(Strg : STRING) : OpDate.Date;
+    VAR
+        Day,
+        Month,
+        Year           : INTEGER;
+    BEGIN
+        CreateDateFromFilePrefix := BADDate;
+
+        IF LENGTH(Strg) < 3 THEN
+            EXIT;
+
+        Strg := StUpCase(Strg);
+        Year := ORD(Strg[1]) - ORD('A') + 1997;
+        Month := ORD(Strg[2]) - ORD('A');
+
+        {1st to the 26th day}
+        IF Strg[3] IN ['A'..'Z'] THEN BEGIN
+            Day := ORD(Strg[3]) - ORD('A');
+            CreateDateFromFilePrefix := DMYToDate(Day, Month, Year);
+            EXIT;
+        END;
+
+        {27th through 31st day}
+        IF Strg[3] IN ['0'..'4'] THEN BEGIN
+            Day := (ORD(Strg[3]) - ORD('0')) + 27;
+            CreateDateFromFilePrefix := DMYToDate(Day, Month, Year);
+            EXIT;
+        END;
+    END;
+
+    {-----------------}
+
+    {rename Oldname to tempfile, use newext if provided; return TempFileName}
+    FUNCTION ReNameToTemp(OldName,
+                          NewExt         : STRING;
+                          VAR TempFileName : STRING;
+                          Touch          : BOOLEAN) : BOOLEAN;
+    VAR
+        NLoops,
+        L              : LONGINT;
+        f              : FILE;
+        PathName,
+        Strg           : STRING;
+        I,
+        Day,
+        Month,
+        Year           : INTEGER;
+        DTR            : DateTimeRec;
+        When           : LONGINT;
+    BEGIN
+        TempFileName := '';
+        NLoops := 0;
+        ReNameToTemp := FALSE;
+
+        IF NewExt = '' THEN
+            NewExt := StUpCase(JustExtension(OldName));
+
+        PathName := JustPathName(OldName);
+        IF Touch THEN
+            When := Today
+        ELSE BEGIN
+            {$IFNDEF VirtualPascal}
+            IF NOT GetFileDTR(OldName, DTR) THEN
+                EXIT;
+            {$ELSE}
+            IF NOT GetFileLastWriteDate(OldName, DTR) THEN
+                EXIT;
+            {$ENDIF}
+            When := DTR.D;
+        END;
+
+        REPEAT
+            INC(NLoops);
+
+            Strg := CreateDateFilePrefix(When) + CreateRandomSuffix;
+            TempFileName := AddBackSlash(PathName) + Strg + '.' + NewExt;
+
+            IF NOT ExistFile(TempFileName) THEN BEGIN
+                IF Touch THEN
+                    DTRNow(DTR);
+                ASSIGN(f, OldName);
+                {$I-}
+                RENAME(f, AddBackSlash(PathName) + JustFileName(TempFileName));
+                RESET(f);
+                IF Touch THEN
+                    SetFTime(f, DTtoDOStime(DTR));
+                CLOSE(f);
+                {$I+}
+                ReNameToTemp := IORESULT = 0;
+                EXIT;
+            END;
+
+        UNTIL NLoops > 100;
+
+    END;
+
+    {------------}
+
+    FUNCTION StripRevision(RcsVer, SAPVer : STRING) : STRING;
+    BEGIN
+        IF WordCount(RcsVer, [' ']) = 1 THEN
+            StripRevision := SAPVer
+        ELSE
+            StripRevision := ExtractWord(2, RcsVer, [' ', '$']);
+    END;
+
+    {------------}
+
+    FUNCTION StripTime(RcsTime, SAPTime : STRING) : STRING;
+    BEGIN
+        IF WordCount(RcsTime, [' ']) = 1 THEN
+            StripTime := SAPTime
+        ELSE
+            StripTime := ExtractWord(2, RcsTime, [' ', '$']) + ' ' +
+                         ExtractWord(3, RcsTime, [' ', '$']);
+    END;
+
+    {------------}
+
+    FUNCTION LastPos(Strg : STRING; Ch : CHAR) : BYTE;
+    VAR
+        I              : BYTE;
+    BEGIN
+        LastPos := 0;
+        FOR I := LENGTH(Strg) DOWNTO 1 DO BEGIN
+            IF Strg[I] = Ch THEN BEGIN
+                LastPos := I;
+                EXIT;
+            END;
+        END;
+    END;
+
+    {------------}
+
+    {overwrite Buffer at Col with Substr; Trim substr at TrimWidth; Return Buffer}
+    FUNCTION StuffStringOnCol(Orig, {original string}
+                              IStrg          : STRING; {string to overlay on orig}
+                              Start, {starting position of overlay}
+                              MaxCol, {max column width for IStrg}
+                              MaxLen         : BYTE; {max Orig length}
+                              Elip           : BOOLEAN) : STRING; {add elipsis on trunc strg?}
+    VAR
+        ILen           : BYTE;
+    BEGIN
+        ILen := LENGTH(IStrg);
+
+        IF ILen > MaxCol THEN BEGIN
+            {input string too wide for column}
+            IF Elip THEN BEGIN
+                {truncate and append elipsis}
+                IStrg[0] := CHAR(MaxCol - 3);
+                IStrg := IStrg + '...';
+            END
+            ELSE
+                {just truncate}
+                IStrg[0] := CHAR(MaxCol);
+
+            {set new length after truncation}
+            ILen := MaxCol;
+        END;
+
+        IF ILen + Start <= MaxLen THEN BEGIN
+            {does not extend beyond max string length}
+            MOVE(IStrg[1], Orig[Start], ILen);
+        END
+        ELSE BEGIN
+            {too wide for line - truncate some more }
+            ILen := MaxLen - Start + 1;
+            MOVE(IStrg[1], Orig[Start], ILen);
+        END;
+        StuffStringOnCol := Orig;
+    END;
+
+
+    {------------}
+
+    {return PChar pointer to string on heap}
+    {deallocate with StrDispose}
+    FUNCTION CreatePChar(Strg : STRING) : PCHAR;
+    VAR
+        S              : ARRAY[0..256] OF CHAR;
+    BEGIN
+        MOVE(Strg[1], S[0], BYTE(Strg[0]));
+        S[BYTE(Strg[0])] := #0;
+        {$IFDEF VirtualPascal}
+        CreatePChar := strings.StrNew(S);
+        {$else}
+        CreatePChar := StrNew(S);
+        {$endif}
+    END;
+
+    {------------}
+
+    FUNCTION FmtLongIntCommas(V : LONGINT) : STRING;
+    BEGIN
+        FmtLongIntCommas := Trim(LongIntForm('###,###,###,###', V));
+    END;
+
+    {------------}
+
+    {$IFNDEF DLL}
+    FUNCTION YesNoStrg(b : BOOLEAN) : STRING;
+    BEGIN
+        IF b THEN
+            YesNoStrg := StrYes
+        ELSE
+            YesNoStrg := StrNo;
+    END;
+
+    {------------}
+
+    FUNCTION TrueFalseStrg(b : BOOLEAN) : STRING;
+    BEGIN
+        IF b THEN
+            TrueFalseStrg := StrTrue
+        ELSE
+            TrueFalseStrg := StrFalse;
+    END;
+    {$ENDIF}
+
+    {------------}
+
+    {$IFDEF VirtualPascal}
+    FUNCTION FmtRealCommas(V:EXTENDED):STRING;
+    var
+        Strg : STRING;
+    BEGIN
+        FmtRealCommas  := Format('%.0n', [V]);
+    END;
+    {$ENDIF}
+
+    {------------}
+
+    {Invert a string}
+    FUNCTION ReverseStrg(Strg : STRING) : STRING;
+    VAR
+        S              : STRING;
+        I              : BYTE;
+    BEGIN
+        S := '';
+        FOR I := LENGTH(Strg) DOWNTO 1 DO
+            S := S + Strg[I];
+        ReverseStrg := S;
+    END;
+
+    {------------}
+CONST
+    CopyBufSize    = $FFF0;
+
+TYPE
+    TBuff          = ARRAY[1..CopyBufSize] OF BYTE;
+    PBuff          = ^TBuff;
+
+    FUNCTION DgCopyFile(FromFile, ToFile : STRING) : BOOLEAN;
+    VAR
+        Buffer         : PBuff;
+    BEGIN
+        DgCopyFile := FALSE;
+        IF NOT GetMemCheck(Buffer, SIZEOF(TBuff)) THEN BEGIN
+            {$IFNDEF DLL}
+            DispErrorDeluxe('Insufficient memory in DgCopyFile', 'Copy Failed: ' + FromFile, TRUE, Iam);
+            {$ENDIF}
+            EXIT;
+        END;
+        InitStatus := CopyFile(FromFile, ToFile, Buffer, CopyBufSize);
+        IF InitStatus <> 0 THEN
+            {$IFNDEF DLL}
+            DispErrorDeluxe('Copy of ' + FromFile + ' Failed',
+                            ErrorMessage(InitStatus),
+                            TRUE,
+                            Iam)
+            {$ENDIF}
+        ELSE
+            DgCopyFile := TRUE;
+
+        FREEMEM(Buffer, SIZEOF(TBuff))
+    END;
+
+    {-------------}
+
+    FUNCTION GetNthLineFromTextFile(Name : STRING; N : LONGINT) : STRING;
+    VAR
+        T              : TEXT;
+        LCount         : LONGINT;
+        Strg           : STRING;
+    BEGIN
+        GetNthLineFromTextFile := '';
+        ASSIGN(T, Name);
+        {$I-}
+        RESET(T);
+        IF IORESULT <> 0 THEN
+            EXIT;
+        LCount := 0;
+        WHILE NOT EOF(T) DO BEGIN
+            READLN(T, Strg);
+            INC(LCount);
+            IF LCount = N THEN BEGIN
+                GetNthLineFromTextFile := Strg;
+                BREAK;
+            END;
+        END;
+        CLOSE(T);
+        {$I+}
+    END;
+
+    {-------------}
+
+    {case insensitive search for substrings in text file}
+    FUNCTION FindLineInTextFile(Name, Keyword : STRING; Instance : LONGINT) : STRING;
+    VAR
+        T              : TEXT;
+        InstCt         : LONGINT;
+        Strg           : STRING;
+    BEGIN
+        FindLineInTextFile := '';
+        Keyword := StUpCase(Keyword);
+        ASSIGN(T, Name);
+
+        {$I-}
+        RESET(T);
+
+        IF IORESULT <> 0 THEN BEGIN
+            {$IFNDEF DLL}
+            DispErrorDeluxe('Error opening: ' + Name, ErrorMessage(IORESULT), TRUE, Iam);
+            {$ENDIF}
+            EXIT;
+        END;
+
+        InstCt := 0;
+
+        WHILE NOT EOF(T) DO BEGIN
+            READLN(T, Strg);
+            Strg := StUpCase(Strg);
+            IF POS(Keyword, Strg) > 0 THEN BEGIN
+                INC(InstCt);
+                IF InstCt = Instance THEN BEGIN
+                    FindLineInTextFile := Strg;
+                    BREAK;
+                END;
+            END;
+        END;
+
+        CLOSE(T);
+        {$I+}
+    END;
+
+    {-------------}
+
+    {$IFNDEF VirtualPascal}
+    PROCEDURE RMRF(StartPath, WildCard : STRING; COP : CylonP; StatLine : BYTE);
+    VAR
+        SR             : SearchRec;
+        Result         : WORD;
+    BEGIN
+        FINDFIRST(AddBackSlash(StartPath) + WildCard, AnyFile, SR);
+        WHILE DOSERROR = 0 DO BEGIN
+            IF SR.Name[1] <> '.' THEN BEGIN
+                IF (SR.Attr AND $10) > 0 THEN BEGIN {found directory, recurse}
+                    RMRF(AddBackSlash(StartPath) + SR.Name, WildCard, COP, StatLine);
+                    IF StatLine > 0 THEN
+                        FastWrite(Pad(AddBackSlash(StartPath) + SR.Name, ScreenWidth - 1), StatLine, 1, BlackOnGreen);
+                    {$I-}
+                    RMDIR(AddBackSlash(StartPath) + SR.Name); {return from recurse, now delete dir}
+                    {$I+}
+                    Result := IORESULT;
+                    IF Result <> 0 THEN
+                        DispErrorDeluxe('Error removing directory: ' + AddBackSlash(StartPath) + SR.Name,
+                                        ErrorMessage(Result), TRUE, Iam);
+                END
+                ELSE BEGIN
+                    IF StatLine > 0 THEN
+                        FastWrite(Pad(AddBackSlash(StartPath) + SR.Name, ScreenWidth - 1), StatLine, 1, BlackOnGreen);
+                    IF (SR.Attr = 0) OR ((SR.Attr AND $27) > 0) THEN
+                        RMFile(AddBackSlash(StartPath) + SR.Name); {delete indiv file}
+                END;
+            END;
+            FindNext(SR);
+            COP^.UpDate;
+        END;
+    END;
+
+    {---------------}
+
+    {$ELSE}
+
+    {zzzz added wildcard parameter}
+    PROCEDURE RMRF(StartPath, WildCard : STRING{$IFNDEF DLL}; COP : CylonP{$ENDIF}; Statline:byte);
+    VAR
+        SR             : FileFindBuf3;
+        Rc,
+        HDir,
+        Count          : ULONG;
+        PathZ          : ARRAY[0..cchMaxPathComp] OF CHAR;
+    BEGIN
+        {$IFNDEF DLL}
+        COP^.ChangeTopHeader('Cleaning');
+        {$ENDIF}
+        HDir := hDir_Create;
+        StrPCopy(PathZ, AddBackSlash(StartPath) + WildCard{'*.*'});
+        Count := 1;
+        Rc := DosFindFirst(PathZ,
+                           HDir,
+                           $37,
+                           SR,
+                           SIZEOF(SR),
+                           Count,
+                           fil_Standard);
+
+        WHILE (rc = 0) DO BEGIN
+            {$IFNDEF DLL}
+            COP^.Update;
+            {$ENDIF}
+            IF SR.achName[1] <> '.' THEN BEGIN
+                IF SR.Attrfile AND Directory > 0 THEN BEGIN
+                    RMRF(AddBackSlash(StartPath) + SR.achName, WildCard{$IFNDEF DLL}, COP{$ENDIF}, Statline);
+                    {$IFNDEF DLL}
+                    IF StatLine > 0 THEN
+                        FastWrite(Pad(AddBackSlash(StartPath) + SR.achName, ScreenWidth-1), Statline, 1, BlackOnYellow);
+                    {$ENDIF}
+                    RMDIR(AddBackSlash(StartPath) + SR.achName);
+                    Rc := IORESULT;
+                    {$IFNDEF DLL}
+                    IF Rc <> 0 THEN
+                        DispErrorDeluxe('Error removing directory: ' + AddBackSlash(StartPath) + SR.achName,
+                                        ErrorMessage(Rc), TRUE, Iam);
+                    {$ENDIF}
+                END
+                ELSE BEGIN
+                    {$IFNDEF DLL}
+                    IF StatLine > 0 THEN
+                        FastWrite(Pad(AddBackSlash(StartPath) + SR.achName, ScreenWidth-1), Statline, 1, BlackOnYellow);
+                    {$ENDIF}
+                    EraseFile(AddBackSlash(StartPath) + SR.achName);
+                END;
+            END;
+            Rc := DosFindNext(HDir, SR, SIZEOF(SR), Count);
+        END;
+        Rc := DosFindClose(HDir);
+    END;
+
+    {---------------}
+
+    PROCEDURE RMRFUntilEnoughFree(StartPath,
+                                  WildCard : STRING{$IFNDEF DLL};
+                                  COP : CylonP{$ENDIF};
+                                  Statline:byte;
+                                  MinFree : ULONG);
+    VAR
+        SR             : FileFindBuf3;
+        Rc,
+        HDir,
+        Count          : ULONG;
+        PathZ          : ARRAY[0..cchMaxPathComp] OF CHAR;
+    BEGIN
+        {$IFNDEF DLL}
+        COP^.ChangeTopHeader('Cleaning');
+        {$ENDIF}
+        HDir := hDir_Create;
+        StrPCopy(PathZ, AddBackSlash(StartPath) + WildCard{'*.*'});
+        Count := 1;
+        Rc := DosFindFirst(PathZ,
+                           HDir,
+                           $37,
+                           SR,
+                           SIZEOF(SR),
+                           Count,
+                           fil_Standard);
+
+        WHILE (rc = 0) DO BEGIN
+            {$IFNDEF DLL}
+            COP^.Update;
+            {$ENDIF}
+            if diskfree(BYTE(StartPath[1]) - ORD('A') + 1) >= MinFree then
+                EXIT;
+
+            IF SR.achName[1] <> '.' THEN BEGIN
+                IF SR.Attrfile AND Directory > 0 THEN BEGIN
+                    RMRFUntilEnoughFree(AddBackSlash(StartPath) +
+                    SR.achName,
+                    WildCard
+                    {$IFNDEF DLL}, COP{$ENDIF},
+                    Statline,
+                    MinFree);
+                    {$IFNDEF DLL}
+                    IF StatLine > 0 THEN
+                        FastWrite(Pad(AddBackSlash(StartPath) + SR.achName, ScreenWidth-1), Statline, 1, BlackOnYellow);
+                    {$ENDIF}
+                    RMDIR(AddBackSlash(StartPath) + SR.achName);
+                    Rc := IORESULT;
+                    {$IFNDEF DLL}
+                    IF Rc <> 0 THEN
+                        DispErrorDeluxe('Error removing directory: ' + AddBackSlash(StartPath) + SR.achName,
+                                        ErrorMessage(Rc), TRUE, Iam);
+                    {$ENDIF}
+                END
+                ELSE BEGIN
+                    {$IFNDEF DLL}
+                    IF StatLine > 0 THEN
+                        FastWrite(Pad(AddBackSlash(StartPath) + SR.achName, ScreenWidth-1), Statline, 1, BlackOnYellow);
+                    {$ENDIF}
+                    EraseFile(AddBackSlash(StartPath) + SR.achName);
+                END;
+            END;
+            Rc := DosFindNext(HDir, SR, SIZEOF(SR), Count);
+        END;
+        Rc := DosFindClose(HDir);
+    END;
+
+    {---------------}
+
+
+    FUNCTION RMFiles(Name : STRING{$IFNDEF DLL}; COP:CylonP{$ENDIF}) : WORD;
+    VAR
+        SR             : FileFindBuf3;
+        Rc,
+        HDir,
+        Count          : ULONG;
+        PathZ          : ARRAY[0..cchMaxPathComp] OF CHAR;
+        StartPath      : STRING;
+    BEGIN
+        StartPath := Fexpand(JustPathName(Name));
+        HDir := hDir_Create;
+        StrPCopy(PathZ, AddBackSlash(StartPath) + Name);
+        Count := 1;
+        Rc := DosFindFirst(PathZ,
+                           HDir,
+                           $37,
+                           SR,
+                           SIZEOF(SR),
+                           Count,
+                           fil_Standard);
+
+        WHILE (rc = 0) DO BEGIN
+            {$IFNDEF DLL}
+            if cop <> nil then
+                COP^.Update;
+            {$ENDIF}
+            IF SR.achName[1] <> '.' THEN BEGIN
+                IF SR.Attrfile AND Directory = 0 THEN
+                    RMFile(AddBackSlash(StartPath) + SR.achName);
+            END;
+            Rc := DosFindNext(HDir, SR, SIZEOF(SR), Count);
+        END;
+        Rc := DosFindClose(HDir);
+    END;
+
+    {$ENDIF}
+
+    {---------------}
+
+    {$IFNDEF VirtualPascal}
+    PROCEDURE KillFilesInTree(P : STRING; COP : CylonP);
+    VAR
+        SR             : SearchRec;
+        Name           : STRING[12];
+    BEGIN
+        FINDFIRST(AddBackSlash(JustPathName(P)) + '*.*', AnyFile, SR);
+        Name := StUpCase(JustFileName(P));
+
+        WHILE DOSERROR = 0 DO BEGIN
+            IF SR.Name[1] <> '.' THEN BEGIN
+                IF (SR.Attr AND $10) > 0 THEN {found directory- recurse}
+                    KillFilesInTree(AddBackSlash(JustPathName(P)) + AddBackSlash(SR.Name) + Name, COP)
+                ELSE
+                    IF ((SR.Attr = 0) OR ((SR.Attr AND $27) > 0)) THEN
+                        IF StUpCase(SR.Name) = Name THEN {matching name?}
+                            RMFile(P); {yes: delete it}
+            END;
+            IF COP <> NIL THEN
+                COP^.UpDate;
+            FindNext(SR);
+        END;
+    END;
+
+    {--------------------------------------------------------}
+
+    FUNCTION KillEmptySubDirs(P : STRING; COP : CylonP) : BOOLEAN;
+    VAR
+        SR             : SearchRec;
+        Result         : WORD;
+        Found          : BOOLEAN;
+    BEGIN
+        KillEmptySubDirs := FALSE;
+        FINDFIRST(AddBackSlash(P) + '*.*', AnyFile, SR);
+        WHILE DOSERROR = 0 DO BEGIN
+            IF SR.Name[1] <> '.' THEN BEGIN
+                IF (SR.Attr AND $10) > 0 THEN BEGIN
+                    Found := KillEmptySubDirs(AddBackSlash(P) + SR.Name, COP);
+                    {$I-}
+                    IF NOT Found THEN BEGIN
+                        RMDIR(AddBackSlash(P) + SR.Name);
+                        {$I+}
+                        Result := IORESULT;
+                        IF Result <> 0 THEN
+                            DispErrorDeluxe('Error removing directory: ' + AddBackSlash(P) + SR.Name,
+                                            ErrorMessage(Result), TRUE, Iam);
+                    END
+                    ELSE
+                        KillEmptySubDirs := TRUE;
+                END
+                ELSE
+                    IF (SR.Attr = 0) OR ((SR.Attr AND $27) > 0) THEN
+                        KillEmptySubDirs := TRUE;
+            END;
+            FindNext(SR);
+            COP^.UpDate;
+        END;
+    END;
+
+    {---------------}
+
+    {recurse FromDir and copy all files found to ToDir - without old tree structure}
+    FUNCTION FlattenTreeAndCopy(FromDir, ToDir : STRING; COP : CylonP) : BOOLEAN;
+    VAR
+        SR             : SearchRec;
+        Result         : WORD;
+        Found          : BOOLEAN;
+    BEGIN
+        FlattenTreeAndCopy := TRUE;
+        FINDFIRST(AddBackSlash(FromDir) + '*.*', AnyFile, SR);
+        WHILE DOSERROR = 0 DO BEGIN
+            IF SR.Name[1] <> '.' THEN BEGIN
+                IF (SR.Attr AND $10) > 0 THEN BEGIN
+                    Found := FlattenTreeAndCopy(AddBackSlash(FromDir) + SR.Name, ToDir, COP);
+                END
+                ELSE
+                    IF (SR.Attr = 0) OR ((SR.Attr AND $27) > 0) THEN
+                        IF NOT DgCopyFile(AddBackSlash(FromDir) + SR.Name, AddBackSlash(ToDir) + SR.Name) THEN BEGIN
+                            FlattenTreeAndCopy := TRUE;
+                            BREAK;
+                        END;
+
+            END;
+            FindNext(SR);
+            IF COP <> NIL THEN
+                COP^.UpDate;
+        END;
+    END;
+
+    {-----------------}
+
+    {$endif}
+
+    {$IFDEF VirtualPascal}
+    {Load a string resource from a DLL}
+    FUNCTION DLLLoadStr(ModHand : HModule; Indx : LONGINT) : STRING;
+    VAR
+        Strg           : STRING;
+        EC             : LONGINT;
+        P              : POINTER;
+        I              : BYTE;
+    BEGIN
+        // load a string resource from a DLL
+        EC := DosGetResource(ModHand,
+                             rt_string,
+                             (Indx DIV 16) + 1,
+                             P);
+
+        IF EC <> No_Error THEN BEGIN
+            {$IFNDEF DLL}
+            DispErrorDeluxe('DosGetResource error', ErrorMessage(EC), TRUE, Iam);
+            {$ENDIF}
+            Result := '';
+            EXIT;
+        END;
+
+        INC(LONGINT(P), 2);       {move past code page }
+
+        // P now points to head of 16 string block
+
+        FOR I := 0 TO (Indx MOD 16) DO BEGIN // step through block of 16 strings
+            StrCopy(PCHAR(@Strg[0]), P);     // load a string
+            SetLength(Strg, StrLen(P) - 1);  // chop off term byte
+            P := StrEnd(P);                  // point to end of current str
+            INC(LONGINT(P));                 // move to head of next str
+        END;
+
+        Result := Strg;
+    END;
+    {$endif}
+
+    {--------------}
+
+    {create a new file or append to existing one}
+    FUNCTION CreateOrAppendTxt(Name : STRING; VAR T : TEXT) : BOOLEAN;
+    VAR
+        LastError      : WORD;
+    BEGIN
+        CreateOrAppendTxt := FALSE;
+        {$I-}
+        ASSIGN(T, Name);
+
+        RESET(T);
+        LastError := IORESULT;
+
+        CASE LastError OF
+            0 : BEGIN
+                    CLOSE(T);     {found existing file, so append}
+                    APPEND(T);
+                END;
+            110,
+            2 : BEGIN
+                    REWRITE(T);   {create new file}
+                    LastError := IORESULT;
+
+                    IF LastError <> 0 THEN BEGIN
+                        CLOSE(T);
+                        EXIT;
+                    END;
+                END;
+            ELSE BEGIN
+                {crash if file error} {boom!}
+                EXIT;
+            END;
+        END;
+        {$I+}
+        CreateOrAppendTxt := TRUE;
+    END;
+
+    {---------------}
+
+    FUNCTION AppendTxtToEnd(ParentFile, FileToAppend : STRING) : BOOLEAN;
+    VAR
+        OutFile,
+        InFile         : TEXT;
+        {$ifdef virtualpascal}
+        Line : ansistring;
+        {$else}
+        Line           : STRING;
+        {$endif}
+    BEGIN
+        AppendTxtToEnd := FALSE;
+        IF NOT CreateOrAppendTxt(ParentFile, OutFile) THEN
+            EXIT;
+        IF NOT ExistFile(FileToAppend) THEN BEGIN
+            CLOSE(OutFile);
+            EXIT;
+        END;
+        ASSIGN(InFile, FileToAppend);
+        {$I-}
+        RESET(InFile);
+        IF IORESULT <> 0 THEN BEGIN
+            CLOSE(OutFile);
+            EXIT;
+        END;
+        WHILE NOT EOF(InFile) DO BEGIN
+            READLN(InFile, Line);
+            WRITELN(OutFile, Line);
+        END;
+        CLOSE(InFile);
+        CLOSE(OutFile);
+        AppendTxtToEnd := IORESULT = 0;
+    END;
+
+    {---------------}
+
+    {remove named block(s) of text from a text file. Start/Stop strings must be in column 1}
+    FUNCTION RemoveTextBlock(FileName, BlockStartString, BlockStopString : STRING) : BOOLEAN;
+    VAR
+        InFile,
+        OutFile        : TEXT;
+        OutFileName    : STRING;
+        Skipping       : BOOLEAN;
+        {$ifdef virtualpascal}
+        Line : AnsiString;
+        {$else}
+        Line           : STRING;
+        {$endif}
+    BEGIN
+        RemoveTextBlock := FALSE;
+        Skipping := FALSE;
+
+        ASSIGN(InFile, FileName);
+        {$I-}
+        RESET(InFile);
+        IF IORESULT <> 0 THEN
+            EXIT;
+        {create empty, closed temp file}
+        IF NOT DGGetTempFileName(JustPathName(FileName), '$$$', OutFileName) THEN BEGIN
+            CLOSE(InFile);
+            EXIT;
+        END;
+
+        ASSIGN(OutFile, OutFileName);
+        REWRITE(OutFile);
+
+        {copy original file to temp, skipping named blocks of text}
+        WHILE NOT EOF(InFile) DO BEGIN
+            READLN(InFile, Line);
+            IF POS(BlockStartString, Line) = 1 THEN
+                Skipping := TRUE;
+            IF NOT Skipping THEN
+                WRITELN(OutFile, Line);
+            IF POS(BlockStopString, Line) = 1 THEN
+                Skipping := FALSE;
+        END;
+
+        CLOSE(InFile);
+        CLOSE(OutFile);
+
+        {erase the original}
+        RMFile(FileName);
+
+        {rename the temp to the original name}
+        ReNameFile(OutFileName, FileName);
+    END;
+
+    {---------------}
+
+    {create a new file or append to existing one}
+    FUNCTION CreateOrAppendUntyped(Name : STRING; VAR f : FILE) : BOOLEAN;
+    VAR
+        LastError      : WORD;
+    BEGIN
+        CreateOrAppendUntyped := FALSE;
+        {$I-}
+        ASSIGN(f, Name);
+
+        RESET(f, 1);
+        LastError := IORESULT;
+
+        CASE LastError OF
+            0 :
+                SEEK(f, FILESIZE(f));
+            110,
+            2 : BEGIN
+                    REWRITE(f, 1); {create new file}
+                    LastError := IORESULT;
+
+                    IF LastError <> 0 THEN BEGIN
+                        CLOSE(f);
+                        EXIT;
+                    END;
+                END;
+            ELSE BEGIN
+                {crash if file error} {boom!}
+                EXIT;
+            END;
+        END;
+        {$I+}
+        CreateOrAppendUntyped := TRUE;
+    END;
+
+    {---------------}
+
+    FUNCTION RLECompress(Strg : STRING; EscChar : CHAR) : STRING;
+    VAR
+        C,
+        I              : BYTE;
+        LastChar       : CHAR;
+        Buff           : STRING;
+    BEGIN
+        RLECompress := '';
+        IF LENGTH(Strg) = 0 THEN
+            EXIT;
+        Buff := '';
+        LastChar := Strg[1];
+        C := 1;
+        FOR I := 2 TO LENGTH(Strg) DO BEGIN
+            IF LastChar = EscChar THEN BEGIN
+                Buff := Buff + EscChar + CHAR(0);
+                LastChar := Strg[I];
+                CONTINUE;
+            END;
+            IF LastChar = Strg[I] THEN
+                INC(C)
+            ELSE BEGIN
+                IF C > 3 THEN
+                    Buff := Buff + EscChar + CHAR(C) + LastChar
+                ELSE
+                    Buff := Buff + CharStr(LastChar, C);
+                LastChar := Strg[I];
+                C := 1;
+            END;
+        END;
+        IF C > 3 THEN
+            RLECompress := Buff + EscChar + CHAR(C) + LastChar
+        ELSE
+            RLECompress := Buff + CharStr(LastChar, C);
+    END;
+
+    {-----------------}
+
+    FUNCTION RLEDecompress(Strg : STRING; EscChar : CHAR) : STRING;
+    VAR
+        I              : BYTE;
+        Buff           : STRING;
+    BEGIN
+        RLEDecompress := '';
+        IF LENGTH(Strg) = 0 THEN
+            EXIT;
+        Buff := '';
+        FOR I := 1 TO LENGTH(Strg) DO BEGIN
+            IF Strg[I] = EscChar THEN BEGIN
+                IF Strg[I + 1] = #0 THEN BEGIN
+                    Buff := Buff + EscChar;
+                    INC(I);
+                    CONTINUE;
+                END
+                ELSE BEGIN
+                    Buff := Buff + CharStr(Strg[I + 2], ORD(Strg[I + 1]));
+                    INC(I, 2);
+                    CONTINUE;
+                END;
+            END
+            ELSE
+                Buff := Buff + Strg[I];
+        END;
+        RLEDecompress := Buff;
+    END;
+
+    {-----------------}
+
+    {build a charset (set of char) one char at a time}
+    {returns set of char in S}
+    PROCEDURE BuildCharSet(VAR S; C : CHAR);
+    VAR
+        BitArray       : ARRAY[0..31] OF BYTE ABSOLUTE S;
+        BitNum         : BYTE;
+    BEGIN
+        BitNum := ORD(C);
+        {set bit in char C}
+        BitArray[BitNum DIV 8] := BitArray[BitNum DIV 8] OR (1 SHL (BitNum MOD 8));
+    END;
+
+    {-------------------}
+
+    {create empty, closed text temp file and return handle}
+    FUNCTION GetTempTextFileHandle(PathName       : STRING;
+                                   Ext            : STRING;
+                                   VAR TempFileName : STRING;
+                                   VAR f          : TEXT) : BOOLEAN;
+    VAR
+        NLoops,
+        OFM,
+        L              : LONGINT;
+        Strg           : STRING;
+        I,
+        Day,
+        Month,
+        Year           : INTEGER;
+    BEGIN
+        TempFileName := '';
+        NLoops := 0;
+        GetTempTextFileHandle := FALSE;
+        REPEAT
+            INC(NLoops);
+            Strg := CreateDateFilePrefix(Today) + CreateRandomSuffix;
+            TempFileName := AddBackSlash(PathName) + Strg + '.' + Ext;
+            IF NOT ExistFile(TempFileName) THEN BEGIN
+                ASSIGN(f, TempFileName);
+                {$I-}
+                REWRITE(f);
+                CLOSE(f);
+                L := IORESULT;
+                {$I+}
+                FILEMODE := OFM;
+                GetTempTextFileHandle := TRUE;
+                EXIT;
+            END;
+        UNTIL NLoops > 100;
+    END;
+
+    {-----------------}
+
+    {$ifdef virtualpascal}
+   PROCEDURE PruneTextFile(Filename:STRING; MaxSize:LONGINT);
+   VAR
+        Tin,
+        Tout           : TEXT;
+        Line           : STRING;
+        Attr,
+        FSize,
+        Cumulative     : LONGINT;
+        DTR : DateTimeRec;
+    BEGIN
+        if GetFileInfo(Filename, DTR, FSize, Attr) then begin
+              if FSize <= (MaxSize+80) then
+                  exit;
+        end;
+        ASSIGN(Tin, Filename);
+        System.RESET(Tin);
+        ASSIGN(Tout, AddBackSlash(JustPathname(Filename)) + 'junk.tmp');
+        REWRITE(Tout);
+        Cumulative := 0;
+        WHILE NOT EOF(Tin) DO BEGIN
+            READLN(Tin, Line);
+            INC(Cumulative, LENGTH(Line) + 2);
+            IF (FSize - Cumulative) < MaxSize THEN
+                WRITELN(Tout, Line);
+        END;
+        CLOSE(Tin);
+        CLOSE(Tout);
+        RMFile(Filename);
+        ReNameFile(AddBackSlash(JustPathname(Filename)) + 'junk.tmp', Filename);
+    END;
+   {$ENDIF}
+    {$IFNDEF DLL}
+BEGIN
+    {$ifdef virtualpascal}
+    randomize;
+    {$endif}
+    {$ENDIF}
+END.
+
+    {-----------------}
+    {-----------------}
+

@@ -1,0 +1,1523 @@
+{***************************************************************************
+* Filename: register.pas
+* Version:  1.4
+* Date:     05/19/99 @ 14:33:23
+* Group:
+* Release:
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* Version   Date     Time    Programmer   Description
+*
+*
+* ~notes~
+* Description
+* -----------
+* Security and revenue functions for KeyRing/2
+*
+* ~notesend~
+* ~nokeywords~
+*
+***************************************************************************
+
+}
+UNIT Register;
+
+INTERFACE
+    {$I OPDEFINE.INC}
+    {&Delphi+}
+USES
+    {dfconst,}
+    BACKDROP,
+    BlowFish,
+    DGCMD,
+    DGFkey,
+    KREGUTL,
+    MMPLAY,
+    OpCmd,
+    OpDate,
+    OpEntry,
+    USE32,
+    VARDEC;
+
+TYPE
+    TRegStat       = (ENotReg, ERegCorrupt, ERegOk, ERegDropDead);
+    TMailMode      = (ENoCryptDLL, EBlowCryptDLL, EDESCryptDLL, EDummyCryptDLL);
+
+    PFKeyMgrDeluxe = ^TFKeyMgrDeluxe;
+    TFKeyMgrDeluxe = OBJECT(TFKeyMgr)
+                         CONSTRUCTOR Init(KeysPtr        : CmdTablePtr;
+                                          MaxIndex       : WORD;
+                                          KeyRowBot, KeyDepth : BYTE;
+                                          SoundFile      : STRING);
+                         DESTRUCTOR Done; VIRTUAL;
+                         PROCEDURE UserHook1; VIRTUAL;
+                         FUNCTION cpKeyPressed : BOOLEAN; VIRTUAL;
+
+                         PROCEDURE PlaySound;
+                     PRIVATE
+                         TSP            : TSoundPlayer;
+                         LaunchTime     : DateTimeRec;
+                         HumanAtKbd     : BOOLEAN;
+                         MySoundFile    : STRING;
+                     END;
+
+    {--------------}
+
+    PRegES         = ^TRegES;
+    TRegES         = OBJECT(EntryScreen)
+                         MyRR           : TRegisterRec;
+                         OrigRR         : PRegisterRec;
+                         PKM            : PFKeyMgrDeluxe;
+                         VirginBuild    : BOOLEAN;
+                         PBK            : PBackDrop;
+                         InfoFromCDF    : BOOLEAN;
+                         PopName        : STRING;
+
+                         DESTRUCTOR Done; VIRTUAL;
+                         PROCEDURE ProcessSelf; VIRTUAL;
+                         CONSTRUCTOR InitManual(VAR UR : TRegisterRec; SoundFile : STRING);
+                         CONSTRUCTOR InitGenKey(VAR UR : TRegisterRec);
+                         PROCEDURE DoPrint;
+                         PROCEDURE DoEmail(Mode : TMailMode);
+                         PROCEDURE MakeAttachment(Mode : TMailMode);
+                         PROCEDURE esPostEdit; VIRTUAL;
+                         PROCEDURE MakeWPI(Mode : TMailMode);
+                         FUNCTION MakeRC : BOOLEAN;
+                         FUNCTION MakeDLL : BOOLEAN;
+                         FUNCTION StampRegDLL : BOOLEAN;
+                         FUNCTION StampWPI : BOOLEAN;
+                         PROCEDURE LogIt(CDFName : STRING);
+                         FUNCTION GetSN : STRING;
+                         PROCEDURE DumpRec;
+                         PROCEDURE SetDemoMode;
+                         PROCEDURE ChangeRR(UR : TRegisterRec; FromCDF : BOOLEAN; Pop : STRING);
+                         PROCEDURE MovePOP;
+                         PROCEDURE SendOffer;
+                     END;
+
+    TBigArray      = ARRAY[1..$FFFF] OF SmallWORD;
+
+PROCEDURE CreateRegistration;
+IMPLEMENTATION
+USES
+    ApMisc,
+    CDF,
+    CmdLin3,
+    Colors,
+    DGHELP,
+    DGLIB,
+    DGMath,
+    Dos,
+    {E2INI,}
+    KERROR,
+    MSGMGR,
+    OpDos,
+    OpInline,
+    OpString,
+    OpRoot,
+    OpCRT,
+    OpCol16,
+    {$IFDEF UseMouse}
+    OpMouse,
+    {$ENDIF}
+    OpAbsFld,
+    OpKey,
+    OpField,
+    OpFrame,
+    OpWindow,
+    OpSelect,
+    Os2Base,
+    OS2DEF,
+    OS2EXEC,
+    OS2PMAPI,
+    Printer,
+    STRCRC,
+    Strings,
+    SysUtils,
+    UTTIMDAT,
+    UTIAM;
+
+    {Entry field constants}
+CONST
+    idFirstName    = 0;
+    idQty          = idFirstName + 1;
+    idLastName     = idQty + 1;
+    idOrderNum     = idLastName + 1;
+    idCompanyName  = idOrderNum + 1;
+    idWPIName      = idCompanyName + 1;
+    idMaxRev       = idWPIName + 1;
+    idAddr1        = idMaxRev + 1;
+    idAddr2        = idAddr1 + 1;
+    idCity         = idAddr2 + 1;
+    idState        = idCity + 1;
+    idZip          = idState + 1;
+    idCountry      = idZip + 1;
+    idDomestic     = idCountry + 1;
+    idCitizen      = idDomestic + 1;
+    idAgree        = idCitizen + 1;
+    idEmail        = idAgree + 1;
+    idPhone        = idEmail + 1;
+    idFeatureBits  = idPhone + 1;
+    idDemoLifeDays = idFeatureBits + 1;
+    idIP           = idDemoLifeDays + 1;
+    idDropDead     = idIP + 1;
+    idDomain       = idDropDead + 1;
+    idLimits       = idDomain + 1;
+    idRegCode      = idLimits + 1;
+    idComment      = idRegCode + 1;
+
+    {Help index constants}
+CONST
+    hiFirstName    = 1;
+    hiQty          = hiFirstName + 1;
+    hiLastName     = hiQty + 1;
+    hiOrderNum     = hiLastName + 1;
+    hiCompanyName  = hiOrderNum + 1;
+    hiWPIName      = hiCompanyName + 1;
+    hiMaxRev       = hiWPIName + 1;
+    hiAddr1        = hiMaxRev + 1;
+    hiAddr2        = hiAddr1 + 1;
+    hiCity         = hiAddr2 + 1;
+    hiState        = hiCity + 1;
+    hiZip          = hiState + 1;
+    hiCountry      = hiZip + 1;
+    hiDomestic     = hiCountry + 1;
+    hiCitizen      = hiDomestic + 1;
+    hiAgree        = hiCitizen + 1;
+    hiEmail        = hiAgree + 1;
+    hiPhone        = hiEmail + 1;
+    hiFeatureBits  = hiPhone + 1;
+    hiDemoLifeDays = hiFeatureBits + 1;
+    hiIP           = hiDemoLifeDays + 1;
+    hiDropDead     = hiIP + 1;
+    hiDomain       = hiDropDead + 1;
+    hiLimits       = hiDomain + 1;
+    hiRegCode      = hiLimits + 1;
+    hiComment      = hiRegCode + 1;
+
+    ccSkip         = ccUser1;
+    ccPRMEmail     = ccSkip + 1;
+    ccForceBuild   = ccPRMEmail + 1;
+    ccDemo         = ccForceBuild + 1;
+    ccBeta         = ccDemo + 1;
+    ccPaid         = ccBeta + 1;
+    ccBloKey       = ccPaid + 1;
+    ccDESKey       = ccBloKey + 1;
+    ccNewRec       = ccDESKey + 1;
+    ccForceBlow    = ccNewRec + 1;
+    ccMaxRev       = ccForceBlow + 1;
+    ccSendOffer    = ccMaxRev + 1;
+
+TYPE
+    TCryptMode     = (Encrypt, Decrypt);
+    TCRCRec        = RECORD
+                         CRC            : LONGINT;
+                         Key            : LONGINT;
+                     END;
+
+    {===========================================================}
+
+    CONSTRUCTOR TFKeyMgrDeluxe.Init(KeysPtr        : CmdTablePtr;
+                                    MaxIndex       : WORD;
+                                    KeyRowBot, KeyDepth : BYTE;
+                                    SoundFile      : STRING);
+    BEGIN
+        IF NOT INHERITED Init(KeysPtr, MaxIndex, KeyRowBot, KeyDepth) THEN
+            FAIL;
+        TSP := NIL;
+        DTRNow(LaunchTime);
+        MySoundFile := SoundFile;
+        if not Is_Param('N') then
+            PlaySound;                {play tada sound on entry}
+        HumanAtKbd := FALSE;      {assume nobody home}
+    END;
+
+    {-------------}
+
+    {- Write heap status, time and date to crt status line}
+    PROCEDURE TFKeyMgrDeluxe.UserHook1;
+    CONST
+        LAST           : LONGINT = 0;
+        LastBlink      : LONGINT = 0;
+        BLK            : BOOLEAN = TRUE;
+        Ts             : ARRAY[BOOLEAN] OF STRING[5] =
+        ('hh mm', 'hh:mm');
+    VAR
+        S1             : STRING[32];
+        TimeNow        : DateTimeRec;
+    BEGIN
+        IF ABS(TimeMS - LastBlink) > 500 THEN BEGIN
+            BLK := NOT BLK;
+            LastBlink := TimeMS;
+        END;
+
+        IF ABS(TimeMS - LAST) > 100 THEN BEGIN { 100 Ms update interval !!.KVN}
+            S1 := ' ' + NowStringDeluxe(TRUE, TRUE) + ' ';
+            FastWrite(S1, 1, 2, ColorMono(BlackOnLtGray, BlackOnLtGray));
+            LAST := TimeMS;
+        END;
+        {bug the user with a wav file sound every 15 minutes if there is work to do}
+        {don't bug him if he has touched the keyboard}
+        DTRNow(TimeNow);
+        IF (DateTimeDiffSecs(TimeNow, LaunchTime) > (15 * 60)) AND (NOT HumanAtKbd) THEN BEGIN
+            DTRNow(LaunchTime);
+        if not Is_Param('N') then
+            PlaySound;
+        END;
+    END;
+
+    {-----------}
+
+    FUNCTION TFKeyMgrDeluxe.cpKeyPressed : BOOLEAN;
+    VAR
+        Prs            : BOOLEAN;
+        Scan,
+        I,
+        Kbd            : WORD;
+    CONST
+        LastFlg        : WORD = 0;
+    BEGIN
+        cpKeyPressed := FALSE;
+
+        CurrentClockProc;
+        UserHook1;
+        UserHook2;
+
+        Kbd := KbdFlags AND $F;
+
+        IF Kbd <> LastFlg THEN BEGIN
+            IF (Kbd AND ShiftFlag) <> 0 THEN
+                RedrawFkeys(KeyModShift);
+            IF (Kbd AND AltFlag) <> 0 THEN
+                RedrawFkeys(KeyModAlt);
+            IF (Kbd AND CtrlFlag) <> 0 THEN
+                RedrawFkeys(KeyModCtrl);
+            IF Kbd = 0 THEN
+                RedrawFkeys(KeyModUnShift);
+            LastFlg := Kbd;
+        END;
+
+        MouseWasPressed := FALSE;
+        {$IFDEF USEMOUSE}
+        IF MousePressed THEN BEGIN
+            HumanAtKbd := TRUE;
+            WaitForButtonRelease := TRUE;
+            LastMouseKeyWord := MouseKeyword;
+            IF LastMouseKeyWord = MouseLft THEN
+                FOR I := 1 TO 10 DO
+                    IF FKeys[I]^.MouseOnKey(Scan) THEN BEGIN
+                        ScanPending := Scan;
+                        {$IFNDEF VirtualPascal}
+                        StuffKey(Scan);
+                        {$ENDIF }
+                        EXIT;
+                    END;
+            cpKeyPressed := TRUE; {mouse clicked, but not on Fkey}
+            MouseWasPressed := TRUE;
+            EXIT;
+        END;
+        {$ENDIF}
+
+        {$IFDEF USEMOUSE}
+        Prs := KeyOrButtonPressed OR (ScanPending <> 0);
+        {$ELSE}
+        Prs := KeyPressed or (ScanPending <> 0);
+        {$ENDIF}
+
+        IF NOT Prs THEN
+            {$IFNDEF VirtualPascal}
+            INLINE($CD / $28);    { Allow TSRs to pop up }
+        {$ELSE}
+            DosSleep(50);
+            {$ENDIF}
+        IF Prs THEN
+            HumanAtKbd := TRUE;
+
+        cpKeyPressed := Prs;
+    END;
+
+    {----------------}
+
+    {play a wav file}
+    PROCEDURE TFKeyMgrDeluxe.PlaySound;
+    BEGIN
+        if Is_Param('N') then
+            exit;
+        IF NOT FileExists(MySoundFile) THEN
+            EXIT;
+        IF TSP <> NIL THEN BEGIN
+            TSP.AbortAll;
+            TSP.Destroy;
+        END;
+        TSP := TSoundPlayer.Create;
+        TSP.AddSong(MySoundFile);
+        TSP.PlayBackGround(0);
+    END;
+
+    {----------------}
+
+    {free up resources}
+    DESTRUCTOR TFKeyMgrDeluxe.Done;
+    BEGIN
+        INHERITED Done;
+        IF TSP = NIL THEN
+            EXIT;
+        TSP.AbortAll;
+        TSP.Destroy;
+        TSP := NIL;
+    END;
+
+    {----------------}
+
+    CONSTRUCTOR TRegES.InitGenKey(VAR UR : TRegisterRec);
+    BEGIN
+        MyRR := UR;
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.esPostEdit;
+    BEGIN
+        if GetCurrentID = idMaxRev then begin
+            MyRR.FeatureBits := MyRR.FeatureBits and $3F;
+            MyRR.FeatureBits := MyRR.FeatureBits OR (MyRR.MaxRev SHL 6);
+            DrawField(idFeatureBits);
+        end;
+    END;
+
+    {----------------}
+
+    CONSTRUCTOR TRegES.InitManual(VAR UR : TRegisterRec; SoundFile : STRING);
+    CONST
+        Frame1         = 'ÉÈ»¼ÍÍºº';
+        WinOptions     = wBordered + wClear + wUserContents + wResizeable;
+    BEGIN
+        InfoFromCDF := FALSE;
+        PopName := '';
+        NEW(PBK, InitFullScn);
+        IF PBK = NIL THEN
+            FAIL;
+
+        IF NOT InitCustom(2, 2, 79, 20, EsColors, WinOptions) THEN
+            FAIL;
+
+        NEW(PKM, Init(@EntryKeySet, EntryKeyMax, ScreenHeight, 2, SoundFile));
+        IF PKM = NIL THEN BEGIN
+            Done;
+            FAIL;
+        END;
+        VirginBuild := TRUE;
+        MyRR := UR;
+        CurrentClockProc := NILClock;
+        MyRR.MaxRev := ProgVerMajor;
+
+        PKM^.AddExitKey(F1, ccNone, '');
+        PKM^.AddExitKey(F2, ccForceBlow, 'Force/Blow');
+        PKM^.AddExitKey(F3, ccDemo, 'Demo/Feat');
+        PKM^.AddExitKey(F4, ccBeta, 'Beta/Feat');
+        PKM^.AddExitKey(F5, ccPaid, 'Paid/Feat');
+
+        {$IFDEF ROBOT}
+        PKM^.AddExitKey(F7, ccSkip, 'Skip');
+        {$ENDIF}
+
+        PKM^.AddExitKey(F8, ccBloKey, 'Email/BloKey');
+        PKM^.AddExitKey(F9, ccDESKey, 'Email/DESKey');
+        PKM^.AddExitKey(F10, ccSendOffer, 'Send/Offer');
+        {PKM^.AddExitKey(F10, ccPRMEmail, 'Email/PRM');}
+        PKM^.AddExitKey(SHF10, ccForceBuild, 'Force/Build');
+
+        PKM^.SetHelpProc(DisplayHelp);
+
+        SetCommandProcessor(PKM^);
+
+        wFrame.SetFrameType(Frame1);
+        EnableExplosions(20);
+        wFrame.AddHeader(' KeyRing/2 Key DLL Generator ', heTC);
+        esOptionsOff(esMousePage);
+        SetWrapMode(WrapAtEdges);
+
+        AddLineField('Ä', 'Ä', 'Ä', 12, 1, 78, FALSE);
+        AddLineField('Ä', 'Ä', 'Ä', 15, 1, 78, FALSE);
+
+        {idFirstName:}
+        esFieldOptionsOn(efClearFirstChar + efRequired);
+        AddStringField(
+            'First Name:', 1, 2,
+            '!' + CharStr('X', FNWidth - 1), 1, 17, FNWidth,
+            hiFirstName, MyRR.FirstName);
+        esFieldOptionsOff(efClearFirstChar + efRequired);
+
+        esFieldOptionsOn(efClearFirstChar);
+        {idQty:}
+        AddLongField(
+            'Qty :', 1, 48,
+            '9999', 1, 57,
+            hiQty, 1, $7FFFFFFF, MyRR.Qty);
+
+        {idLastName:}
+        esFieldOptionsOn(efClearFirstChar + efRequired);
+        AddStringField(
+            'Last Name:', 2, 2,
+            '!' + CharStr('X', LNWidth - 1), 2, 17, 30,
+            hiLastName, MyRR.LastName);
+        esFieldOptionsOff(efClearFirstChar + efRequired);
+
+        esFieldOptionsOn(efProtected);
+        {idOrderNum:}
+        AddStringField(
+            'OrdNum :', 2, 48,
+            CharStr('X', 30), 2, 57, 22,
+            hiOrderNum, MyRR.OrderNum);
+        esFieldOptionsOff(efProtected);
+
+        {idCompanyName:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'Company Name: ', 3, 2,
+            '!' + CharStr('X', LNWidth - 1), 3, 17, 30,
+            hiCompanyName, MyRR.CompanyName);
+        esFieldOptionsOff(efClearFirstChar);
+
+        {idWPIName:}
+        esFieldOptionsOn(efProtected);
+        AddStringField(
+            'WPI :', 3, 48,
+            'XXXXXXXXXXXX', 3, 57, 12,
+            hiWPIName, MyRR.WPIName);
+        esFieldOptionsOff(efProtected);
+
+        {idMaxRev:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddLongField(
+            'MaxRev :', 4, 48,
+            '999', 4, 57,
+            hiMaxRev, 1, $3F, MyRR.MaxRev);
+
+        {idAddr1:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'Addr1:', 4, 2,
+            CharStr('X', 30), 4, 17, 30,
+            hiAddr1, MyRR.Addr1);
+
+        {idAddr2:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'Addr2:', 5, 2,
+            CharStr('X', 30), 5, 17, 30,
+            hiAddr2, MyRR.Addr2);
+
+        {idCity:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'City:', 6, 2,
+            '!' + CharStr('X', FNWidth - 1), 6, 17, 30,
+            hiCity, MyRR.City);
+
+        {idState:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'State:', 7, 2,
+            '!' + CharStr('X', FNWidth - 1), 7, 17, 30,
+            hiState, MyRR.State);
+
+        {idZip:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'Zip:', 8, 2,
+            CharStr('X', 30), 8, 17, 30,
+            hiZip, MyRR.Zip);
+
+        {idCountry:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'Country:', 9, 2,
+            '!' + CharStr('X', FNWidth - 1), 9, 17, 30,
+            hiCountry, MyRR.Country);
+        {$ifdef ROBOT}
+        {idDomestic:}
+        AddStringField(
+            'Crypter:', 9, 48,
+            'XXXXXXXXXX', 9, 57, 10,
+            hiDomestic, MyRR.CryptModule);
+
+        {idCitizen:}
+        AddStringField(
+            'Citizen:', 10, 2,
+            CharStr('X', 30), 10, 17, 30,
+            hiCitizen, MyRR.Citizen);
+
+        {idAgree:}
+        AddYesNoField(
+            'Agreed:', 10, 48,
+            'Y', 10, 57,
+            hiAgree, MyRR.Agree);
+        esFieldOptionsOff(efProtected+efClickExit);
+        {$endif}
+
+        {idEmail:}
+        esFieldOptionsOn(efClearFirstChar + efRequired);
+        AddStringField(
+            'Email:', 11, 2,
+            CharStr('X', LNWidth), 11, 17, 30,
+            hiEmail, MyRR.Email);
+        esFieldOptionsOff(efClearFirstChar + efRequired);
+
+        {$IFDEF ROBOT}
+        {idPhone:}
+        AddStringField(
+            'Ph:', 11, 48,
+            'XXXXXXXXXXXXXXXXXX', 11, 57, 17,
+            hiPhone, MyRR.Phone);
+        {$ENDIF}
+
+        {idFeatureBits:}
+        AddLongField(
+            'Features:', 13, 2,
+            'KKKKKKKK', 13, 17,
+            hiFeatureBits, $80000000, $7FFFFFFF, MyRR.FeatureBits);
+
+        {idDemoLifeDays:}
+        esFieldOptionsOn(efClearFirstChar + efBeepOnError + efAutoNumLock);
+        AddLongField(
+            'Demo Life:', 13, 28,
+            '999999999', 13, 39,
+            hiDemoLifeDays, 1, 200000000, MyRR.DemoPWXLifetime);
+        esFieldOptionsOff(efClearFirstChar + efBeepOnError + efAutoNumLock);
+        {$ifDEF ROBOT}
+
+        {idIP:}
+        AddStringField(
+            'IP:', 13, 50,
+            'XXXXXXXXXXXXXXX', 13, 54, 15,
+            hiIP, MyRR.IP);
+        esFieldOptionsOff(efProtected);
+        {$endif}
+
+
+        {idDropDead:}
+        esFieldOptionsOn(efClearFirstChar + efBeepOnError + efAutoNumLock);
+        esFieldOptionsOff(efTrimBlanks);
+        AddDateField(
+            'Drop Dead:', 14, 2,
+            'mm/dd/yyyy', 14, 17,
+            hiDropDead, MinDate, MinDate, MyRR.DropDead);
+        esFieldOptionsOn(efTrimBlanks);
+        esFieldOptionsOff(efBeepOnError + efAutoNumLock);
+
+        {$ifDEF ROBOT}
+        {idDomain:}
+        AddStringField(
+            'Domain:', 14, 28,
+            CharStr('X', 30), 14, 39, 30,
+            hiDomain, MyRR.Domain);
+        esFieldOptionsOff(efProtected);
+        {$ENDIF}
+
+        {idLimits:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'Limits:', 16, 2,
+            CharStr('X', 61), 16, 17, 61,
+            hiLimits, MyRR.Limits);
+
+        {idRegCode:}
+        esFieldOptionsOn(efClearFirstChar);
+        AddStringField(
+            'Reg Code :', 17, 2,
+            CharStr('X', RNWidth), 17, 17, RNWidth,
+            hiRegCode, MyRR.RegCode);
+        esFieldOptionsOff(efProtected);
+
+        {idComment:}
+        AddStringField(
+            'Comment :', 18, 2,
+            CharStr('X', 254), 18, 17, 61,
+            hiComment, MyRR.Comment);
+
+        InitStatus := RawError;
+        IF InitStatus <> 0 THEN
+            FAIL;
+
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.ChangeRR(UR : TRegisterRec; FromCDF : BOOLEAN; Pop : STRING);
+    BEGIN
+        InfoFromCDF := FromCDF;
+        PopName := Pop;
+        MyRR := UR;
+        Draw;
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.SetDemoMode;
+    BEGIN
+        MyRR.FeatureBits := DESFEATUREBIT + BLOFEATUREBIT + PWXDDFEATUREBIT + (ProgVerMajor SHL 6);
+        MyRR.Qty := 1;
+        DTRNow(MyRR.BuildDate);
+        MyRR.DropDead := Today + (365 * 30);
+        MyRR.DemoPWXLifetime := 30;
+        {                        1         2         3         4         5}
+        {               12345678901234567890123456789012345678901234567890}
+        MyRR.Limits := 'Limited database lifetime! Please register!';
+        MyRR.FirstName := 'Demo';
+        MyRR.LastName := 'Demo';
+        MyRR.CompanyName := '';
+        MyRR.Addr1 := '';
+        MyRR.Addr2 := '';
+        MyRR.City := '';
+        MyRR.State := '';
+        MyRR.Zip := '';
+        MyRR.Country := '';
+        MyRR.Email := 'kr2@idk-inc.com';
+        ChangeHidden(idDemoLifeDays, FALSE);
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.DoPrint;
+    VAR
+        I              : BYTE;
+    CONST
+        AddrCol        = 8;
+        BlurbCol       = 50;
+        DateCol        = 60;
+        TotCol         = 80;
+    BEGIN
+        FOR I := 1 TO 5 DO
+            WRITELN(lst);
+
+        WRITELN(lst, CharStr(' ', DateCol) + DateToStdString(Today) + '  Prepaid');
+
+        FOR I := 1 TO 2 DO
+            WRITELN(lst);
+
+        WRITELN(lst, CharStr(' ', BlurbCol) + 'Please pass this to the person');
+        WRITELN(lst, CharStr(' ', BlurbCol) + 'installing KeyRing/2!');
+
+        WRITE(lst, CharStr(' ', AddrCol) + MyRR.FirstName);
+        WRITELN(lst, MyRR.LastName);
+        {
+        if MyRR.Adr1 <> '' THEN
+            writeln(lst, CharStr(' ', AddrCol) + MyRR.Adr1);
+        if MyRR.Adr2 <> '' THEN
+            writeln(lst, CharStr(' ', AddrCol) + MyRR.Adr2);
+        write(lst, CharStr(' ', AddrCol) + MyRR.City + ', ');
+        writeln(lst, MyRR.State);
+        writeln(lst, CharStr(' ', AddrCol) + MyRR.PostalCode+'  '+ MyRR.Country);
+        }
+        FOR I := 1 TO 10 DO
+            WRITELN(lst);
+
+        WRITELN(lst, #27'(10U'#27'(s0p12.0h0s0b4099T' + 'Dear Sir or Madam,');
+        WRITELN(lst, '');
+        WRITELN(lst, 'Thank you for choosing KeyRing/2, the worlds fastest duplicate file finder for OS2.');
+        WRITELN(lst, '');
+        WRITELN(lst, 'Please use the information below to complete the KeyRing/2 registration process.');
+        WRITELN(lst, '------------------------------------------------------');
+        WRITELN(lst, '    First Name          : ' + MyRR.FirstName);
+        WRITELN(lst, '    Last Name           : ' + MyRR.LastName);
+        WRITELN(lst, '');
+        WRITELN(lst, '    Registration Number : ' + MyRR.RegCode);
+        WRITELN(lst, '------------------------------------------------------');
+        WRITELN(lst, '');
+        {
+        if MyRR.MaxDeletes = $F then
+            Writeln(LST, '    Maximum # Deletes   : Infinite')
+        ELSE
+            Writeln(LST, '    Maximum # Deletes   : ' + Long2Str(MyRR.MaxDeletes));
+        }
+        IF (Today + 365) > MyRR.DropDead THEN
+            WRITELN(lst, '    Reverts to demo mode: ' + DateToDateString('dd/nnn/yyyy', MyRR.DropDead))
+        ELSE
+            WRITELN(lst);
+
+        WRITELN(lst, '');
+        WRITELN(lst, '');
+        WRITELN(lst, 'Sincerely,');
+        WRITELN(lst, '');
+        WRITELN(lst, '');
+        WRITELN(lst, '');
+        WRITELN(lst, 'Kate McCoy');
+        WRITELN(lst, 'KeyRing/2 Registration Department');
+        WRITELN(lst, 'http://www.idk-inc.com');
+
+        FOR I := 1 TO 6 DO
+            WRITELN(lst);
+
+        WRITELN(lst, CharStr(' ', TotCol) + '$0.00');
+        WRITELN(lst, CharStr(' ', TotCol) + '(paid in full)');
+
+        WRITE(lst, #27'(8U'#27'(s1P'#27'(s10.0V'#27'(s0S'#27'(s0B'#27'(s4101T');
+        WRITE(lst, #12);
+        FlushPrinter;
+        LogIt('register.cdf');
+    END;
+
+    {----------------}
+
+    FUNCTION TRegES.GetSN : STRING;
+    VAR
+        T              : TEXT;
+        Strg           : STRING;
+        C,
+        L              : LONGINT;
+    BEGIN
+        IF NOT ExistFile('LASTSN.TXT') THEN
+            Strg := HexL(RandLong)
+        ELSE BEGIN
+            ASSIGN(T, 'LASTSN.TXT');
+            RESET(T);
+            READLN(T, Strg);
+            CLOSE(T);
+        END;
+        VAL('$' + Strg, L, C);
+        INC(L);
+        ASSIGN(T, 'LASTSN.TXT');
+        REWRITE(T);
+        WRITELN(T, HexL(L));
+        CLOSE(T);
+        GetSN := Strg;
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.LogIt(CDFName : STRING);
+    VAR
+        MyLog          : PCDF;
+    BEGIN
+        NEW(MyLog, Init(CDFName));
+
+        IF MyLog = NIL THEN
+            EXIT;
+
+        CASE (MyRR.FeatureBits AND $3F) OF
+            0 :
+                MyRR.Limits := 'Beta';
+            $1 :
+                MyRR.Limits := 'Beta';
+            $1D :
+                MyRR.Limits := 'Paid Registration';
+            $1A :
+                MyRR.Limits := 'Limited Demo Registration.  Please Register!';
+            ELSE
+                MyRR.Limits := 'Limited Demo Registration.  Please Register!';
+        END;
+
+        IF MyRR.Qty = 0 THEN
+            MyRR.Qty := 1;
+
+        IF MyRR.CryptModule <> '' THEN BEGIN
+            MyRR.CryptModule := StUpCase(MyRR.CryptModule);
+            CASE MyRR.CryptModule[1] OF
+                'T' :
+                    MyRR.CryptModule := 'Blowfish';
+                'F' :
+                    MyRR.CryptModule := 'DES';
+                'D' :
+                    MyRR.CryptModule := 'DES';
+                'B' :
+                    MyRR.CryptModule := 'Blowfish';
+            END;
+        END;
+
+        WITH MyLog^ DO BEGIN
+            PutDate(MyRR.BuildDate.D);
+            PutTime(MyRR.BuildDate.T);
+
+            PutStrg(MyRR.FirstName);
+            PutStrg(MyRR.LastName);
+
+            PutStrg(MyRR.RegCode);
+
+            PutStrg(Long2Str(MyRR.DemoPWXLifetime));
+            PutDate(MyRR.DropDead);
+            PutLong(MyRR.FeatureBits);
+            PutStrg(MyRR.Addr1);
+            PutStrg(MyRR.Addr2);
+            PutStrg(MyRR.City);
+            PutStrg(MyRR.State);
+            PutStrg(MyRR.Zip);
+            PutStrg(MyRR.Country);
+            PutStrg(MyRR.Email);
+            PutStrg(JustFileName(MyRR.WPIName));
+            PutStrg(MyRR.CompanyName);
+            PutStrg(MyRR.CryptModule);
+            PutStrg(MyRR.Limits);
+            PutStrg(MyRR.IP);
+            PutStrg(MyRR.Domain);
+            PutStrg(MyRR.Phone);
+            PutStrg(MyRR.Citizen);
+            PutBool(MyRR.Agree);
+            PutStrg(MyRR.OrderNum);
+            PutLong(MyRR.Qty);
+            PutStrg(MyRR.Comment);
+            PutTerm;
+        END;
+        DISPOSE(MyLog, Done);
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.DoEmail(Mode : TMailMode);
+    VAR
+        TempFileName,
+        PathName       : STRING;
+        T              : TEXT;
+        I              : LONGINT;
+    BEGIN
+        FOR I := 1 TO MyRR.Qty DO BEGIN
+            IF DGGetTempFileName('F:\PRM\KGMCCOY\SNDNOTES', 'pop', TempFileName) THEN BEGIN
+                ASSIGN(T, TempFileName);
+                REWRITE(T);
+                WRITELN(T, '' + MyRR.Email);
+                WRITELN(T, 'KeyRing/2');
+                {where do we put the self copy?}
+                IF (MyRR.FeatureBits AND $3F) <> (NONAGFEATUREBIT + DESFEATUREBIT + BLOFEATUREBIT + PAIDFEATUREBIT) THEN
+                    WRITELN(T, 'F:\PRM\kgmccoy\keyring_\ROBOT_MS\SENT') {demo}
+                ELSE
+                    WRITELN(T, 'F:\PRM\kgmccoy\keyring_\SEND_A_P\SENT');
+                WRITELN(T, '2Normal');
+                WRITELN(T, 'KeyRing/2 Register <kr2@idk-inc.com>');
+                WRITELN(T, '1KeyRing/2 Register <kr2@idk-inc.com>');
+                WRITELN(T, '!' + MyRR.WPIName);
+                WRITELN(T, 'Here is your KeyRing/2 V'+Long2Str(MyRR.MaxRev)+'.X Registration Code');
+
+                WRITELN(T, 'Dear Sir or Madam,');
+                WRITELN(T, '');
+                WRITELN(T, 'Thank you for choosing KeyRing/2, the Secure Password Keeper for OS2.');
+                WRITELN(T, '');
+            {                    1         2         3         4         5         6         7         8         9}
+            {           1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890}
+                WRITELN(T, 'Please install the attached file using WarpIN to your existing KeyRing/2');
+                WRITELN(T, 'program directory. If WarpIN is installed correctly, you should simply');
+                WRITELN(T, 'double click on the attached ' + JustFileName(MyRR.WPIName) + ' file.');
+                WRITELN(T, '');
+                WRITELN(T, 'Once you have completed the WarpIN installation of the attached file,');
+                WRITELN(T, 'please run KeyRing/2, select the Product Information Help item and enter the');
+                WRITELN(T, 'following code:');
+                WRITELN(T);
+                WRITELN(T, MyRR.RegCode);
+                WRITELN(T);
+                WRITELN(T, 'Cut/paste this code into the Registration Code field.  Click the Register');
+                WRITELN(T, 'button to store the code. If you typed the code in correctly, you should see');
+                WRITELN(T, 'your registration information appear in the dialog.');
+                WRITELN(T);
+                WRITELN(T, 'For more information, double click on your KeyRing/2 users Manual icon found');
+                WRITELN(T, 'in your KeyRing/2 desktop folder.');
+                WRITELN(T, '');
+                WRITELN(T, 'Keep the attached file in a safe place for future re-installations. Save your');
+                WRITELN(T, 'registration code in a safe place too.  You will need your registration code to');
+                WRITELN(T, 'upgrade KeyRing/2 and to receive customer support.');
+                WRITELN(T, 'You will need to re-enter your registration code if you reinstall OS/2 or destroy');
+                WRITELN(T, 'your OS2.INI file');
+                WRITELN(T);
+                IF (MyRR.FeatureBits and $3F) <> (NONAGFEATUREBIT + DESFEATUREBIT + BLOFEATUREBIT + PAIDFEATUREBIT) THEN
+                    WRITELN(T, 'Your demo encryption module uses ' + MyRR.CryptModule + ' encryption')
+                ELSE BEGIN
+                    WRITELN(T, 'Your paid encryption module uses ' + MyRR.CryptModule + ' encryption');
+                    writeln(t, 'This registration key will work with KeyRing/2 V'+Long2Str(MyRR.MaxRev)+'.X and below.');
+                    writeln(t, 'It will allow you to demo future versions, but you will see a brief nag screen');
+                end;
+                WRITELN(T);
+                WRITELN(T, 'Join us at the KeyRing/2 users group mailing list by sending an email to:');
+                WRITELN(T);
+                WRITELN(T, '    keyring2-subscribe@yahoogroups.com');
+                WRITELN(T);
+                WRITELN(T, 'YahooGroups will send you a confirmation message that you must reply to to complete');
+                WRITELN(T, 'the subscription process.');
+                WRITELN(T);
+                WRITELN(T, 'We will announce new product releases, answer questions and provide problem solving');
+                WRITELN(T, 'help there. You can access the message archives by opening your web browser on:');
+                WRITELN(T);
+                WRITELN(T, '    http://groups.yahoo.com/group/keyring2');
+                WRITELN(T);
+                WRITELN(T, 'Thanks for trying KeyRing/2 and we hope to see you on the list!');
+                WRITELN(T, '');
+                IF (Today + 365) > MyRR.DropDead THEN BEGIN
+                    WRITELN(T, '');
+                    WRITELN(T, '    Reverts to demo mode: ' + DateToDateString('dd/nnn/yyyy', MyRR.DropDead));
+                    WRITELN(T, '');
+                END;
+                WRITELN(T, '');
+                WRITELN(T, '');
+                WRITELN(T, 'Sincerely,');
+                WRITELN(T, '');
+                WRITELN(T, 'Kate McCoy, kr2@idk-inc.com');
+                WRITELN(T, 'KeyRing/2 Registration Department');
+                WRITELN(T, 'http://www.idk-inc.com');
+                CLOSE(T);
+                LogIt('register.cdf');
+            END;
+        END;
+    END;
+
+    {------------}
+
+    DESTRUCTOR TRegES.Done;
+    BEGIN
+        IF PKM <> NIL THEN BEGIN
+            INHERITED Done;
+            DISPOSE(PKM, Done);
+            IF PBK <> NIL THEN
+                DISPOSE(PBK, Done);
+        END;
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.DumpRec;
+    VAR
+        B              : FILE;
+        I              : WORD;
+    BEGIN
+        ASSIGN(B, 'junk.tmp');
+        REWRITE(B, 1);
+        BLOCKWRITE(B, MyRR, SIZEOF(MyRR), I);
+        CLOSE(B);
+    END;
+
+    {----------------}
+
+    FUNCTION TRegES.MakeRC : BOOLEAN;
+    VAR
+        T              : TEXT;
+        B              : FILE;
+        I,
+        J              : WORD;
+        TempRR         : TRCRec;
+        MyArray        : TBigArray ABSOLUTE TempRR;
+        PW             : STRING;
+        Hdr            : TCryptHead;
+        P              : PArray;
+        S              : SBox;
+    BEGIN
+        TempRR.RR := MyRR;
+
+        {init crypt header}
+        FILLCHAR(Hdr, SIZEOF(Hdr), #0);
+        WITH Hdr DO BEGIN
+            ID := RandStringLimited(SIZEOF(ID), SIZEOF(ID), [#0..#255]);
+            CryptStyle := EBFCBC;
+            VerMaj := IniVerMajor;
+            VerMin := IniVerMinor;
+            PubKey := RandLong;
+            DTRNow(Seed);         {CBC Seed}
+            Spare := RandStringLimited(SIZEOF(Spare), SIZEOF(Spare), [#0..#255]);
+        END;
+
+        {write identification header to RC}
+        ASSIGN(T, 'KREGISTR.RC');
+        REWRITE(T);
+        WRITELN(T, '/* User Name     : ' + Pad(MyRR.FirstName + ' ' + MyRR.LastName, 60) + ' */');
+        WRITELN(T, '/* Company       : ' + Pad(MyRR.CompanyName, 60) + ' */');
+        WRITELN(T, '/* Addr1         : ' + Pad(MyRR.Addr1, 60) + ' */');
+        WRITELN(T, '/* Addr2         : ' + Pad(MyRR.Addr2, 60) + ' */');
+        WRITELN(T, '/* City          : ' + Pad(MyRR.City, 60) + ' */');
+        WRITELN(T, '/* State         : ' + Pad(MyRR.State, 60) + ' */');
+        WRITELN(T, '/* Zip           : ' + Pad(MyRR.Zip, 60) + ' */');
+        WRITELN(T, '/* Country       : ' + Pad(MyRR.Country, 60) + ' */');
+        WRITELN(T);
+        WRITELN(T, '/* Build date    : ' + Pad(NowStringDeluxe(TRUE, TRUE), 60) + ' */');
+        WRITELN(T);
+        WRITELN(T, '/* Reg Code      : ' + Pad(MyRR.RegCode, 60) + ' */');
+        WRITELN(T, '/* Public Key    : ' + Pad(HexL(Hdr.PubKey), 60) + ' */');
+        WRITELN(T, '/* Private Key   : ' + Pad(HexL(PRIVATEKEY), 60) + ' */');
+        WRITELN(T, '/* CBC Seed      : ' + Pad(Long2Str(Hdr.Seed.D) + ', ' + Long2Str(Hdr.Seed.T), 60) + ' */');
+        WRITELN(T);
+        WRITELN(T, '/* Max Revision  : ' + Pad(Long2Str(MyRR.MaxRev), 60) + ' */');
+        WRITELN(T, '/* Feature Bits  : ' + Pad(HexL(MyRR.FeatureBits), 60) + ' */');
+        WRITELN(T, '/* PWX Lifetime  : ' + Pad(Long2Str(MyRR.DemoPWXLifetime), 60) + ' */');
+        WRITELN(T, '/* Dropdead Date : ' + Pad(DateToDateString('nnn dd, YYYY', MyRR.DropDead), 60) + ' */');
+        WRITELN(T, '/* Limits msg    : ' + Pad(MyRR.Limits, 60) + ' */');
+        WRITELN(T);
+
+        TempRR.Hdr := Hdr;
+
+        {we are going to crypt the RC data using the reg code as the password - init the blowfish algorithm}
+        PW := MyRR.RegCode;
+        InitBlowFish(PW, P, S, Hdr);
+
+        TempRR.RR.RegCode := EncodeStrg(TempRR.RR.RegCode, Hdr.PubKey, PRIVATEKEY);
+
+        EncryptCBC(TempRR.RR, SIZEOF(TempRR.RR), P, S);
+
+        WRITELN(T, '#include "consts.inc"');
+        WRITELN(T);
+
+        {load resource table with mysterious crap}
+        FOR J := 1 TO 3 DO BEGIN
+            WRITELN(T, 'RESOURCE RT_RCDATA DUMMYINFO' + Long2Str(J));
+            WRITELN(T, 'BEGIN');
+            WRITE(T, '    ');
+            FOR I := 1 TO (SIZEOF(TempRR) DIV 2) + 1 DO BEGIN
+                WRITE(T, '0x' + HexW(RandLongRange(0, $FFFF)));
+                IF I = SIZEOF(MyRR) THEN BEGIN
+                    WRITELN(T);
+                    BREAK;
+                END;
+                IF (I MOD 8) = 0 THEN BEGIN
+                    WRITELN(T);
+                    WRITE(T, '    ');
+                END
+                ELSE
+                    WRITE(T, ', ');
+            END;
+            WRITELN(T);
+            WRITELN(T, 'END');
+            WRITELN(T);
+        END;
+
+        {write the real crypted rc table}
+        WRITELN(T, 'RESOURCE RT_RCDATA REGINFO');
+        WRITELN(T, 'BEGIN');
+        WRITE(T, '    ');
+        FOR I := 1 TO (SIZEOF(TempRR) DIV 2) + 1 DO BEGIN
+            WRITE(T, '0x' + HexW(MyArray[I]));
+            IF I = SIZEOF(MyRR) THEN BEGIN
+                WRITELN(T);
+                BREAK;
+            END;
+            IF (I MOD 8) = 0 THEN BEGIN
+                WRITELN(T);
+                WRITE(T, '    ');
+            END
+            ELSE
+                WRITE(T, ', ');
+        END;
+        WRITELN(T);
+        WRITELN(T, 'END');
+
+        CLOSE(T);
+    END;
+
+    {----------------}
+
+    PROCEDURE Spawn(FName, CmdParams : STRING);
+    VAR
+        Tr             : TRedirExec;
+        PCmdLin        : ARRAY[0..255] OF CHAR;
+        OldDir,
+        Strg           : STRING;
+    BEGIN
+        Strg := ' ' + CmdParams;
+        Tr := TRedirExec.Create;  { Create a TRedirExec instance}
+        {$IFDEF NOPF}
+        IF Assigned( tr ) THEN                     {If creation was ok...}
+            TRY                                     { Catch any errors}
+                fillchar(PCmdLin, sizeof(PCmdlin), #0);
+                StrMove(PCmdLin, @Strg[1], length(Strg));
+                tr.Execute(Fname, PCmdLin, nil );
+            FINALLY
+                tr.Destroy;                            { Free the instance}
+            END
+            ELSE BEGIN
+                DispErrorDeluxe( 'Error creating TRedirExec class instance', '', TRUE, Iam );
+                exit;
+            END;
+        {$ENDIF}
+    END;
+
+    {----------------}
+
+    FUNCTION TRegES.StampRegDLL : BOOLEAN;
+    var
+        Tin,
+        Tout : TEXT;
+        Strg : string;
+        ParseGate : BOOLEAN;
+        Res : LONGINT;
+    begin
+        ParseGate := TRUE;
+        Res := IORESULT;
+        assign(tin, 'kregistr.pas');
+        reset(tin);
+        assign(tout, 'kregistr.pax');
+        rewrite(tout);
+        while not eof(tin) do begin
+            readln(tin, Strg);
+            if ParseGate and (StUpCase(ExtractWord(1, Strg, [' ', #8])) = 'DESCRIPTION') THEN BEGIN
+                Strg := '    DESCRIPTION " Registered to ' +
+                             MyRR.FirstName + ' ' + MyRR.LastName;
+
+                IF MyRR.CompanyName = '' then
+                    Strg := Strg + ' "'
+                else
+                    Strg := Strg + ' : ' + MyRR.CompanyName + ' "';
+                ParseGate := FALSE;
+            end;
+            writeln(Tout, Strg);
+        end;
+        close(tout);
+        close(tin);
+        RMFile('kregistr.bak'); {delete the old bak file (if any)}
+        IF NOT DgCopyFile('kregistr.pas', 'kregistr.bak') THEN   {save a copy of the original}
+            HALT(1);
+        IF NOT DgCopyFile('kregistr.pax', 'kregistr.pas') THEN   {overwrite the original}
+            HALT(1);
+        RMFile('kregistr.pax'); {delete the work file}
+    end;
+
+    {----------------}
+
+    FUNCTION TRegES.StampWPI : BOOLEAN;
+    var
+        Tin,
+        Tout : TEXT;
+        Strg : string;
+        ParseGate : BOOLEAN;
+    begin
+        ParseGate := TRUE;
+        assign(tin, 'kreg.wis');
+        reset(tin);
+        assign(tout, 'kreg.wix');
+        rewrite(tout);
+        while not eof(tin) do begin
+            readln(tin, Strg);
+            if ParseGate and (POS('ZZZZ', Strg) > 0) THEN BEGIN
+                Strg := '    >This package contains the KeyRing/2 registration key file for ' + MyRR.FirstName + ' ' + MyRR.LastName;
+
+                IF MyRR.CompanyName <> '' then
+                    Strg := Strg + ' : ' + MyRR.CompanyName;
+
+                Strg := Strg + '</PCK>';
+                ParseGate := FALSE;
+            end;
+            if (POS('YYYY', Strg) > 0) THEN BEGIN
+                Strg := '     PACKAGEID="IDK Inc.\Keyring/2\Register\' + long2Str(MyRR.MaxRev) + '\0';
+            END;
+            writeln(Tout, Strg);
+        end;
+        close(tout);
+        close(tin);
+        IF NOT DgCopyFile('kreg.wix', 'kreg.wis') THEN {overwrite the wis file with the work file}
+              HALT(1);
+        RMFile('kreg.wix'); {delete the work file}
+    end;
+
+    {----------------}
+
+    FUNCTION TRegES.MakeDLL : BOOLEAN;
+    VAR
+        ProgLoc        : STRING;
+    BEGIN
+        {compile RES using new RC}
+        IF ExistOnPath('RC.EXE', ProgLoc) THEN
+            Exec(GetEnv('COMSPEC'), '/C ' + ProgLoc + ' -r -x2 KREGISTR.RC > rc.log')
+        ELSE BEGIN
+            DispErrorDeluxe('Cant find RC.EXE on path.', 'Please fix config.sys and try again!', TRUE, Iam);
+            HALT;
+        END;
+        {compile DLL with new res file}
+        IF ExistOnPath('VPC.EXE', ProgLoc) THEN BEGIN
+            StampRegDll;
+            IF VirginBuild THEN
+                Exec(GetEnv('COMSPEC'), '/C ' + ProgLoc + ' vpc -Vkregistr.vpo -B -Og:\keyring2\dllbuild > vp.log')
+            ELSE
+                Exec(GetEnv('COMSPEC'), '/C ' + ProgLoc + ' vpc -Vkregistr.vpo -Og:\keyring2\dllbuild > vp.log');
+            VirginBuild := FALSE;
+        END;
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.MakeWPI(Mode : TMailMode);
+    VAR
+        CmdStr,
+        StartPath,
+        ProgLoc        : STRING;
+        T              : TEXT;
+    BEGIN
+        GETDIR(0, StartPath);
+        ProgLoc := StartPath;
+        ProgLoc := AddBackSlash(ProgLoc) + 'WPIS';
+        IF DGGetTempFileName(ProgLoc, 'WPI', MyRR.WPIName) THEN BEGIN
+            RMFile(MyRR.WPIName); {wic does not like existing files}
+            ASSIGN(T, 'g:\keyring2\dllbuild\readme.reg');
+            REWRITE(T);
+            WRITELN(T, CharStr('*', 75));
+            WRITELN(T, '*                             Save this file!                             *');
+            WRITELN(T, CharStr('*', 75));
+            WRITELN(T);
+            WRITELN(T, 'User Name           : ' + MyRR.FirstName + ' ' + MyRR.LastName);
+            WRITELN(T, 'Company             : ' + MyRR.CompanyName);
+            WRITELN(T, 'Addr1               : ' + MyRR.Addr1);
+            WRITELN(T, 'Addr2               : ' + MyRR.Addr2);
+            WRITELN(T, 'City                : ' + MyRR.City);
+            WRITELN(T, 'State               : ' + MyRR.State);
+            WRITELN(T, 'Zip                 : ' + MyRR.Zip);
+            WRITELN(T, 'Country             : ' + MyRR.Country);
+            WRITELN(T);
+            WRITELN(T, 'Build date          : ' + NowStringDeluxe(TRUE, TRUE));
+            WRITELN(T, 'Max Version         : ' + Long2Str(MyRR.MaxRev));
+            WRITELN(T);
+            WRITELN(T, 'Registration code   : ' + MyRR.RegCode);
+            WRITELN(T, CharStr('-', 75));
+            WRITELN(T, 'Features            : ' + HexL(MyRR.FeatureBits));
+            IF NOT((MyRR.FeatureBits AND PAIDFEATUREBIT) = PAIDFEATUREBIT) THEN BEGIN
+                IF (MyRR.FeatureBits AND NONAGFEATUREBIT) = NONAGFEATUREBIT THEN
+                    WRITELN(T, 'Beta Tester         : Yes');
+                IF (MyRR.FeatureBits AND PWXDDFEATUREBIT) = PWXDDFEATUREBIT THEN
+                    WRITELN(T, 'Lifetime of database: ' + Long2Str(MyRR.DemoPWXLifetime) + ' days');
+                IF MyRR.DropDead - Today < 365 THEN
+                    WRITELN(T, 'Dropdead Date       : ' + DateToDateString('nnn dd, YYYY', MyRR.DropDead));
+            END;
+            IF MyRR.Limits <> '' THEN
+                WRITELN(T, 'Limits msg          : ' + MyRR.Limits);
+            WRITELN(T);
+            WRITELN(T, CharStr('-', 75));
+            CLOSE(T);
+            {compile WPI containing KREGISTER.DLL and install script}
+            IF ExistOnPath('WIC.EXE', ProgLoc) THEN BEGIN
+                CHDIR('g:\keyring2\dllbuild');
+                IF NOT DgCopyFile('g:\keyring2\kreg.wis', 'kreg.wis') THEN
+                    HALT(1);
+                StampWPI;
+                CmdStr := ' -a 1 KREGISTR.DLL 1 readme.reg ';
+
+                CASE Mode OF
+                    ENoCryptDLL : ;
+                    EDummyCryptDLL :
+                        BEGIN
+                            MyRR.CryptModule := 'Dummy';
+                            IF NOT DgCopyFile('g:\keyring2\kryptonc.dll', 'krypton.dll') THEN
+                                HALT(1);
+                            CmdStr := CmdStr + '1 krypton.dll ';
+                        END;
+                    EBlowCryptDLL :
+                        BEGIN
+                            MyRR.CryptModule := 'Blowfish';
+                            IF NOT DgCopyFile('g:\keyring2\kryptonb.dll', 'krypton.dll') THEN
+                                HALT(1);
+                            CmdStr := CmdStr + '1 krypton.dll ';
+                        END;
+                    EDESCryptDLL :
+                        BEGIN
+                            MyRR.CryptModule := 'DES';
+                            IF NOT DgCopyFile('g:\keyring2\kryptond.dll', 'krypton.dll') THEN
+                                HALT(1);
+                            CmdStr := CmdStr + '1 krypton.dll ';
+                        END;
+                END;
+                Exec(GetEnv('COMSPEC'), '/C ' + ProgLoc + ' ' + MyRR.WPIName + CmdStr + ' -s  KREG.WIS > WPI.log');
+            END;
+        END;
+        CHDIR(StartPath);
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.MakeAttachment(Mode : TMailMode);
+    BEGIN
+        MakeRC;
+        MakeDLL;
+        MakeWPI(Mode);
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.MovePOP;
+    BEGIN
+        IF PopName <> '' THEN
+            MoveFile(PopName, AddBackSlash(JustPathName(PopName)) + 'sent\'
+                     {$IFNDEF DLL}
+                     , NIL
+                     {$ENDIF}
+                     );
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.SendOffer;
+    VAR
+        T              : TEXT;
+        TempFileName   : STRING;
+    BEGIN
+        IF DGGetTempFileName('F:\PRM\KGMCCOY\SNDNOTES', 'pop', TempFileName) THEN BEGIN
+            ASSIGN(T, TempFileName);
+            REWRITE(T);
+            WRITELN(T, '' + MyRR.Email);
+            WRITELN(T, 'KeyRing/2');
+            WRITELN(T, 'F:\PRM\kgmccoy\keyring_\ROBOT_MS\SENT'); {demo}
+            WRITELN(T, '2Normal');
+            WRITELN(T, 'KeyRing/2 Register <kr2@idk-inc.com>');
+            WRITELN(T, '1KeyRing/2 Register <kr2@idk-inc.com>');
+            WRITELN(T, 'Upgrade your copy of KeyRing/2 to Blowfish encryption');
+
+            WRITELN(T, 'Dear Sir or Madam,');
+            WRITELN(T, '');
+            WRITELN(T, 'Thank you for choosing KeyRing/2, the Secure Password Keeper for OS/2.');
+            WRITELN(T, '');
+            {                    1         2         3         4         5         6         7         8         9}
+            {               1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678901234567890}
+            WRITELN(T, 'According to our records, you have the DES version of KeyRing/2.');
+            WRITELN(T, 'IDK, Inc. has obtained an export license allowing us to send the');
+            WRITELN(T, 'much stronger and faster Blowfish (448 bit!) encryption module outside');
+            WRITELN(T, 'the USA and Canada.  You are eligible for a free upgrade! The free');
+            WRITELN(T, 'offer applies to both Demo and Paid registrations!');
+            WRITELN(T);
+            WRITELN(T, 'Please reply to this message if you wish to receive a small utility that');
+            WRITELN(T, 'upgrades KeyRing/2 and translates your existing database(s) to Blowfish');
+            WRITELN(T, 'encryption. We will send the utility via email - it only takes two minutes');
+            WRITELN(T, 'to install and run.');
+            WRITELN(T);
+            WRITELN(T, 'After installation you will see a small speed increase in encryption');
+            WRITELN(T, 'enjoy military grade encryption that is much stronger than your existing');
+            WRITELN(T, 'DES security.');
+            WRITELN(T);
+            WRITELN(T, 'When requesting your free upgrade, please add your registration code to');
+            WRITELN(T, 'your message. You can view your registration code by running KeyRing/2');
+            WRITELN(T, 'and selecting the Help|Product Information menu item on the main notebook');
+            WRITELN(T, 'screen. Cut and paste the registration code into your reply.');
+            WRITELN(T);
+            WRITELN(T, 'Join us at the KeyRing/2 users group mailing list by sending an email to:');
+            WRITELN(T);
+            WRITELN(T, '    keyring2-subscribe@yahoogroups.com');
+            WRITELN(T);
+            WRITELN(T, 'YahooGroups will send you a confirmation message that you must reply to to complete');
+            WRITELN(T, 'the subscription process.');
+            WRITELN(T);
+            WRITELN(T, 'We will announce new product releases, answer questions and provide problem solving');
+            WRITELN(T, 'help there. You can access the message archives by opening your web browser on:');
+            WRITELN(T);
+            WRITELN(T, '    http://www.yahoogroups.com/list/keyring2');
+            WRITELN(T);
+            WRITELN(T, 'Thanks for trying KeyRing/2 and we hope to see you on the list!');
+            WRITELN(T, '');
+            WRITELN(T, '');
+            WRITELN(T, '');
+            WRITELN(T, 'Sincerely,');
+            WRITELN(T, '');
+            WRITELN(T, 'Kate McCoy, kr2@idk-inc.com');
+            WRITELN(T, 'KeyRing/2 Registration Department');
+            WRITELN(T, 'http://www.idk-inc.com');
+            CLOSE(T);
+        END;
+    END;
+
+    {----------------}
+
+    PROCEDURE TRegES.ProcessSelf;
+    BEGIN
+        REPEAT
+            IF NOT InfoFromCDF THEN
+                MyRR.RegCode := RandStringLimited(16, 16, ['A'..'H', 'J', 'K', 'M', 'N', 'P'..'Z', 'a'..'h', 'j', 'k', 'm', 'n', 'p'..'z', '2'..'9']);
+
+            INHERITED ProcessSelf;
+
+            CASE GetLastCommand OF
+                {$IFDEF ROBOT}
+                ccSkip:
+                    begin
+                        MovePop;
+                        break;
+                    end;
+                {$ENDIF}
+                ccPRMEmail :
+                    BEGIN
+                        MakeAttachment(ENoCryptDLL);
+                        DoEmail(ENoCryptDLL);
+                        RingBell;
+                    END;
+                ccBloKey :
+                    BEGIN
+                        MyRR.CryptModule := 'Blowfish';
+                        Draw;
+                        MakeAttachment(EBlowCryptDLL);
+                        DoEmail(EBlowCryptDLL);
+                        RingBell;
+                    END;
+                ccDESKey :
+                    BEGIN
+                        MyRR.CryptModule := 'DES';
+                        Draw;
+                        MakeAttachment(EDESCryptDLL);
+                        DoEmail(EDESCryptDLL);
+                        RingBell;
+                    END;
+                ccForceBlow :
+                    BEGIN
+                        MyRR.CryptModule := 'Blowfish';
+                        Draw;
+                        RingBell;
+                        CONTINUE;
+                    END;
+                ccSendOffer :
+                    SendOffer;
+                ccDemo :
+                    BEGIN
+                        SetDemoMode;
+                        CONTINUE;
+                    END;
+                ccBeta :
+                    BEGIN
+                        // FILLCHAR(MyRR, SIZEOF(MyRR), #0);
+                        MyRR.FeatureBits := BLOFEATUREBIT + DESFEATUREBIT + NONAGFEATUREBIT + (ProgVerMajor SHL 6); {inhibit nagger}
+                        MyRR.DropDead := Today + 60;
+                        MyRR.Limits := 'Beta EXE expires ' + DateToDateString('nnn dd, yyyy', MyRR.DropDead);
+                        ChangeHidden(idDemoLifeDays, TRUE);
+                        CONTINUE;
+                    END;
+                ccPaid :
+                    BEGIN
+                        // FILLCHAR(MyRR, SIZEOF(MyRR), #0);
+                        MyRR.FeatureBits := NONAGFEATUREBIT + DESFEATUREBIT + BLOFEATUREBIT + PAIDFEATUREBIT + (ProgVerMajor SHL 6);
+                        MyRR.DropDead := Today + (365 * 30);
+                        MyRR.Limits := 'Paid registration';
+                        ChangeHidden(idDemoLifeDays, TRUE);
+                        CONTINUE;
+                    END;
+                ccForceBuild :
+                    BEGIN
+                        VirginBuild := TRUE;
+                        MakeAttachment(ENoCryptDLL);
+                        DoEmail(ENoCryptDLL);
+                        RingBell;
+                    END;
+                ccDone : ;
+                ccExitAtBot :
+                    BEGIN
+                        OrigRR^ := MyRR;
+                        BREAK;
+                    END;
+                ccQuit :
+                    BREAK;
+            END;
+            {$IFDEF ROBOT}
+            MovePop;
+            break;
+            {$ENDIF}
+        UNTIL FALSE;
+    END;
+
+    {----------------}
+
+    PROCEDURE CreateRegistration;
+    VAR
+        RR             : TRegisterRec;
+        ES             : PRegES;
+    BEGIN
+        FILLCHAR(RR, SIZEOF(RR), #0);
+        RR.Country := 'USA';
+
+        NEW(ES, InitManual(RR, 'D:\SoundFx\SOUNDFX\trumpet.wav'));
+        IF ES = NIL THEN
+            EXIT;
+
+        ES^.Process;
+        DISPOSE(ES, Done);
+    END;
+
+    {----------------}
+
+END.
+    {----------------}
+    {----------------}
+

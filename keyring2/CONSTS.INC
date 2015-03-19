@@ -1,0 +1,8 @@
+#define RCopyRight 999
+#define REGINFO 666
+#define ICONINFO 671
+#define DUMMYINFO1 667
+#define DUMMYINFO2 668
+#define DUMMYINFO3 669
+#define DUMMYINFO4 670
+

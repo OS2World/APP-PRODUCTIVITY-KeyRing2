@@ -1,0 +1,275 @@
+;
+;-------------------------------------------------------------------
+!TOPIC 3108 Share
+The Share unit implements assorted network-related functions. Many will
+work whenever MS-DOS version 3.1 or later is in use. Others require
+loading the SHARE.EXE utility provided with MS-DOS. Some require that
+the workstation be attached to an MS-NET compatible network such as
+3Com's 3+. Novell's NetWare emulates most of these functions,
+so almost all the functions work with NetWare. If a function's
+documentation indicates that SHARE.EXE must be loaded, in actuality any
+network operating system that supports its functions may be loaded in its
+place.
+
+  3117CancelRedirection              3124Declarations
+  3109DosLockRec                     3121GetExtendedError
+  3114GetMachineName                 3113GetPrinterSetup
+  3118GetRedirectionEntry            3119GetTempFileName
+  3115IBMPCLanLoaded                 3122IsDriveLocal
+  3123IsFileLocal                    3116RedirectDevice
+  3112SetPrinterSetup                3120ShareInstalled
+  3110UnlockDosRec                   3111UpdateFile
+;
+;-------------------------------------------------------------------
+!TOPIC 3109 DosLockRec
+!NOINDEX
+function 3108Share.DosLockRec(var F; FilePosition : LongInt;
+                          FileLength : LongInt) : Word;
+
+This function uses DOS call 5Ch to lock all or part of a file.
+FilePosition is the byte offset to start the lock (the first byte in the
+file is offset 0), and FileLength is the number of bytes to lock.
+
+See also:  3110UnlockDosRec
+;
+;-------------------------------------------------------------------
+!TOPIC 3110 UnlockDosRec
+!NOINDEX
+function 3108Share.UnlockDosRec(var F; FilePosition : LongInt;
+                            FileLength : LongInt) : Word;
+
+Similar to LockFile, except uses DOS call 5Ch subfunction 1 to unlock a
+record.
+
+See also:  3109DosLockRec
+;
+;-------------------------------------------------------------------
+!TOPIC 3111 UpdateFile
+!NOINDEX
+function 3108Share.UpdateFile(var F) : Word;
+
+Flushes an open file to disk. Forces a duplicate of file handle, then
+closes it. Error codes are: 0 for success, 4 if no handles are available,
+or 6 if handle invalid or file not open.
+;
+;-------------------------------------------------------------------
+!TOPIC 3112 SetPrinterSetup
+!NOINDEX
+function 3108Share.SetPrinterSetup(SetupStr : PrnSetupStr;
+                               RDLIndex : Word) : Word;
+
+Sets the printer setup string for the print device at entry
+RDLIndex in the redirection list.
+
+See also:  3113GetPrinterSetup
+;
+;-------------------------------------------------------------------
+!TOPIC 3113 GetPrinterSetup
+!NOINDEX
+function 3108Share.GetPrinterSetup(var SetupStr : PrnSetupStr;
+                               RDLIndex : Word) : Word;
+
+Returns the printer setup string for the print device at entry
+RDLIndex in the redirection list.
+
+See also:  3112SetPrinterSetup
+;
+;-------------------------------------------------------------------
+!TOPIC 3114 GetMachineName
+!NOINDEX
+function 3108Share.GetMachineName(var MachineName : LocalStr;
+                        var MachineNum  : Byte) : word;
+
+Returns the machine name and the NetBIOS machine name number associated
+with the calling station.
+;
+;-------------------------------------------------------------------
+!TOPIC 3115 IBMPCLanLoaded
+!NOINDEX
+function 3108Share.IBMPCLanLoaded(var Lan : PCLanOpType) : Boolean;
+
+Returns True if IBM's PC-LAN program is loaded. If PC-Lan is loaded, then
+the parameter Lan contains a value of PCLanOpType. This type indicates the
+mode which the station is operating.
+
+Note: Novell's NetWare will pass this test if INT24.COM is loaded.
+;
+;-------------------------------------------------------------------
+!TOPIC 3116 RedirectDevice
+!NOINDEX
+function 3108Share.RedirectDevice(TypeOfDev : DeviceType;
+                              LocalName : LocalStr;
+                              NetWorkName, Password : NetworkStr;
+                              Parameter : Word) : Word;
+
+Establish a redirection across the network. TypeOfDev specifies whether the
+device to be redirected is a printer or a drive, LocalName is the name of
+the local device to be redirected, NetworkName is the network resource to
+redirect LocalName to, Password is an optional password string used to
+grant access to the network resource, and Parameter is a word sized user
+defined parameter to be returned by subsequent calls to
+GetRedirectionEntry. Possible function results:
+
+!NOWRAP
+;!TABLE
+0  success
+1  function code invalid (source or destination string
+   in wrong format or source device already redirected)
+3  path not found
+5  access denied
+8  insufficient memory
+!WRAP
+
+See also:  3117CancelRedirection  3118GetRedirectionEntry
+;
+;-------------------------------------------------------------------
+!TOPIC 3117 CancelRedirection
+!NOINDEX
+function 3108Share.CancelRedirection(LocalName : LocalStr) : Word;
+
+Cancels a redirection. LocalName is the name of the local device that was
+previously redirected.
+
+See also:  3118GetRedirectionEntry  3116RedirectDevice
+;
+;-------------------------------------------------------------------
+!TOPIC 3118 GetRedirectionEntry
+!NOINDEX
+function 3108Share.GetRedirectionEntry(RDLIndex : Word;
+                                   var LocalName : LocalStr;
+                                   var NetName : NetworkStr;
+                                   var Parameter : Word;
+                                   var Dev : DeviceType) : Word;
+
+Return redirection entry information from the redirector.
+
+See also:  3117CancelRedirection  3116RedirectDevice
+;
+;-------------------------------------------------------------------
+!TOPIC 3119 GetTempFileName
+!NOINDEX
+function 3108Share.GetTempFileName(PathName : String;
+                               var TempFileName : String) : Word;
+
+Returns a filename guaranteed to be unique.
+;
+;-------------------------------------------------------------------
+!TOPIC 3120 ShareInstalled
+!NOINDEX
+function 3108Share.ShareInstalled : Boolean;
+
+Returns True if SHARE is installed.
+;
+;-------------------------------------------------------------------
+!TOPIC 3121 GetExtendedError
+!NOINDEX
+function 3108Share.GetExtendedError(var Class, Action, Locus : Byte) : Word;
+
+Returns DOS Extended error information (see pages 306-308 of the manual for
+more information).
+;
+;-------------------------------------------------------------------
+!TOPIC 3122 IsDriveLocal
+!NOINDEX
+function 3108Share.IsDriveLocal(Drive : Byte) : Boolean;
+
+Returns True if a drive is local, and False if it is on a remote machine.
+
+See also:  3123IsFileLocal
+;
+;-------------------------------------------------------------------
+!TOPIC 3123 IsFileLocal
+!NOINDEX
+function 3108Share.IsFileLocal(var F) : Boolean;
+
+Returns True if a local is local, and False if it is on a remote machine.
+
+See also:  3122IsDriveLocal
+;
+;-------------------------------------------------------------------
+!TOPIC 3124 Declarations,Share
+!NOINDEX
+!NOSEARCH
+The following constants and types are interfaced by the 3108Share unit:
+
+  3126DeviceType   3131DosMajor
+  3132DosMinor     3130LocalStr
+  3129NetworkStr   3128PCLanOpType
+  3127PrnSetupStr  3125shErrXxxx
+;
+;-------------------------------------------------------------------
+!TOPIC 3125 shErrXxxx
+!NOINDEX
+!NOWRAP
+;!TABLE
+const
+  shErrShareNotLoaded = $FFFF;  {SHARE.EXE or equivalent not loaded}
+  shErrFileNotOpen    = $FFFE;  {File variable is not open}
+  shErrBadDosVersion  = $FFFD;  {Call not supported under version of DOS}
+  shErrNoDosMemory    = $FFFC;  {No DOS memory available for call}
+!WRAP
+
+The error codes for the SHARE unit.
+;
+;-------------------------------------------------------------------
+!TOPIC 3126 DeviceType
+!NOINDEX
+type
+  DeviceType = (DevInvalid, DevPrinter, DevDrive);
+
+This enumerated type defines the two types of devices used in network
+related DOS calls and also an invalid device type value.
+;
+;-------------------------------------------------------------------
+!TOPIC 3127 PrnSetupStr
+!NOINDEX
+type
+  PrnSetupStr = string[64];
+
+A string type for the printer setup strings used by 3112SetPrinterSetup
+and 3113GetPrinterSetup.
+;
+;-------------------------------------------------------------------
+!TOPIC 3128 PCLanOpType
+!NOINDEX
+type
+  PCLanOpType = (LanUnknown, LanRedirector, LanReceiver,
+                 LanMessenger, LanServer);
+
+An enumerated type defining the types of nodes under PC-Lan/MS-NET.
+;
+;-------------------------------------------------------------------
+!TOPIC 3129 NetworkStr
+!NOINDEX
+type
+  NetworkStr = string[127];
+
+A string type used for network names.
+;
+;-------------------------------------------------------------------
+!TOPIC 3130 LocalStr
+!NOINDEX
+type
+  LocalStr = string[15];
+
+A string type used for local (NetBIOS) names.
+;
+;-------------------------------------------------------------------
+!TOPIC 3131 DosMajor
+!NOINDEX
+var
+  DosMajor : Byte;
+
+The major version of DOS. It is set in 3108Share's initialisation block.
+
+See also:  3132DosMinor
+;
+;-------------------------------------------------------------------
+!TOPIC 3132 DosMinor
+!NOINDEX
+var
+  DosMinor : Byte;
+
+The minor version of DOS. It is set in 3108Share's initialisation block.
+
+See also:  3131DosMajor

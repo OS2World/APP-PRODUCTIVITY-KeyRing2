@@ -1,0 +1,708 @@
+{*********************************************************}
+{*                   FBROWSE.IN1 5.50                    *}
+{*    Copyright (c) TurboPower Software 1990, 1994.      *}
+{*                 All rights reserved.                  *}
+{*********************************************************}
+
+  function ErrorClass : Integer; {!!.21}
+    {-Return the error class of the last IsamError}
+  begin
+    {$IFDEF Btree52}
+    ErrorClass := BTIsamErrorClass;
+    {$ELSE}
+    ErrorClass := IsamErrorClass;
+    {$ENDIF}
+  end;
+
+  procedure FBrowser.fbNextKeyPrim(var Ref : LongInt; var Key : IsamKeyStr);
+    {-Primitive routine to get next key}
+  var
+    RT : Integer;
+  begin
+    RT := 0;
+    repeat
+      if RT <> 0 then                                       {!!.22}
+        Delay(30);                                          {!!.22}
+      {$IFDEF BTree52}
+      BTNextKey(fbIFB, fbKeyNum, Ref, Key);
+      {$ELSE}
+      NextNetKey(fbIFB, fbKeyNum, Ref, Key);
+      {$ENDIF}
+      Inc(RT);
+    until (RT >= fbRetries) or (ErrorClass <> 2);
+
+    if IsamOK and (Key > fbHighKey) then begin {!!.07}
+      IsamOK := False;                         {!!.07}
+      IsamError := 10250;                      {!!.07}
+    end;                                       {!!.07}
+  end;
+
+  procedure FBrowser.fbSearchKeyPrim(var Ref : LongInt; var Key : IsamKeyStr);
+    {-Primitive routine to search for a key}
+  var
+    RT : Integer;
+  begin
+    RT := 0;
+    repeat
+      if RT <> 0 then                                       {!!.22}
+        Delay(30);                                          {!!.22}
+      {$IFDEF BTree52}
+      BTSearchKey(fbIFB, fbKeyNum, Ref, Key);
+      {$ELSE}
+      SearchNetKey(fbIFB, fbKeyNum, Ref, Key);
+      {$ENDIF}
+      Inc(RT);
+    until (RT >= fbRetries) or (ErrorClass <> 2);
+  end;
+
+  procedure FBrowser.fbPrevKeyPrim(var Ref : LongInt; var Key : IsamKeyStr);
+    {-Primitive routine to get previous key}
+  var
+    RT : Integer;
+  begin
+    RT := 0;
+    repeat
+      if RT <> 0 then                                       {!!.22}
+        Delay(30);                                          {!!.22}
+      {$IFDEF BTree52}
+      BTPrevKey(fbIFB, fbKeyNum, Ref, Key);
+      {$ELSE}
+      PrevNetKey(fbIFB, fbKeyNum, Ref, Key);
+      {$ENDIF}
+      Inc(RT);
+    until (RT >= fbRetries) or (ErrorClass <> 2);
+
+    if IsamOK and (Key < fbLowKey) then begin {!!.07}
+      IsamOK := False;                        {!!.07}
+      IsamError := 10260;                     {!!.07}
+    end;                                      {!!.07}
+  end;
+
+  procedure FBrowser.fbFindKeyPrim(var Ref : LongInt; var Key : IsamKeyStr;
+                                   NFSD : Integer);
+    {-Primitive routine to find a key}
+  var
+    RT : Integer;
+  begin
+    RT := 0;
+    repeat
+      if RT <> 0 then                                       {!!.22}
+        Delay(30);                                          {!!.22}
+      {$IFDEF BTree52}
+      BTFindKeyAndRef(fbIFB, fbKeyNum, Ref, Key, NFSD);
+      {$ELSE}
+      FindNetKeyAndRef(fbIFB, fbKeyNum, Ref, Key, NFSD);
+      {$ENDIF}
+      Inc(RT);
+    until (RT >= fbRetries) or (ErrorClass <> 2);
+  end;
+
+  procedure FBrowser.fbNextKey(var Ref : LongInt; var Key : IsamKeyStr);
+    {-Get next key, accounting for filtering}
+  begin
+    repeat
+      fbNextKeyPrim(Ref, Key);
+    until (not IsamOK) or RecordFilter(Ref, Key);
+  end;
+
+  procedure FBrowser.fbSearchKey(var Ref : LongInt; var Key : IsamKeyStr);
+    {-Search for a key, accounting for filtering}
+  var
+    Finished : Boolean;
+  begin
+    fbSearchKeyPrim(Ref, Key);
+    if IsamOK and not RecordFilter(Ref, Key) then begin
+      IsamOK := False;
+      IsamError := 10210;
+    end;
+  end;
+
+  procedure FBrowser.fbPrevKey(var Ref : LongInt; var Key : IsamKeyStr);
+    {-Get previous key, accounting for filtering}
+  begin
+    repeat
+      fbPrevKeyPrim(Ref, Key);
+    until (not IsamOK) or RecordFilter(Ref, Key);
+  end;
+
+  procedure FBrowser.fbFindKey(var Ref : LongInt; var Key : IsamKeyStr;
+                               NFSD : Integer);
+    {-Find a key, accounting for filtering}
+  begin
+    fbFindKeyPrim(Ref, Key, NFSD);
+    while IsamOK and not RecordFilter(Ref, Key) do
+      case NFSD of
+        0 : begin {no direction}
+              IsamOK := False;
+              IsamError := 10270;
+            end;
+        1 : fbNextKeyPrim(Ref, Key);
+        else fbPrevKeyPrim(Ref, Key);
+      end;
+  end;
+
+  procedure FBrowser.GetRecord(Ref : LongInt; var DatS; var Len : Word);
+    {-Low-level routine to read a record}
+  begin
+    {$IFDEF BTree52}
+    Len := BTDatRecordSize(fbIFB);
+    BTGetRec(fbIFB, Ref, DatS, False);
+    {$ELSE}
+    Len := DatRecordSize(fbIFB);
+    GetNetRec(fbIFB, Ref, DatS);
+    {$ENDIF}
+  end;
+
+  procedure VBrowser.GetRecord(Ref : LongInt; var DatS; var Len : Word);
+    {-Low-level routine to read a specific record}
+  begin
+    {$IFDEF BTree52}
+    BTGetVariableRec(fbIFB, Ref, DatS, Len);
+    {$ELSE}
+    GetVariableRec(fbIFB, Ref, DatS, Len, Normal);
+    {$ENDIF}
+  end;
+
+
+{$IFDEF UseMouse}
+  procedure FBrowser.fbGotoRelPos(P : LongInt);
+    {-Move cursor to relative position P}
+  var
+    KeyStr : IsamKeyStr;
+    Ref    : LongInt;
+  begin
+    if LongFlagIsSet(fbOptions, fbFakingOneRec) then {!!.22}
+      Exit;                                          {!!.22}
+
+    {find corresponding key and record number--use single-user routine: page
+    stack should be valid and we need the speed}
+    {$IFDEF Btree52}
+    BTGetApprKeyAndRef(fbIFB, fbKeyNum, P, ScaleHigh, KeyStr, Ref);
+    {$ELSE}
+    GetApprKeyAndRef(fbIFB, fbKeyNum, P, ScaleHigh, KeyStr, Ref);
+    {$ENDIF}
+    if not IsamOK then
+      Exit;
+
+    {move to the specified record}
+    SetCurrentRecord(KeyStr, Ref);
+  end;
+
+  function FBrowser.fbProcessMouseCommand(Cmd : Word) : Boolean; {!!.24}
+    {-Process ccMouseSel command. Returns True to return control to user.}
+  var
+    L : LongInt;
+    I : Word;
+    FramePos : FramePosType;
+    Row, Item, HotCode : Byte;
+    Dragging : Boolean; {!!.24}
+  begin
+    fbProcessMouseCommand := False;
+
+    {determine position of mouse}
+    EvaluateMousePos;
+    L := PosResults(FramePos, HotCode);
+
+    {Should mouse event be ignored?}                             {!!.24}
+    if cwIgnoreMouseEvent(Dragging, Cmd, FramePos, HotCode) then {!!.24}
+      Exit;                                                      {!!.24}
+
+    {$IFDEF UseDrag}                                             {!!.24}
+      {$IFDEF UseScrollBars}                                     {!!.24}
+      if (Cmd = ccMouseSel) and (HotCode <> hsNone) then         {!!.24}
+        if cwCmdPtr^.cpOptionsAreOn(cpMouseDrag) then            {!!.24}
+          Exit;                                                  {!!.24}
+      {$ENDIF}                                                   {!!.24}
+    {$ENDIF}                                                     {!!.24}
+
+    case HotCode of
+      hsNone :           {not a hot spot}
+        case FramePos of
+          frInsideActive :       {inside window}
+            begin
+              {calculate item that cursor is on}
+              Row := MouseKeyWordY+MouseYLo-Pred(wYL);
+              Item := Succ(Pred(Row) div fbRowsPerItem);
+
+              {is highlight already on current item?}
+              if Item = fbCurItem then begin
+                {select the current item}
+                if LongFlagIsSet(fbOptions, fbChangedItems) then begin {!!.40}
+                  if (Cmd <> ccMouseAuto) then                         {!!.40}
+                    ClearLongFlag(fbOptions, fbChangedItems)           {!!.40}
+                end                                                    {!!.40}
+                else if (cwCmd = ccMouseSel) then begin                {!!.40}
+                  cwCmd := ccSelect;
+                  fbProcessMouseCommand := True;
+                end;                               {!!.06}
+              end
+              else if fbItemRecs^[Item].irRef <> 0 then begin          {!!.40}
+                {move cursor to the new item}
+                fbGotoItem(Item);
+                if LongFlagIsSet(fbOptions, fbSelectOnClick) then begin {!!.40}
+                  cwCmd := ccSelect;                                   {!!.40}
+                  fbProcessMouseCommand := True;                       {!!.40}
+                end                                                    {!!.40}
+                else if (Cmd <> ccMouseSel) then                       {!!.40}
+                  SetLongFlag(fbOptions, fbChangedItems);              {!!.40}
+              end;                                                     {!!.40}
+            end;
+          frTL..frRR,            {on the frame}
+          frInsideFrame,         {inside window frame but not in window boundaries}
+          frOutsideFrame :       {outside window frame}
+            fbProcessMouseCommand := LongFlagIsSet(wFlags, wAllMouseEvents);
+        end;
+      {$IFDEF UseScrollBars}
+      hsDecV :           {the decrement fixture of a vertical scroll bar}
+        if FlagIsSet(fbOptions, fbMousePage) then
+          fbPageUp
+        else
+          fbLineUp;
+      hsDecH :           {the decrement fixture of a horizontal scroll bar}
+        fbScrollHoriz(-fbBDelta);
+      hsIncV :           {the increment fixture of a vertical scroll bar}
+        if FlagIsSet(fbOptions, fbMousePage) then
+          fbPageDown
+        else
+          fbLineDown;
+      hsIncH :           {the increment fixture of a horizontal scroll bar}
+        fbScrollHoriz(fbBDelta);
+      hsBar :            {the slider portion of a scroll bar}
+        case FramePos of
+          frLL, frRR :   {vertical scroll bar}
+            begin
+              L := TweakSlider(FramePos, MouseKeyWordY+MouseYLo, L, 1);
+              if L <= 1 then
+                {goto top of file}
+                fbFirstRec
+              else if L >= ScaleHigh then
+                {go to end of file}
+                fbLastRec
+              else
+                {go to specified position}
+                fbGotoRelPos(L+fbScaleLow);
+            end;
+          else begin     {horizontal scroll bar}
+            I := TweakSlider(FramePos, MouseKeyWordX+MouseXLo, L, 1);
+            if I <> fbColOfs then begin
+              fbColOfs := I;
+              UpdateContents;
+            end;
+          end;
+        end;
+      {$ENDIF}
+      hsSpot,            {a single character hot spot}
+      hsRegion0..255 :   {a user-defined region relative to a frame}
+        fbProcessMouseCommand := True;
+    end;
+
+  end;
+{$ENDIF}
+
+{$IFDEF UseScrollBars}
+  function IsAll255(S : string) : Boolean;
+    {-Return True if S is all 255's}
+  inline(
+    $5F/                   {pop di         ;es:di => S}
+    $07/                   {pop es}
+    $31/$C9/               {xor cx,cx      ;cx = 0}
+    $31/$C0/               {xor ax,ax      ;ah = 1, al = 255}
+    $FE/$C4/               {inc ah}
+    $FE/$C8/               {dec al}
+    $26/$8A/$0D/           {mov cl,es:[di] ;cx = length(s)}
+    $47/                   {inc di         ;es:di => S[1]}
+    $FC/                   {cld            ;go forward}
+    $F3/$AE/               {repe scasb     ;scan while 0}
+    $74/$02/               {je done        ;True if still 0}
+    $FE/$CC/               {dec ah         ;False if not}
+                           {done:}
+    $88/$E0);              {mov al,ah      ;result into AL}
+
+  procedure FBrowser.fbSetupForScrollBars;
+    {-Set boundaries for all scroll bars}
+  var
+    HorizH : Integer;
+    High : Word;
+    VertH, Ref : LongInt;
+    Key : IsamKeyStr;
+  begin
+    if not HasScrollBars then
+      Exit;
+
+    if (fbScaleLow = $FFFF) then begin
+      {is there a subrange of keys?}
+      if LongFlagIsSet(fbOptions, fbFakingOneRec) or          {!!.22}
+         (not LongFlagIsSet(fbOptions, fbAutoScale)) or
+         ((fbLowKey = '') and IsAll255(fbHighKey)) then begin
+        {if not, use 1..ScaleHigh}
+        fbScaleLow := 0;
+        High := ScaleHigh;
+      end
+      else begin
+        {get scaled value for low key}
+        Ref := 1;
+        Key := fbLowKey;
+        fbFindKey(Ref, Key, +1);
+        {use single-user routine: page stack should be valid and we need the
+         speed}
+        {$IFDEF Btree52}
+        BTGetApprRelPos(fbIFB, fbKeyNum, fbScaleLow, ScaleHigh, Key, Ref);
+        if not IsamOK then begin                      {!!.22}
+          IsamClearOK;                                {!!.22}
+          Exit;                                       {!!.22}
+        end;                                          {!!.22}
+        {$ELSE}
+        GetApprRelPos(fbIFB, fbKeyNum, fbScaleLow, ScaleHigh, Key, Ref);
+        {$ENDIF}
+
+        {get scaled value for high key}
+        Ref := MaxLongInt;
+        Key := fbHighKey;
+        fbFindKey(Ref, Key, -1);
+        {use single-user routine: page stack should be valid and we need the
+         speed}
+        {$IFDEF Btree52}
+        BTGetApprRelPos(fbIFB, fbKeyNum, High, ScaleHigh, Key, Ref);
+        if not IsamOK then begin                      {!!.22}
+          IsamClearOK;                                {!!.22}
+          Exit;                                       {!!.22}
+        end;                                          {!!.22}
+        {$ELSE}
+        GetApprRelPos(fbIFB, fbKeyNum, High, ScaleHigh, Key, Ref);
+        {$ENDIF}
+      end;
+    end;
+
+    {calculate high values}
+    HorizH := fbMaxCols-Width;
+    if HorizH < 0 then
+      HorizH := 0;
+    VertH := High-fbScaleLow;
+    if VertH < 0 then
+      VertH := 0;
+
+    {reset scroll bar range}
+    ChangeAllScrollBars(0, HorizH, 0, VertH);
+  end;
+
+  procedure FBrowser.fbUpdateScrollBars(DoVert : Boolean);
+    {-Update horizontal and vertical scroll bars}
+  {var
+    RelPos : Word;}    {!!.07}
+  begin
+    if not HasScrollBars then
+      Exit;
+
+    if fbScaleLow = $FFFF then
+      fbSetupForScrollBars;
+
+    if DoVert then
+      if LongFlagIsSet(fbOptions, fbFakingOneRec) then  {!!.22}
+        fbRelPos := fbScaleLow                          {!!.22}
+      else                                              {!!.22}
+        {$IFDEF Btree52}
+        begin                                           {!!.22}
+          BTGetApprRelPos(fbIFB, fbKeyNum, fbRelPos, ScaleHigh, fbCurKey, fbCurRef);
+          if not IsamOK then begin                      {!!.22}
+            IsamClearOK;                                {!!.22}
+            Exit;                                       {!!.22}
+          end;                                          {!!.22}
+        end;                                            {!!.22}
+        {$ELSE}
+        {calculate relative position of current record--use single-user
+         routine: page stack should be valid and we need the speed}
+        GetApprRelPos(fbIFB, fbKeyNum, fbRelPos, ScaleHigh, fbCurKey, fbCurRef); {!!.07}
+        {$ENDIF}
+
+    if IsamOK then
+      DrawAllSliders(fbColOfs, fbRelPos-fbScaleLow); {!!.07}
+  end;
+{$ENDIF}
+
+{$IFDEF UseAdjustableWindows}
+  procedure FBrowser.fbAdjustDisplay(NewH, OldH : Byte);
+    {-Adjust window display}
+  label
+    ExitPoint;
+  var
+    I, J, Delta : Integer;
+    Ref : LongInt;
+    Key : IsamKeyStr;
+  begin
+    if LongFlagIsSet(fbOptions, fbFakingOneRec) then {!!.41}
+      Exit;                                          {!!.41}
+    {did window get bigger?}
+    if (NewH > OldH) then begin
+      {find the first row with no record}
+      J := 1;
+      while (J <= NewH) and (fbItemRecs^[J].irRef <> 0) do
+        Inc(J);
+
+      {anything to do?}
+      if J > NewH then
+        Exit;
+
+      {read-lock the file if desired}
+      fbReadLock(True);
+
+      {locate last record we already have}
+      with fbItemRecs^[J-1] do begin
+        Ref := irRef;
+        Key := irKey;
+      end;
+      fbFindKey(Ref, Key, 0);
+      case ErrorClass of
+        0..1 : {ok};
+        2 : begin
+              fbGotError(epWarning+ecFileBlockLocked, emFileBlockLocked);
+              ClearErrors;
+              goto ExitPoint;
+            end;
+        else
+          fbGotError(epFatal+ecIsamError, emIsamError);
+          goto ExitPoint;
+      end;
+
+      {find the next one}
+      fbNextKey(Ref, Key);
+      if ErrorClass > 0 then
+        goto ExitPoint;
+
+      while (J <= NewH) and fbKeyInBounds(Key) and (ErrorClass = 0) do begin
+        with fbItemRecs^[J] do begin
+          irKey := Key;
+          irRef := Ref;
+          BuildOneItem(J, False);
+        end;
+        Inc(J);
+        if (J <= NewH) and (ErrorClass = 0) then begin
+          fbNextKey(Ref, Key);
+          if ErrorClass > 1 then begin
+            fbGotError(epFatal+ecIsamError, emIsamError);
+            goto ExitPoint;
+          end;
+        end;
+      end;
+
+ExitPoint:
+      {release read-lock}
+      fbReadLock(False);
+    end
+    {it's smaller--is current row still visible?}
+    else if (fbCurItem > NewH) then begin
+      {scroll current row back into view}
+      Delta := NewH-fbCurItem;
+      fbScrollItemRecs(Delta, OldH);
+
+      {reset current row}
+      fbCurItem := NewH;
+
+      {empty all the rows that are wiped out}
+      for I := NewH+1 to fbMaxItems do
+        fbEmptyItemRec(I);
+    end;
+  end;
+{$ENDIF}
+
+
+
+{$IFDEF UseStreams}
+  {-------- streams ----------}
+
+  constructor FBrowser.Load(var S : IdStream);
+    {-Load a file browser from a stream}
+  var
+    I, J, M, N : Word;
+  begin
+    {initialize this in case Done is called}
+    fbItemRecs := nil;
+
+    {Load the underlying command window}
+    if not CommandWindow.Load(S) then
+      Fail;
+
+    {set the command processor if necessary}
+    if cwCmdPtr = nil then
+      SetCommandProcessor(FBrowserCommands);
+
+    {read data specific to the browser}
+    @fbPreMove := S.ReadPointer;
+    @fbTask := S.ReadPointer;
+    @fbBuildItem := S.ReadPointer;
+    @fbUpdate := S.ReadPointer;
+    @fbFilter := S.ReadPointer;
+    @fbRefresh := S.ReadPointer;
+    fbIFB := S.ReadPointer;
+    fbDatPtr := S.ReadPointer;
+    S.ReadRange(fbKeyNum, fbItemRecs);
+    S.ReadRange(fbMaxItems, fbDummy);
+
+    {check the error status}
+    if S.PeekStatus <> 0 then begin
+      Done;
+      Fail;
+    end;
+
+    {allocate the row records array}
+    M := Word(fbMaxItems)*SizeOf(ItemRec);
+    if not GetMemCheck(fbItemRecs, M) then begin
+      InitStatus := epFatal+ecOutOfMemory;
+      Done;
+      Fail;
+    end;
+
+    {initialize the array}
+    FillChar(fbItemRecs^, M, 0);
+
+    {allocate the string pointers}
+    M := MinWord(fbMaxCols, 255)+1;         {!!.22}
+    N := fbRowsPerItem*SizeOf(Pointer);
+    for I := 1 to fbMaxItems do
+      with fbItemRecs^[I] do begin
+        if not GetMemCheck(irRows, N) then begin
+          InitStatus := epFatal+ecOutOfMemory;
+          Done;
+          Fail;
+        end
+        else begin
+          FillChar(irRows^, N, 0);
+          for J := 1 to fbRowsPerItem do
+            if GetMemCheck(irRows^[J], M) then
+              {initialize the string}
+              FillChar(irRows^[J]^, M, 0)
+            else begin
+              InitStatus := epFatal+ecOutOfMemory;
+              Done;
+              Fail;
+            end;
+        end;
+      end;
+
+    {force a complete screen update}
+    SetLongFlag(fbOptions, fbForceUpdate);
+
+    {make sure fbIsNet flag is set properly}
+    {$IFDEF Btree52}
+    if BTIsNetFileBlock(fbIFB) then
+    {$ELSE}
+    if IsNetFileBlock(fbIFB) then
+    {$ENDIF}
+      SetLongFlag(fbOptions, fbIsNet)
+    else
+      ClearLongFlag(fbOptions, fbIsNet);
+  end;
+
+  procedure FBrowser.Store(var S : IdStream);
+    {-Store a file browser in a stream}
+  begin
+    {Store the underlying command window}
+    CommandWindow.Store(S);
+    if S.PeekStatus <> 0 then
+      Exit;
+
+    {store FBrowser data fields}
+    S.WriteUserPointer(@fbPreMove,   ptNil);
+    S.WriteUserPointer(@fbTask,      ptNil);
+    S.WriteUserPointer(@fbBuildItem, ptNil);
+    S.WriteUserPointer(@fbUpdate,    ptNil);
+    S.WriteUserPointer(@fbFilter,    ptNullFilterFunc);
+    S.WriteUserPointer(@fbRefresh,   ptNullRefreshFunc);
+    S.WritePointer(fbIFB);
+    S.WritePointer(fbDatPtr);
+    S.WriteRange(fbKeyNum, fbItemRecs);
+    S.WriteRange(fbMaxItems, fbDummy);
+  end;
+
+  procedure FBrowserStream(SPtr : IdStreamPtr);
+    {-Register all types needed for streams containing file browsers}
+  begin
+    {register the command window}
+    CommandWindowStream(SPtr);
+
+    {register the browser}
+    with SPtr^ do begin
+      RegisterType(otFBrowser, veFBrowser, TypeOf(FBrowser),
+                   @FBrowser.Store, @FBrowser.Load);
+      RegisterPointer(ptFBrowserCommands, @FBrowserCommands);
+
+      {register default procedure pointers}
+      RegisterPointer(ptNullFilterFunc, @NullFilterFunc);
+      RegisterPointer(ptNullRefreshFunc, @NullRefreshFunc);
+    end;
+  end;
+
+  procedure VBrowserStream(SPtr : IdStreamPtr);
+    {-Register all types needed for streams containing file browsers}
+  begin
+    {register the parent}
+    FBrowserStream(SPtr);
+
+    {register the browser}
+    with SPtr^ do
+      RegisterType(otVBrowser, veVBrowser, TypeOf(VBrowser),
+                   @VBrowser.Store, @VBrowser.Load);
+  end;
+
+{$ENDIF}
+
+  function NullFilterFunc(RecNum : LongInt; Key : IsamKeyStr;
+                          FBP : FBrowserPtr) : Boolean;
+    {-Do-nothing record filtering function}
+  begin
+    NullFilterFunc := True;
+  end;
+
+  function NullRefreshFunc(FBP : FBrowserPtr) : Boolean;
+    {-Do-nothing refresh function}
+  begin
+    NullRefreshFunc := False;
+  end;
+
+  function RefreshAtEachCommand(FBP : FBrowserPtr) : Boolean;
+    {-Check for need to refresh before each command if no keystrokes pending}
+  begin
+    with FBP^, cwCmdPtr^ do
+      if LongFlagIsSet(fbOptions, fbIsNet) or cpKeyPressed then
+        RefreshAtEachCommand := False
+      else
+        {$IFDEF Btree52}
+        RefreshAtEachCommand := BTOtherWSChangedKey(fbIFB, fbKeyNum);
+        {$ELSE}
+        RefreshAtEachCommand := PageStackValid(fbIFB, fbKeyNum) = StateInvalid;
+        {$ENDIF}
+  end;
+
+  function RefreshPeriodically(FBP : FBrowserPtr) : Boolean;
+    {-Check for need to refresh every RefreshPeriod clock ticks}
+  var
+    Ticks : LongInt absolute $40:$6C;
+    T : LongInt;
+  begin
+    {assume false}
+    RefreshPeriodically := False;
+
+    with FBP^ do
+      {do nothing if this is a single-user fileblock}
+      if LongFlagIsSet(fbOptions, fbIsNet) then begin
+        {save tick count}
+        T := Ticks;
+
+        {loop while key not pressed}
+        while not cwCmdPtr^.cpKeyPressed do
+          {is it time to check again?}
+          if (Ticks-T) >= RefreshPeriod then
+            {check to see if page stack has been invalidated}
+            {$IFDEF Btree52}
+            if BTOtherWSChangedKey(fbIFB, fbKeyNum) then begin
+            {$ELSE}
+            if PageStackValid(fbIFB, fbKeyNum) = StateInvalid then begin
+            {$ENDIF}
+              {we need to refresh the display}
+              RefreshPeriodically := True;
+              Exit;
+            end
+            else
+              {save the current tick count}
+              T := Ticks;
+      end;
+  end;

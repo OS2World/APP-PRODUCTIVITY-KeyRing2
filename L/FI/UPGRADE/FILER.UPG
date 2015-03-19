@@ -1,0 +1,136 @@
+;Substitution list to upgrade B-Tree Filer 5.0x to 5.51
+;
+;Original name             New name, and comment if appropriate
+;
+AbortReorg                 AbortReorg{**use IsamOK now**}
+AddKey                     BTAddKey
+AddNetKey                  BTAddKey
+AddNetRec                  BTAddRec
+AddRec                     BTAddRec
+AddVariableRec             BTAddVariableRec
+ClearKey                   BTClearKey
+ClearNetKey                BTClearKey
+CloseAllFileBlocks         BTCloseAllFileBlocks
+CloseEachFileBlock         BTCloseAllFileBlocks
+CloseFileBlock             BTCloseFileBlock
+CloseNetFileBlock          BTCloseFileBlock
+CreateVariableRecBuffer    BTCreateVariableRecBuffer
+DatNrOfKeys                BTNrOfKeys
+DatRecordSize              BTDatRecordSize
+DeleteAllKeys              BTDeleteAllKeys
+DeleteAllNetKeys           BTDeleteAllKeys
+DeleteFileBlock            BTDeleteFileBlock
+DeleteKey                  BTDeleteKey
+DeleteNetFileBlock         BTDeleteFileBlock
+DeleteNetKey               BTDeleteKey
+DeleteNetRec               BTDeleteRec
+DeleteRec                  BTDeleteRec
+DeleteVariableRec          BTDeleteVariableRec
+DisableSearchForSequential BTSetSearchForSequential{**new param On:Boolean**}
+DynamicNetType             DynamicNetType{**now passed to BTInitIsam**}
+EnableSearchForSequential  BTSetSearchForSequential{**new param On:Boolean**}
+ExitNetIsam                BTExitIsam
+ExtendHandles              ExtendHandles{**must Use ISAMTOOL**}
+FileBlockIsLocked          BTFileBlockIsLocked
+FileBlockIsOpen            BTFileBlockIsOpen
+FileBlockIsReadLocked      BTFileBlockIsReadLocked
+FileBlockLocked            BTFileBlockIsLocked
+FileLen                    BTFileLen
+FileNameFromIFBPtr         BTDataFileName
+FindKey                    BTFindKey
+FindKeyAndRef              BTFindKeyAndRef
+FindNetKey                 BTFindKey
+FindNetKeyAndRef           BTFindKeyAndRef
+FlushAllFileBlocks         BTFlushAllFileBlocks
+FlushBuffer                BTFlushFileBlock
+FlushFileBlock             BTFlushFileBlock
+FlushIsamBuffers           BTFlushAllFileBlocks
+ForceNetBufferWriteThrough BTForceNetBufferWriteThrough
+ForceWritingMark           BTForceWritingMark
+FreeNetRecs                BTFreeRecs
+FreeRecs                   BTFreeRecs
+GetApprKeyAndRef           BTGetApprKeyAndRef
+GetApprNetKeyAndRef        BTGetApprKeyAndRef
+GetApprNetRelPos           BTGetApprRelPos
+GetApprRelPos              BTGetApprRelPos
+GetNetRec                  BTGetRec{**new param ISOLock:Boolean**}
+GetNetRecInSpiteOfLock     BTGetRec{**new param ISOLock:Boolean**}
+GetNetRecReadOnly          BTGetRecReadOnly
+GetPageStack               GetPageStack{**combined into BTInitIsam**}
+GetRec                     BTGetRec{**new param ISOLock:Boolean**}
+GetRecordInfo              BTGetRecordInfo
+GetVariableRecLength       BTGetVariableRecLength
+GetVariableRecPart         BTGetVariableRecPart{**dropped param Mode:IsamAccessMode**}
+GetVariableRec             BTGetVariableRec{**dropped param Mode:IsamAccessMode**}
+InitIsam                   BTInitIsam{**substantial changes**}
+InitNetIsam                BTInitIsam{**substantial changes**}
+InternalDosError           IsamDOSError
+InternalDosFunction        IsamDOSFunc{**now Word instead of Byte**}
+IsNetFileBlock             BTIsNetFileBlock
+IsamDelayForRetry          IsamDelayBetwLocks{**now Ms instead of loops**}
+IsamErrorClass             BTIsamErrorClass
+IsamErrorMessage           IsamErrorMessage{**must Use ISAMTOOL**}
+IsamFileBlockName          IsamFileBlockName{**now String[192]**}
+IsamFileSize               IsamLongSeekEOF
+IsamLockRecord             BTIsamLockRecord
+IsamReset                  IsamReset{**new param ReadOnly:Boolean**}
+IsamUnLockRecord           BTIsamUnLockRecord
+IsamWSNr                   BTGetInternalDialogID{**new param IFBPtr**}
+KeyExists                  BTKeyExists
+KeyRecordSize              BTKeyRecordSize
+LockAllOpenFileBlocks      BTLockAllOpenFileBlocks
+LockFileBlock              BTLockFileBlock
+LockRec                    BTLockRec
+MakeFileBlock              BTCreateFileBlock{**doesn't open fileblock**}
+MakeNetFileBlock           BTCreateFileBlock{**doesn't open fileblock**}
+MinSpaceForPageStack       MinSpaceForPageStack{**removed**}
+MinimumDatKeys             BTMinimumDatKeys
+NetFileAttr                NetFileAttr{**removed**}
+NetFileLen                 BTFileLen
+NetKeyExists               BTKeyExists
+NetSupported               BTNetSupported
+NextDiffKey                BTNextDiffKey
+NextDiffNetKey             BTNextDiffKey
+NextDontUseKey             NextDontUseKey{**removed**}
+NextKey                    BTNextKey
+NextNetKey                 BTNextKey
+NoNetCompiled              BTNoNetCompiled
+NovellFileAttr             NovellFileAttr{**removed**}
+OpenFileBlock              BTOpenFileBlock{**new params ReadOnly,AllReadOnly,Save,Net:Boolean**}
+OpenNetFileBlock           BTOpenFileBlock{**new params ReadOnly,AllReadOnly,Save,Net:Boolean**}
+OpenSaveFileBlock          BTOpenFileBlock{**new params ReadOnly,AllReadOnly,Save,Net:Boolean**}
+OpenSaveNetFileBlock       BTOpenFileBlock{**new params ReadOnly,AllReadOnly,Save,Net:Boolean**}
+PageStackValid             BTOtherWSChangedKey{**now returns Boolean**}
+PreAllocateFileblock       PreAllocateFileblock{**must Use PREALLOC**}
+PreAllocateVRecFileBlock   PreAllocateVRecFileBlock{**must Use PREALLOC**}
+PrevDiffKey                BTPrevDiffKey
+PrevDiffNetKey             BTPrevDiffKey
+PrevKey                    BTPrevKey
+PrevNetKey                 BTPrevKey
+PutNetRec                  BTPutRec{**new param ISOLock:Boolean**}
+PutNetRecInSpiteOfLock     BTPutRec{**new param ISOLock:Boolean**}
+PutRec                     BTPutRec{**new param ISOLock:Boolean**}
+PutVariableRec             BTPutVariableRec{**dropped param Mode:IsamAccessMode**}
+ReadLockAllOpenFileBlocks  BTReadLockAllOpenFileBlocks
+ReadLockFileBlock          BTReadLockFileBlock
+ReleasePageStack           ReleasePageStack{**now part of BTExitIsam**}
+ReleaseVariableRecBuffer   BTReleaseVariableRecBuffer
+RemoveActiveLocks          BTUnlockAllRecs{**may also need BTUnlockFileBlock**}
+ReorgFileBlock             ReorgFileBlock{**new ProcChangeDatS definition**}
+SearchKey                  BTSearchKey
+SearchKeyAndRef            BTSearchKeyAndRef
+SearchNetKey               BTSearchKey
+SearchNetKeyAndRef         BTSearchKeyAndRef
+SetDosRetry                BTSetDosRetry
+SetVariableRecBuffer       BTSetVariableRecBuffer
+TestSearchForSequential    BTGetSearchForSequential
+UnLockAllOpenFileBlocks    BTUnLockAllOpenFileBlocks
+UnLockFileBlock            BTUnLockFileBlock
+UnLockRec                  BTUnLockRec
+UsedKeys                   BTUsedKeys
+UsedNetKeys                BTUsedKeys
+UsedNetRecs                BTUsedRecs
+UsedRecs                   BTUsedRecs
+VRecBufSize                IsamVRecBufSize
+WSNrLogIn                  WSNrLogIn{**no longer needed**}
+WSNrLogOut                 WSNrLogOut{**no longer needed**}

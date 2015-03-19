@@ -1,0 +1,12 @@
+No stub set, creating plain WPI.
+Collecting files:
+  adding "KREGISTR.DLL" to package 1.
+  adding "readme.reg" to package 1.
+  adding "krypton.dll" to package 1.
+Script "KREG.WIS" successfully read, 3672 bytes.
+Writing script to archive... OK
+Now going for package 1...
+Compressing KREGISTR.dll (000%)Compressing KREGISTR.dll (091%)Compressing KREGISTR.dll (100%)[60C02% compression 
+Compressing readme.reg (000%)Compressing readme.reg (100%)[60C63% compression 
+Compressing krypton.dll (000%)Compressing krypton.dll (100%)[60C01% compression 
+Done.

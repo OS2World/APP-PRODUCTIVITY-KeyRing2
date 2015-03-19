@@ -1,0 +1,7 @@
+responsepage http://www.idk-inc.com/emreqresponse.htm
+mailfrom kr2robot@idk-inc.com
+mailsubject KR2EM request from {REMOTE_ADDR}
+mailform kr2emreq@idk-inc.com 
+mailsubject KeyRing/2 Encryption Module Request
+mailfile useformvalues emreq.txt {email}
+

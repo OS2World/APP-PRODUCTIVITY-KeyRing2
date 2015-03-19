@@ -1,0 +1,13 @@
+VX-REXX OS/2 V2.14 Build B3
+VRX: Window1.VRX
+MacroPath: VRM:G:\keyring2
+EXEPath: 
+RunParameters: 
+RunDirectory: 
+VRXWindow: __VREMainWindow,1,48,530,5767,8000
+VRXWindow: __VREFileListWindow,1,5721,12190,3854,3358
+VRXWindow: __VRESectionListWindow,1,84,11611,2650,3999
+VRXWindow: __VREToolsWindow,1,9624,10744,1929,4695
+VRXWindow: __VREWindListWindow,1,2975,12190,2650,3324
+UserFile: 1
+UserWindow: Window1,1

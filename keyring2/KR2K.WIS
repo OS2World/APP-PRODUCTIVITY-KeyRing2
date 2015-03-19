@@ -1,0 +1,153 @@
+<WARPIN>
+VERSION=0.9.8
+OS=OS2_3x
+<HEAD>
+<PCK INDEX=1
+     PACKAGEID="IDK Inc.\Keyring/2\Program\2\2"
+     TARGET="C:\KR2"
+     SELECT
+     BASE
+     TITLE="KeyRing/2"
+     CREATEOBJECT="WPFolder|KeyRing/2|<WP_DESKTOP>|OBJECTID=<KR2FOLDER>;ICONVIEW=NONGRID,NORMAL;ALWAYSSORT=YES;BACKGROUND=$(1)\plaster.bmp,T;ICONFILE=$(1)\idk.ICO;ICONNFILE=1,$(1)\idko.ICO"
+     CREATEOBJECT="WPFolder|Information|<KR2FOLDER>|OBJECTID=<KR2INFOFOLDER>;ICONVIEW=NONGRID,NORMAL;ALWAYSSORT=YES;BACKGROUND=$(1)\plaster.bmp,T;ICONFILE=$(1)\info1.ICO;ICONNFILE=1,$(1)\info1_o.ICO"
+     CREATEOBJECT="WPProgram|Manual|<KR2FOLDER>|OBJECTID=<KR2MANUAL>;ICONFILE=$(1)\info.ICO;EXENAME=?:\OS2\VIEW.EXE;PROGTYPE=PM;PARAMETERS=KR2.INF;STARTUPDIR=$(1)\"
+
+     CREATEOBJECT="WPProgram|Why^Register?|<KR2INFOFOLDER>|EXENAME=E.EXE;PARAMETERS=$(1)\REGISTER.TXT"
+     CREATEOBJECT="WPProgram|Registration^Code|<KR2INFOFOLDER>|EXENAME=E.EXE;PARAMETERS=$(1)\readme.reg"
+     CREATEOBJECT="WPProgram|Short^Product^Description|<KR2INFOFOLDER>|EXENAME=E.EXE;PARAMETERS=$(1)\FILE_ID.DIZ"
+     CREATEOBJECT="WPProgram|Readme^Whats New?|<KR2INFOFOLDER>|EXENAME=E.EXE;PARAMETERS=$(1)\README.TXT"
+     CREATEOBJECT="WPProgram|Order^Form|<KR2INFOFOLDER>|EXENAME=E.EXE;PARAMETERS=$(1)\ORDER.FRM"
+     CREATEOBJECT="WPProgram|Internationalization^Instructions|<KR2INFOFOLDER>|EXENAME=E.EXE;PARAMETERS=$(1)\LANGUAGE.TXT"
+
+     CREATEOBJECT="WPProgram|IDK, Inc^Online Users Manual|<KR2FOLDER>|EXENAME=NETSCAPE.EXE;PARAMETERS=http://www.idk-inc.com/kr2index.htm"
+
+     CREATEOBJECT="WPProgram|KeyRing/2|<KR2FOLDER>|EXENAME=$(1)\KEYRING2.EXE;STARTUPDIR=$(1);ASSOCFILTER=*.PW?;"
+     CREATEOBJECT="WPProgram|Purchase|<KR2FOLDER>|EXENAME=$(1)\PURCHASE.EXE;STARTUPDIR=$(1);"
+     CLEARPROFILE="USER\KEYRING2"
+     KILLPROCESS="KEYRING2.EXE"
+     >This package contains the KeyRing/2 program.</PCK>
+<PCK INDEX=2
+     PACKAGEID="IDK Inc.\Keyring/2\Register\2\0"
+     TARGET="C:\KR2"
+     TITLE="Kevin registration"
+     >This package contains KeyRing/2 Kevin's registration key file.</PCK>
+<PCK INDEX=3
+     PACKAGEID="IDK Inc.\Keyring/2\Startup Sounds\1\0"
+     TARGET="C:\KR2"
+     SELECT
+     TITLE="Startup Sounds for KeyRing/2"
+     >This package contains some KeyRing/2 sounds files that optionally play when the program starts</PCK>
+</HEAD>
+<BODY>
+
+<PAGE INDEX=1 TYPE=TEXT>
+<NEXTBUTTON TARGET=2>~Next</NEXTBUTTON>
+<TEXT>
+
+
+Thank you for choosing KeyRing/2!
+
+KeyRing/2 allows you to save all your passwords or other secrets under a single 
+master password and manages them in a database. KeyRing/2 can communicate with 
+Netscape and other programs on your desktop.
+
+This installer will guide you through a simple procedure that unpacks the 
+KeyRing/2 files into a directory you choose. It will also create a folder and 
+icon on your desktop.
+
+Use the WarpIN icon to deinstall KeyRing/2.
+
+Select "Next" to continue.
+
+Select "Cancel" to abort installation.</TEXT>
+</PAGE>
+
+
+<!-- The TYPE_README will show a README text in a multi-line entry field. -->
+
+<PAGE INDEX=2 TYPE=README>
+<NEXTBUTTON TARGET=3>~I agree</NEXTBUTTON>
+<TEXT>
+By pressing the "I agree" button, you agree to all terms and conditions to 
+the below licence agreement.
+</TEXT>
+<README>
+ Software License   
+
+ KeyRing/2 is shareware. This means:   
+
+ 1. All copyrights to KeyRing/2 are exclusively owned by the author - IDK, 
+ Inc.   
+
+ 2. Anyone may use this software for a test period of 30 days. Following this 
+ test period of 30 days or less, if you wish to continue to use KeyRing/2, you 
+ MUST register.   
+
+ 3. Once registered, the user is granted a non-exclusive license to use 
+ KeyRing/2 on one computer (i.e. a single CPU), for any legal purpose, at a 
+ time. The registered KeyRing/2 software may not be rented or leased, but may 
+ be permanently transferred, if the person receiving it agrees to terms of 
+ this license. If the software is an update, the transfer must include the 
+ update and all previous versions.   
+
+ 4. The KeyRing/2 unregistered shareware version may be freely distributed, 
+ provided the distribution package is not modified. No person or company may 
+ charge a fee for the distribution of KeyRing/2 without written permission 
+ from the copyright holder.   
+
+ 5. To register you must complete the registration form and send it, with 
+ registration fee, to one of the authorized registration sites.   
+
+ 6. KeyRing/2 IS DISTRIBUTED "AS IS". NO WARRANTY OF ANY KIND IS EXPRESSED 
+ OR IMPLIED. YOU USE IT AT YOUR OWN RISK. THE AUTHOR WILL NOT BE LIABLE FOR 
+ DATA LOSS, DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR 
+ MISUSING THIS SOFTWARE.   
+
+ 7. There are NO additional license fees, apart from the cost of registration.   
+
+</README>
+</PAGE>
+
+<!-- The TYPE=CONTAINER will list the packages which can be installed. -->
+
+<PAGE INDEX=3 TYPE=CONTAINER>
+<NEXTBUTTON TARGET=4>~Next</NEXTBUTTON>
+<TEXT>
+Please select the packages which are to be installed. You may change the 
+target paths for the packages.
+</TEXT>
+</PAGE>
+
+
+<!-- The TYPE=CONFIGURE will allow the user to set the CONFIG.SYS and
+     WPS classes/objects stuff. -->
+
+<PAGE INDEX=4 TYPE=CONFIGURE>
+<NEXTBUTTON TARGET=5>~Next</NEXTBUTTON>
+<TEXT>
+
+Please select additional configuration that WarpIN should perform after 
+installing this archive.
+
+</TEXT>
+</PAGE>
+
+<!-- Here's another TYPE=TEXT page before we install.
+     The special target "0" indicates that after this page we
+     should start installation.
+     Note that the TYPE=INSTALL page (which we had in Alpha #3)
+     is no longer supported. -->
+
+<PAGE INDEX=5 TYPE=TEXT>
+<NEXTBUTTON TARGET=0>I~nstall</NEXTBUTTON>
+<TEXT>
+
+
+
+Press "Install" to begin installing this archive.</TEXT>
+</PAGE>
+</BODY>
+</WARPIN>
+
+
+

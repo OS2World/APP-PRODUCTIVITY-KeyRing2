@@ -1,0 +1,56 @@
+<WARPIN OS="OS2_2X">
+	<HEAD>
+	  <TITLE></TITLE>
+	  
+		<PCK 	INDEX=1
+			PACKAGEID="IDK Inc.\KeyRing2\Program\2\0\0"
+			TITLE="KeyRing/2"
+			TARGET="c:\kr2"
+			BASE SELECT
+			>Install or upgrade KR</PCK>
+		<PCK 	INDEX=2
+			PACKAGEID="IDK Inc.\KeyRing2\Register\1\0\0"
+			TITLE="Demo registration - do not install over paid registration!"
+			TARGET="c:\KR2"
+			>Install demo registration</PCK>
+		<PCK 	INDEX=3
+     			PACKAGEID="IDK Inc.\Keyring/2\Startup Sounds\1\0"
+     			TARGET="C:\KR2"
+     			SELECT
+     			TITLE="Startup Sounds for KeyRing/2"
+     			>This package contains some KeyRing/2 sounds files</PCK>
+	
+	</HEAD>
+	<BODY>
+</PAGE>
+
+
+<!-- The TYPE=CONFIGURE will allow the user to set the CONFIG.SYS and
+     WPS classes/objects stuff. -->
+
+<PAGE INDEX=4 TYPE=CONFIGURE>
+<NEXTBUTTON TARGET=5>~Next</NEXTBUTTON>
+<TEXT>
+
+Please select additional configuration that WarpIN should perform after installing this archive.
+
+</TEXT>
+</PAGE>
+
+<!-- Here's another TYPE=TEXT page before we install.
+     The special target "0" indicates that after this page we
+     should start installation.
+     Note that the TYPE=INSTALL page (which we had in Alpha #3)
+     is no longer supported. -->
+
+<PAGE INDEX=5 TYPE=TEXT>
+<NEXTBUTTON TARGET=0>I~nstall</NEXTBUTTON>
+<TEXT>
+
+
+
+Press "Install" to begin installing this archive.</TEXT>
+</PAGE>
+
+	</BODY>
+</WARPIN>

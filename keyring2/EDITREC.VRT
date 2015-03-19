@@ -1,0 +1,2325 @@
+/*:VRW
+*/
+VRX   OS/2 v2.14 B3
+BEGIN     Window
+    Visible           "0"
+    Enabled           "1"
+    SystemMenu        "1"
+    Create            ""
+    MinimizeButton    "1"
+    MaximizeButton    "1"
+    BorderType        "sizeable"
+    WindowMode        "Modal"
+    MoveWithParent    "1"
+    LayoutStyle       "None"
+    HideButton        "0"
+    TitleBar          "1"
+    DBCSConversionBar "1"
+    WindowListTitle   "Edit Secret"
+    Height            "7480"
+    Left              "434"
+    Top               "1156"
+    Width             "5974"
+    EventList         binary lines 0 checksum 0
+    HorizGridSpacing  "60"
+    VertGridSpacing   "60"
+    GridVisible       "1"
+    GridAlign         "1"
+    Close             "CALL EditRec_Close"
+    DoubleClick       ""
+    Destroy           ""
+    Resize            ""
+    Activate          ""
+    Deactivate        ""
+    Caption           "Edit Secret Information"
+    Font              "<default>"
+    BackColor         "<default>"
+    PicturePath       ""
+    HelpFile          ""
+    HelpTitle         ""
+    StatusArea        "Bottom"
+    ShowHints         "1"
+    StatusFont        "8.Helv"
+    WindowIcon        "$1"
+    Help              "CALL EditRec_Help"
+    Click             ""
+    DragDrop          ""
+    KeyPress          ""
+    ForeColor         "<default>"
+    ContextMenu       ""
+    DragTarget        "All"
+    AllowDrag         "0"
+    DragStart         ""
+    DragIcon          ""
+    DragDiscard       ""
+    DragPrint         ""
+    Name              "EditRec"
+    UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+    HelpText          ""
+    HelpTag           ""
+    HintText          ""
+    BEGIN         VRGroupBox
+        BorderType        "Lowered"
+        Height            "554"
+        Left              "0"
+        Top               "6263"
+        Width             "5854"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           ""
+        BackColor         "<default>"
+        ForeColor         "<default>"
+        DoubleClick       ""
+        LayoutStyle       "None"
+        Font              "<default>"
+        Click             ""
+        DragDrop          ""
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "GB_37"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        BEGIN             VRPushButton
+            Default           "1"
+            Border            "1"
+            NoPointerFocus    "0"
+            Height            "361"
+            Left              "120"
+            Top               "120"
+            Width             "940"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Cancel            "0"
+            BorderColor       "<default>"
+            Autosize          "1"
+            Caption           "~Save"
+            Font              "10.Helv"
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "15"
+            Click             "CALL SaveButton_Click"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "SaveButton"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Save your edits and return to main program"
+        END
+        BEGIN             VRPushButton
+            Default           "0"
+            Border            "1"
+            NoPointerFocus    "0"
+            Height            "361"
+            Left              "1927"
+            Top               "120"
+            Width             "855"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Cancel            "0"
+            BorderColor       "<default>"
+            Autosize          "1"
+            Caption           "Quit"
+            Font              "10.Helv"
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "16"
+            Click             "CALL QuitButton_Click"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "QuitButton"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Abort your changes"
+        END
+    END
+    BEGIN         VRGroupBox
+        BorderType        "Lowered"
+        Height            "5312"
+        Left              "0"
+        Top               "903"
+        Width             "5854"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           ""
+        BackColor         "<default>"
+        ForeColor         "<default>"
+        DoubleClick       ""
+        LayoutStyle       "None"
+        Font              "<default>"
+        Click             ""
+        DragDrop          ""
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "GB_35"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        BEGIN             VRGroupBox
+            BorderType        "Lowered"
+            Height            "675"
+            Left              "120"
+            Top               "4517"
+            Width             "5613"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Caption           ""
+            BackColor         "<default>"
+            ForeColor         "<default>"
+            DoubleClick       ""
+            LayoutStyle       "None"
+            Font              "<default>"
+            Click             ""
+            DragDrop          ""
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "GB_1"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            BEGIN                 VREntryField
+                Autoscroll        "1"
+                Border            "1"
+                ReadOnly          "1"
+                Masked            "0"
+                Justification     "Left"
+                Autotab           "0"
+                Height            "289"
+                Left              "2951"
+                Top               "301"
+                Width             "2541"
+                Visible           "1"
+                TabStop           "0"
+                Enabled           "1"
+                EventList         binary lines 0 checksum 0
+                Autosize          "1"
+                TextLimit         "255"
+                Value             ""
+                Font              "8.Helv"
+                Change            ""
+                TabGroup          "0"
+                ClipSiblings      "0"
+                TabIndex          "13"
+                DragDrop          ""
+                GotFocus          ""
+                LostFocus         ""
+                KeyPress          ""
+                ForeColor         "<default>"
+                BackColor         "<default>"
+                ContextMenu       ""
+                Verify            ""
+                DragTarget        "All"
+                AllowDrag         "0"
+                DragStart         ""
+                DragIcon          ""
+                DragDiscard       ""
+                DragPrint         ""
+                Name              "CurrentExpDateField"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          "Password expiration date"
+                Query             ""
+                QueryColumns      ""
+            END
+        END
+        BEGIN             VREntryField
+            Autoscroll        "1"
+            Border            "1"
+            ReadOnly          "0"
+            Masked            "0"
+            Justification     "Left"
+            Autotab           "0"
+            Height            "289"
+            Left              "120"
+            Top               "385"
+            Width             "5613"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            TextLimit         "255"
+            Value             ""
+            Font              "8.Helv"
+            Change            ""
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "6"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       "CALL F1_ContextMenu"
+            Verify            ""
+            DragTarget        "Files=""*.ico"""
+            AllowDrag         "1"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F1"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Description of this secret info"
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "120"
+            Top               "120"
+            Width             "325"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "zzzz"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "23"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F1CAPTION"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VREntryField
+            Autoscroll        "1"
+            Border            "1"
+            ReadOnly          "0"
+            Masked            "0"
+            Justification     "Left"
+            Autotab           "0"
+            Height            "289"
+            Left              "120"
+            Top               "1048"
+            Width             "5613"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            TextLimit         "255"
+            Value             ""
+            Font              "8.Helv"
+            Change            ""
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "7"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       "CALL F2_ContextMenu"
+            Verify            ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F2"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Your name, alias, login name, Etc"
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "120"
+            Top               "783"
+            Width             "325"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "zzzz"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "22"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F2CAPTION"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VREntryField
+            Autoscroll        "1"
+            Border            "1"
+            ReadOnly          "0"
+            Masked            "0"
+            Justification     "Left"
+            Autotab           "0"
+            Height            "289"
+            Left              "120"
+            Top               "2373"
+            Width             "5613"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            TextLimit         "255"
+            Value             ""
+            Font              "8.Helv"
+            Change            ""
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "9"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       "CALL F4_ContextMenu"
+            Verify            ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F4"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Serial number, combination, PIN number, Etc for this secret"
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "120"
+            Top               "2108"
+            Width             "325"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "zzzz"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "21"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F4CAPTION"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VREntryField
+            Autoscroll        "1"
+            Border            "1"
+            ReadOnly          "0"
+            Masked            "0"
+            Justification     "Left"
+            Autotab           "0"
+            Height            "289"
+            Left              "120"
+            Top               "1686"
+            Width             "5613"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            TextLimit         "255"
+            Value             ""
+            Font              "8.Helv"
+            Change            ""
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "8"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       "CALL F3_ContextMenu"
+            Verify            ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F3"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Password for this application, web page, login, Etc."
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "120"
+            Top               "1445"
+            Width             "325"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "zzzz"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "19"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F3CAPTION"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "120"
+            Top               "2831"
+            Width             "325"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "zzzz"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "20"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F5CAPTION"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VREntryField
+            Autoscroll        "1"
+            Border            "1"
+            ReadOnly          "0"
+            Masked            "0"
+            Justification     "Left"
+            Autotab           "0"
+            Height            "289"
+            Left              "120"
+            Top               "3096"
+            Width             "5613"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            TextLimit         "255"
+            Value             ""
+            Font              "8.Helv"
+            Change            ""
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "10"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       "CALL F5_ContextMenu"
+            Verify            ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F5"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "URL for this secret"
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VREntryField
+            Autoscroll        "1"
+            Border            "1"
+            ReadOnly          "0"
+            Masked            "0"
+            Justification     "Left"
+            Autotab           "0"
+            Height            "289"
+            Left              "120"
+            Top               "3806"
+            Width             "5613"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            TextLimit         "255"
+            Value             ""
+            Font              "8.Helv"
+            Change            ""
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "11"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       "CALL F6_ContextMenu"
+            Verify            ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F6"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Note for this secret"
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "120"
+            Top               "3541"
+            Width             "325"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "zzzz"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "18"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "F6CAPTION"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRSpinButton
+            Border            "1"
+            Justification     "Left"
+            ReadOnly          "1"
+            NumericOnly       "1"
+            PadWithZeros      "0"
+            FastSpin          "0"
+            InitialList       "!No Exp"
+            Height            "241"
+            Left              "241"
+            Top               "4878"
+            Width             "1217"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            TextLimit         "12"
+            Change            "CALL ExpDaysSpinner_Change"
+            Value             "No Exp"
+            AlwaysUpdate      "1"
+            Index             "1"
+            BackColor         "<default>"
+            ForeColor         "<default>"
+            Font              "8.Helv"
+            BoundPart         "EntryField"
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "14"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ContextMenu       ""
+            Verify            ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "ExpDaysSpinner"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Days to password expiration"
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRCheckBox
+            NoPointerFocus    "0"
+            Height            "241"
+            Left              "120"
+            Top               "4216"
+            Width             "2614"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Set               "0"
+            BoundSetValue     ""
+            BoundUnsetValue   ""
+            Autosize          "1"
+            Caption           "Update password expriation date"
+            Font              "8.Helv"
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "12"
+            Click             "CALL ExpDateChangeEnable_Click"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "ExpDateChangeEnable"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "3071"
+            Top               "4577"
+            Width             "1674"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "Current Expiration Date"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "24"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "CurrentExpDateFieldCaption"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "241"
+            Top               "4577"
+            Width             "2517"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "Days to Password Expire Warning:"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "17"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "DT_10"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+    END
+    BEGIN         VRGroupBox
+        BorderType        "Lowered"
+        Height            "795"
+        Left              "0"
+        Top               "60"
+        Width             "5854"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           ""
+        BackColor         "<default>"
+        ForeColor         "<default>"
+        DoubleClick       ""
+        LayoutStyle       "None"
+        Font              "<default>"
+        Click             ""
+        DragDrop          ""
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "GB_36"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        BEGIN             VRPictureBox
+            BorderSize        "10"
+            Border            "1"
+            Height            "735"
+            Left              "60"
+            Top               "24"
+            Width             "1337"
+            Visible           "1"
+            TabStop           "0"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            PicturePath       "#146:KRINI"
+            Autosize          "0"
+            ResizePicture     "1"
+            BorderColor       "<default>"
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "1"
+            Click             ""
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "Pict_8"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "I'm a logo!"
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRTransparentText
+            Left              "60"
+            Top               "241"
+            Width             "1397"
+            Height            "313"
+            Justification     "Centered"
+            VertJustification "Centered"
+            WrapText          "0"
+            SizeToText        "0"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Caption           "KeyRing/2"
+            ForeColor         "DarkBlue"
+            ClipSiblings      "1"
+            TabIndex          "4"
+            Font              "14.Times New Roman Bold Italic"
+            Click             ""
+            ContextMenu       ""
+            Name              "TT_2"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRPictureBox
+            BorderSize        "10"
+            Border            "1"
+            Height            "675"
+            Left              "4938"
+            Top               "60"
+            Width             "795"
+            Visible           "1"
+            TabStop           "0"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            PicturePath       ""
+            Autosize          "0"
+            ResizePicture     "1"
+            BorderColor       "<default>"
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "3"
+            Click             "CALL IconField_Click"
+            DragDrop          "CALL IconField_DragDrop"
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       "CALL IconField_ContextMenu"
+            DragTarget        "Records;Files=""*.ico"""
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "IconField"
+            UserData          binary lines 1 checksum 1029
+"45646974205265636f7264"
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Drop an icon here, or right click for options"
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VREntryField
+            Autoscroll        "1"
+            Border            "1"
+            ReadOnly          "0"
+            Masked            "0"
+            Justification     "Left"
+            Autotab           "0"
+            Height            "289"
+            Left              "2168"
+            Top               "120"
+            Width             "1277"
+            Visible           "0"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            TextLimit         "255"
+            Value             "last update (dummy)"
+            Font              "8.Helv"
+            Change            ""
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "25"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            Verify            ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "LastUpdateField"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "2891"
+            Top               "482"
+            Width             "325"
+            Visible           "0"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "zzzz"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "27"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "IconFieldCaption"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "193"
+            Left              "2168"
+            Top               "482"
+            Width             "325"
+            Visible           "0"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "1"
+            Caption           "zzzz"
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "26"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "LastUpdateFieldCaption"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+    END
+    BEGIN         VRMenuBar
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Name              "MB_1"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        BEGIN             VRMenu
+            Caption           "EditRecMenu"
+            Visible           "0"
+            EventList         binary lines 0 checksum 0
+            Enabled           "1"
+            DefaultItem       ""
+            Click             ""
+            Name              "EditRecMenu"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Suggest Password"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "1"
+                Click             "CALL SuggestPW_Click"
+                Name              "SuggestPW"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "-"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "0"
+                Click             ""
+                Name              "MItem_6"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Lower Case"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "1"
+                Click             "CALL LowerCase_Click"
+                Name              "LowerCase"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Upper Case"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "1"
+                Click             "CALL Uppercase_Click"
+                Name              "Uppercase"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Mixed Case"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "1"
+                Enabled           "1"
+                Click             "CALL MixedCase_Click"
+                Name              "MixedCase"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "-"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "0"
+                Click             ""
+                Name              "MItem_10"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Alpha"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "1"
+                Click             "CALL Alpha_Click"
+                Name              "Alpha"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Numeric"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "1"
+                Click             "CALL Numeric_Click"
+                Name              "Numeric"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Alpha-Numeric"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "1"
+                Enabled           "1"
+                Click             "CALL AlphaNumeric_Click"
+                Name              "AlphaNumeric"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Alphanumeric + Punctuation"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "1"
+                Click             "CALL AlphaNumericPunct_Click"
+                Name              "AlphaNumericPunct"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+        END
+        BEGIN             VRMenu
+            Caption           "IconMenu"
+            Visible           "0"
+            EventList         binary lines 0 checksum 0
+            Enabled           "1"
+            DefaultItem       ""
+            Click             "CALL IconMenu_Click"
+            Name              "IconMenu"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Open Icon File"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "1"
+                Click             "CALL OpenIconFileItem_Click"
+                Name              "OpenIconFileItem"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+            BEGIN                 VRMenuItem
+                Accelerator       ""
+                Caption           "Select Internal Icon"
+                Visible           "1"
+                EventList         binary lines 0 checksum 0
+                Checked           "0"
+                Enabled           "1"
+                Click             "CALL InternalIconItem_Click"
+                Name              "InternalIconItem"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+            END
+        END
+    END
+END
+/*:VRX         Main
+*/
+/*  Main
+*/
+Main:
+/*  Process the arguments.
+    Get the parent window.
+*/
+    PARSE SOURCE . Calledas .
+    Parent = ""
+    Argcount = ARG()
+    Argoff = 0
+    IF( Calledas \= "COMMAND" )THEN DO
+        IF Argcount >= 1 THEN DO
+            Parent = ARG(1)
+            Argcount = Argcount - 1
+            Argoff = 1
+        END
+    END
+        ELSE DO
+            CALL Vroptions 'ImplicitNames'
+            CALL Vroptions 'NoEchoQuit'
+        END
+    Initargs.0 = Argcount
+    IF( Argcount > 0 )THEN
+        DO I = 1 TO Argcount
+            Initargs.i = ARG( I + Argoff )
+        END
+    DROP Calledas Argcount Argoff
+
+/*  Load the windows
+*/
+    CALL Vrinit
+    PARSE SOURCE . . Spec
+    _vreprimarywindowpath = ,
+        Vrparsefilename( Spec, "dpn" ) || ".VRW"
+    _vreprimarywindow = ,
+        Vrload( Parent, _vreprimarywindowpath )
+    DROP Parent Spec
+    IF( _vreprimarywindow == "" )THEN DO
+        CALL Vrmessage "", "Cannot load window: " Vrerror(), , " Error! "
+        _vrereturnvalue = 32000
+        SIGNAL _VRELeaveMain
+    END
+
+/*  Process events
+*/
+    CALL Init
+    SIGNAL ON HALT
+    DO While( \ Vrget( _vreprimarywindow, "Shutdown" ) )
+        _vreevent = Vrevent()
+        INTERPRET _vreevent
+    END
+_vrehalt:
+    _vrereturnvalue = Fini()
+    CALL Vrdestroy _vreprimarywindow
+_vreleavemain:
+    CALL Vrfini
+    EXIT _vrereturnvalue
+
+Vrloadsecondary:
+    __vrlswait = ABBREV( 'WAIT', TRANSLATE(ARG(2)), 1 )
+    IF __vrlswait THEN DO
+        CALL Vrflush
+    END
+    __vrlshwnd = Vrload( Vrwindow(), Vrwindowpath(), ARG(1) )
+    IF __vrlshwnd = '' THEN
+        SIGNAL __VRLSDone
+    IF __vrlswait \= 1 THEN
+        SIGNAL __VRLSDone
+    CALL Vrset __vrlshwnd, 'WindowMode', 'Modal'
+    __vrlstmp = __vrlswindows.0
+    IF( DATATYPE(__vrlstmp) \= 'NUM' ) THEN DO
+        __vrlstmp = 1
+    END
+        ELSE DO
+            __vrlstmp = __vrlstmp + 1
+        END
+    __vrlswindows.__vrlstmp = Vrwindow( __vrlshwnd )
+    __vrlswindows.0 = __vrlstmp
+    DO While( Vrisvalidobject( Vrwindow() ) = 1 )
+        __vrlsevent = Vrevent()
+        INTERPRET __vrlsevent
+    END
+    __vrlstmp = __vrlswindows.0
+    __vrlswindows.0 = __vrlstmp - 1
+    CALL Vrwindow __vrlswindows.__vrlstmp
+    __vrlshwnd = ''
+__vrlsdone:
+RETURN __vrlshwnd
+
+/*:VRX         AddBackslash
+*/
+Addbackslash:
+    Strg = ARG(1)
+    IF Strg <> "" THEN DO
+        IF SUBSTR(Strg, LENGTH(Strg)) <> '\' THEN
+            Strg = Strg || '\'
+    END
+RETURN Strg
+
+/*:VRX         Alpha_Click
+*/
+Alpha_click:
+    Passmode = 1
+    Ok = Vrset( "Alpha", "Checked", 1 )
+    Ok = Vrset( "Numeric", "Checked", 0 )
+    Ok = Vrset( "AlphaNumeric", "Checked", 0 )
+    Ok = Vrset( "AlphaNumericPunct", "Checked", 0 )
+
+RETURN
+
+/*:VRX         AlphaNumeric_Click
+*/
+Alphanumeric_click:
+    Passmode = 3
+    Ok = Vrset( "Alpha", "Checked", 0 )
+    Ok = Vrset( "Numeric", "Checked", 0 )
+    Ok = Vrset( "AlphaNumeric", "Checked", 1 )
+    Ok = Vrset( "AlphaNumericPunct", "Checked", 0 )
+RETURN
+
+/*:VRX         AlphaNumericPunct_Click
+*/
+Alphanumericpunct_click:
+    Passmode = 4
+    Ok = Vrset( "Alpha", "Checked", 0 )
+    Ok = Vrset( "Numeric", "Checked", 0 )
+    Ok = Vrset( "AlphaNumeric", "Checked", 0 )
+    Ok = Vrset( "AlphaNumericPunct", "Checked", 1 )
+RETURN
+
+/*:VRX         EditRec_Close
+*/
+Editrec_close:
+    CALL Quit
+RETURN
+
+/*:VRX         EditRec_Help
+*/
+Editrec_help:
+    CALL INFHelp(Vrinfo("Source"))
+
+RETURN
+
+
+
+
+
+/*:VRX         EditRec_LangException
+*/
+EditRec_LangException: 
+
+return
+
+/*:VRX         EditRec_LangInit
+*/
+EditRec_LangInit:
+
+    /* ------------------------------------------------ */
+    /* Language internationalization code autogenerated */
+    /* by VXNation v1.0, Copyright 1999, IDK, Inc.      */
+    /*          http://www.idk-inc.com                  */
+    /* Autogenerated: 03/06/2000 19:20:22             */
+    /* ------------------------------------------------ */
+    /* Warning! This code gets overwritten by VXNation! */
+    /* Do not make modifications here!                  */
+    /* ------------------------------------------------ */
+
+    /* Edit Secret */
+    Ok = VRSet("EditRec", "WindowListTitle", VLSMsg(136))
+
+    /* Edit Secret Information */
+    Ok = VRSet("EditRec", "Caption", VLSMsg(137))
+
+    /* ~Save */
+    Ok = VRSet("SaveButton", "Caption", VLSMsg(15))
+
+    /* Save your edits and return to main program */
+    Ok = VRSet("SaveButton", "HintText", VLSMsg(139))
+
+    /* Quit */
+    Ok = VRSet("QuitButton", "Caption", VLSMsg(140))
+
+    /* Abort your changes */
+    Ok = VRSet("QuitButton", "HintText", VLSMsg(141))
+
+    /* Password expiration date */
+    Ok = VRSet("CurrentExpDateField", "HintText", VLSMsg(293))
+
+    /* Description of this secret info */
+    Ok = VRSet("F1", "HintText", VLSMsg(142))
+
+    /* Your name, alias, login name, Etc */
+    Ok = VRSet("F2", "HintText", VLSMsg(144))
+
+    /* Serial number, combination, PIN number, Etc for this secret */
+    Ok = VRSet("F4", "HintText", VLSMsg(146))
+
+    /* Password for this application, web page, login, Etc. */
+    Ok = VRSet("F3", "HintText", VLSMsg(148))
+
+    /* URL for this secret */
+    Ok = VRSet("F5", "HintText", VLSMsg(151))
+
+    /* Note for this secret */
+    Ok = VRSet("F6", "HintText", VLSMsg(152))
+
+    /* Days to password expriation (warning only) */
+    Ok = VRSet("ExpDaysSpinner", "HintText", VLSMsg(371))
+
+    /* No Exp */
+    ok = VRSet( "ExpDaysSpinner", "Visible", 0 )
+    ok = VRSet( "ExpDaysSpinner", "Enabled", 0 )
+
+    SpinList.1 = VLSMsg(171) /* No Exp */
+    SpinList.2 ="1"
+    SpinList.3 = "2"
+    SpinList.4 = "3"
+    SpinList.5 = "4"
+    SpinList.6 = "5"
+    SpinList.7 = "6"
+    SpinList.8 = "7"
+    SpinList.9 = "8"
+    SpinList.10 = "9"
+    SpinList.11 = "10"
+    SpinList.12 = "15"
+    SpinList.13 = "20"
+    SpinList.14 = "30"
+    SpinList.15 = "60"
+    SpinList.16 = "90"
+    SpinList.17 = "180"
+    SpinList.18 = "365"
+    SpinList.0 = 18
+    
+    ok = VRMethod( "ExpDaysSpinner", "SetStringList", "SpinList." )
+    ok = VRSet( "ExpDaysSpinner", "Visible", 1)
+    ok = VRSet( "ExpDaysSpinner", "Enabled", 1 )
+    drop spinlist.
+
+    /* Update password expriation date */
+    Ok = VRSet("ExpDateChangeEnable", "Caption", VLSMsg(372))
+
+    /* Current Expiration Date */
+    Ok = VRSet("CurrentExpDateFieldCaption", "Caption", VLSMsg(297))
+
+    /* Days to Password Expire Warning: */
+    Ok = VRSet("DT_10", "Caption", VLSMsg(155))
+
+    /* I'm a logo! */
+    Ok = VRSet("Pict_8", "HintText", VLSMsg(156))
+
+    /* KeyRing/2 */
+    Ok = VRSet("TT_2", "Caption", VLSMsg(2))
+
+    /* Drop an icon here, or right click for options */
+    Ok = VRSet("IconField", "HintText", VLSMsg(157))
+
+    /* EditRecMenu */
+    Ok = VRSet("EditRecMenu", "Caption", VLSMsg(158))
+
+    /* Suggest Password */
+    Ok = VRSet("SuggestPW", "Caption", VLSMsg(159))
+
+    /* - */
+    Ok = VRSet("MItem_6", "Caption", VLSMsg(24))
+
+    /* Lower Case */
+    Ok = VRSet("LowerCase", "Caption", VLSMsg(160))
+
+    /* Upper Case */
+    Ok = VRSet("Uppercase", "Caption", VLSMsg(161))
+
+    /* Mixed Case */
+    Ok = VRSet("MixedCase", "Caption", VLSMsg(162))
+
+    /* - */
+    Ok = VRSet("MItem_10", "Caption", VLSMsg(24))
+
+    /* Alpha */
+    Ok = VRSet("Alpha", "Caption", VLSMsg(163))
+
+    /* Numeric */
+    Ok = VRSet("Numeric", "Caption", VLSMsg(164))
+
+    /* Alpha-Numeric */
+    Ok = VRSet("AlphaNumeric", "Caption", VLSMsg(165))
+
+    /* Alphanumeric + Punctuation */
+    Ok = VRSet("AlphaNumericPunct", "Caption", VLSMsg(166))
+
+    /* IconMenu */
+    Ok = VRSet("IconMenu", "Caption", VLSMsg(167))
+
+    /* Open Icon File */
+    Ok = VRSet("OpenIconFileItem", "Caption", VLSMsg(168))
+
+    /* Select Internal Icon */
+    Ok = VRSet("InternalIconItem", "Caption", VLSMsg(169))
+
+    call EditRec_LangException
+    DROP Ok
+
+RETURN
+
+/*:VRX         ExpDateChangeEnable_Click
+*/
+Expdatechangeenable_click:
+    IF Vrget( "ExpDateChangeEnable", "Set" ) = 1 THEN DO
+        Ok = Vrset( "ExpDaysSpinner", "Enabled", 1 )
+    END
+        ELSE DO
+            Ok = Vrset( "ExpDaysSpinner", "Enabled", 0 )
+        END
+RETURN
+
+/*:VRX         ExpDaysSpinner_Change
+*/
+Expdaysspinner_change:
+    Spinval = Vrget( "ExpDaysSpinner", "Value" )
+    Expdate = ""
+    IF Spinval <> Vlsmsg(171) THEN DO                       /* No Exp */
+        Expdate = Krcalcdate("", Spinval)
+    END
+    Ok = Vrset( "CurrentExpDateField", "Value", Expdate )
+RETURN
+
+/*:VRX         F1_ContextMenu
+*/
+F1_contextmenu:
+    IF Passwordfield = "F1" THEN DO
+        CALL Vrmethod "EditRecMenu", "Popup"
+    END
+
+RETURN
+
+/*:VRX         F2_ContextMenu
+*/
+F2_contextmenu:
+    IF Passwordfield = "F2" THEN DO
+        CALL Vrmethod "EditRecMenu", "Popup"
+    END
+
+RETURN
+
+/*:VRX         F3_ContextMenu
+*/
+F3_contextmenu:
+    IF Passwordfield = "F3" THEN DO
+        CALL Vrmethod "EditRecMenu", "Popup"
+    END
+RETURN
+
+/*:VRX         F4_ContextMenu
+*/
+F4_contextmenu:
+    IF Passwordfield = "F4" THEN DO
+        CALL Vrmethod "EditRecMenu", "Popup"
+    END
+
+RETURN
+
+/*:VRX         F5_ContextMenu
+*/
+F5_contextmenu:
+    IF Passwordfield = "F5" THEN DO
+        CALL Vrmethod "EditRecMenu", "Popup"
+    END
+
+RETURN
+
+/*:VRX         F6_ContextMenu
+*/
+F6_contextmenu:
+    IF Passwordfield = "F6" THEN DO
+        CALL Vrmethod "EditRecMenu", "Popup"
+    END
+
+RETURN
+
+/*:VRX         Fini
+*/
+Fini:
+    Ok = Vrsetini( Appname, "PWCASE", Passcase, Ininame )
+    Ok = Vrsetini( Appname, "PWMODE", Passmode, Ininame )
+
+    Window = Vrwindow()
+    CALL Vrset Window, "Visible", 0
+    DROP Window
+RETURN Editresult
+/*:VRX         GetCaption
+*/
+Getcaption: PROCEDURE EXPOSE Initargs.
+    Page = ARG(1)
+    Index = ARG(2)
+    Strg = Krgetcolumnname(Page, Index)
+    IF Strg <> "" THEN DO
+        RETURN Strg
+    END
+    Order = ARG(3)
+    Flg = SUBSTR(Order, Index, 1)
+    SELECT
+        WHEN Flg = "I" THEN DO
+            RETURN ""
+        END
+        WHEN Flg = "D" THEN DO
+            RETURN Vlsmsg(143)
+        END
+        WHEN Flg = "P" THEN DO
+            RETURN Vlsmsg(149)
+        END
+        WHEN Flg = "N" THEN DO
+            RETURN Vlsmsg(145)
+        END
+        WHEN Flg = "S" THEN DO
+            RETURN Vlsmsg(147)
+        END
+        WHEN Flg = "L" THEN DO
+            RETURN "ZZZZ"
+        END
+        WHEN Flg = "E" THEN DO
+            RETURN Vlsmsg(154)
+        END
+        WHEN Flg = "U" THEN DO
+            RETURN Vlsmsg(150)
+        END
+        WHEN Flg = "W" THEN DO
+            RETURN Vlsmsg(153)
+        END
+        OTHERWISE DO
+            RETURN "YYYY"
+        END
+    END
+RETURN
+
+/*:VRX         GetEditFieldName
+*/
+Geteditfieldname: PROCEDURE EXPOSE Initargs.
+    /* given a flag, return the name of the corresponding editor field */
+    Flag = ARG(1)                                     /* get the flag */
+    SELECT
+        /* parse the non sequential fields */
+        WHEN Flag = "I" THEN DO                               /* icon */
+            RETURN "IconField"
+        END
+        WHEN Flag = "L" THEN DO
+            RETURN "LastUpdateField"
+        END
+        WHEN Flag = "E" THEN DO
+            RETURN "CurrentExpDateField"
+        END
+        OTHERWISE DO
+            /* it must be a user-editable text field */
+
+            /* get the order field for this record */
+            Ok = Vrmethod(Initargs.1, "GetFieldData", Initargs.2, "Fieldvals." )
+            Order = Fieldvals.10
+            Fldnum = 0
+            /* start stepping through the order list, looking for our flag position */
+            DO I = 1 TO LENGTH(Order)
+                Tf = SUBSTR(Order, I, 1)/* get the temp flag at this position */
+                SELECT
+                    /* skip the non sequential fields */
+                    WHEN Tf = "I" THEN DO
+                    END
+                    WHEN Tf = "L" THEN DO
+                    END
+                    WHEN Tf = "E" THEN DO
+                    END
+                    WHEN Tf = "O" THEN DO/* paranoia: skip the order field - should never get here */
+                    END
+                    OTHERWISE DO
+                        Fldnum = Fldnum + 1/* accumulate the text field count */
+                    END
+                END
+                IF Flag = Tf THEN DO/* the current flag is the one we are looking for */
+                    RETURN "F" || Fldnum/* return the Nth text field from the accumulator */
+                END
+            END
+        END
+    END
+RETURN "F1"                                 /* should never get here! */
+
+/*:VRX         GetFieldIndex
+*/
+Getfieldindex: PROCEDURE EXPOSE Initargs.
+    /* look up field index for this flag */
+    Flag = ARG(1)
+
+    Ok = Vrmethod(Initargs.1, "GetFieldData", Initargs.2, "Fieldvals." )
+    Order = Fieldvals.10
+    DO I = 1 TO 9
+        IF Flag = SUBSTR(Order, I, 1) THEN DO
+            RETURN I
+        END
+    END
+RETURN 0
+
+/*:VRX         GetHintText
+*/
+Gethinttext: PROCEDURE
+    Indx = ARG(1)
+    Order = ARG(2)
+    Strg = Krgetcolumnenable(Curpagenum, Indx)
+    IF Strg = "" THEN DO
+        Flg = SUBSTR(Order, Indx, 1)
+        SELECT
+            WHEN Flg = "I" THEN DO
+                RETURN Vlsmsg(157)
+            END
+            WHEN Flg = "D" THEN DO
+                RETURN Vlsmsg(142)
+            END
+            WHEN Flg = "P" THEN DO
+                RETURN Vlsmsg(146)
+            END
+            WHEN Flg = "N" THEN DO
+                RETURN Vlsmsg(144)
+            END
+            WHEN Flg = "S" THEN DO
+                RETURN Vlsmsg(146)
+            END
+            WHEN Flg = "L" THEN DO
+                RETURN ""
+            END
+            WHEN Flg = "E" THEN DO
+                RETURN Vlsmsg(154)
+            END
+            WHEN Flg = "U" THEN DO
+                RETURN Vlsmsg(151)
+            END
+            WHEN Flg = "W" THEN DO
+                RETURN Vlsmsg(152)
+            END
+            OTHERWISE DO
+                RETURN "YYYY"
+            END
+        END
+    END
+        ELSE DO
+            PARSE VAR Strg Enb "þ" Flg "þ" Hint "þ" Abbrev
+            drop abbrev
+            RETURN Hint
+        END
+RETURN
+
+/*:VRX         Halt
+*/
+Halt:
+    SIGNAL _VREHalt
+RETURN
+
+/*:VRX         IconContainer_DoubleClick
+*/
+Iconcontainer_doubleclick:
+
+RETURN
+
+/*:VRX         IconField_Click
+*/
+Iconfield_click:
+    CALL IconField_ContextMenu
+RETURN
+
+/*:VRX         IconField_ContextMenu
+*/
+Iconfield_contextmenu:
+    Ok = Vrmethod( "IconMenu", "Popup", , , "OpenIconFileItem", "" )
+RETURN
+
+
+/*:VRX         IconField_DragDrop
+*/
+Iconfield_dragdrop:
+    Record = Vrinfo( "Record" )
+    Srcfile = Vrinfo( "SourceFile" )
+    Container = Vrinfo("SourceObject")
+    IF Srcfile = "" THEN DO
+        Value = Vrmethod( Container, "GetRecordAttr", Record, "Icon" )
+        Ok = Vrset( "IconField", "PicturePath", Value )
+    END
+        ELSE DO
+            Ok = Vrset( "IconField", "PicturePath", Srcfile )
+        END
+RETURN
+
+/*:VRX         IconMenu_Click
+*/
+Iconmenu_click:
+
+RETURN
+
+/*:VRX         INFHelp
+*/
+Infhelp:
+    ADDRESS Cmd 'start view kr2.inf' Vrget(ARG(1), "UserData")
+RETURN
+
+/*:VRX         Init
+*/
+Init:
+    Ok = RXFUNCADD("VLLoadFuncs", "VLMSG", "VLLoadFuncs")/* do not modify or move this line! It must be on line #2 of this function */
+    CALL Vlloadfuncs/* do not modify or move this line! It must be on line #3 of this function */
+    Ok = Vrredirectstdio("On", "keyring2.err")
+
+    /* args
+        1 container handle
+        2 record handle
+        3 page#
+        4 appname
+        5 ininame
+    */
+
+    Appname = Initargs.4
+    Ininame = Initargs.5
+    Curpagenum = Initargs.3
+
+    Langname = Vrgetini( Appname, "LANGUAGE", Ininame )
+    IF Langname = "" THEN DO
+        Langname = "ENGLISH.MSG"
+    END
+    Ok = Vlopenlang(Langname, Langname)
+    CALL EditRec_LangInit
+
+    Ok = Vrmethod( Initargs.1, "GetFieldData", Initargs.2, "Fieldvals." )
+
+    Iconindx = Getfieldindex("I")
+    Lastindx = Getfieldindex("L")
+    Expindx = Getfieldindex("E")
+    Passindx = Getfieldindex("P")
+
+    Passwordfield = Geteditfieldname("P")
+
+    Order = Fieldvals.10
+
+    DO I = 1 TO 9
+        Tflg = SUBSTR(Order, I, 1)
+        Tfld = Geteditfieldname(Tflg)
+        SELECT
+            WHEN I = Iconindx THEN DO
+                Ok = Vrset(Tfld, "PicturePath", Fieldvals.i)
+                Ok = Vrset(Tfld, "HintText", Gethinttext(I, Order))
+            END
+            OTHERWISE DO
+                Ok = Vrset(Tfld, "Value", Fieldvals.i)
+                Ok = Vrset(Tfld, "HintText", Gethinttext(I, Order))
+                Ok = Vrset(Tfld || "Caption", "Caption", Getcaption(Curpagenum, I, Order))
+            END
+        END
+    END
+
+    /* set window location */
+    Value = Vrgetini( Appname, "EDITRECTOP", Ininame )
+    IF Value = "" THEN do
+        Value = 1156
+    end
+    Editrectop = Value
+
+    Value = Vrgetini( Appname, "EDITRECLEFT", Ininame )
+    IF Value = "" THEN do
+        Value =434
+    end
+    Editrecleft = Value
+
+    Value = Vrgetini( Appname, "EDITRECHYT", Ininame )
+    IF Value = "" THEN do
+        Value = 7480
+    end
+    Editrechyt = Value
+
+    Value = Vrgetini( Appname, "EDITRECWID", Ininame )
+    IF Value = "" THEN do
+        Value = 5974
+    end
+    Editrecwidth = Value
+
+    Ok = Vrset( "EDITREC", "Top", Editrectop )
+    Ok = Vrset( "EDITREC", "Left", Editrecleft )
+    Ok = Vrset( "EDITREC", "Height", Editrechyt )
+    Ok = Vrset( "EDITREC", "Width", Editrecwidth )
+
+    Window = Vrwindow()
+    CALL Vrset Window, "Visible", 1
+    CALL Vrmethod Window, "Activate"
+    DROP Window
+
+    Passmode = Vrgetini( "KR2", "PWMODE", "KR2.INI" )
+    IF Passmode = "" THEN do
+        Passmode = 3
+    end
+
+    SELECT
+        WHEN Passmode = 1 THEN DO
+            CALL LowerCase_Click
+        END
+        WHEN Passmode = 2 THEN DO
+            CALL UpperCase_Click
+        END
+        WHEN Passmode = 3 THEN DO
+            CALL MixedCase_Click
+        END
+        OTHERWISE DO 
+            CALL MixedCase_Click
+            Passmode = 3
+        END
+    END
+
+    Passmode = Vrgetini( Appname, "PWCASE", Ininame )
+
+    IF Passcase = "" THEN do
+        Passcase = 3
+    end
+
+    SELECT
+        WHEN Passcase = 1 THEN DO
+            CALL Alpha_Click
+        END
+        WHEN Passcase = 2 THEN DO
+            CALL Numeric_Click
+        END
+        WHEN Passcase = 3 THEN DO
+            CALL AlphaNumeric_Click
+        END
+        WHEN Passcase = 4 THEN DO
+            CALL AlphaNumericPunct_Click
+        END
+        otherwise do
+            CALL AlphaNumeric_Click
+            Passcase = 3
+        end
+    END
+    Ok = Vrset( "ExpDaysSpinner", "Enabled", 0 )
+
+    Editresult = ""
+RETURN
+
+/*:VRX         InternalIconItem_Click
+*/
+Internaliconitem_click:
+    Iconselthreadid = Vrmethod( "Application", "StartThread", "IconSel", Appname, Ininame )
+RETURN
+
+/*:VRX         LowerCase_Click
+*/
+Lowercase_click:
+    Passcase = 1
+    Ok = Vrset( "LowerCase", "Checked", 1 )
+    Ok = Vrset( "UpperCase", "Checked", 0 )
+    Ok = Vrset( "MixedCase", "Checked", 0 )
+RETURN
+
+/*:VRX         MixedCase_Click
+*/
+Mixedcase_click:
+    Passcase = 3
+    Ok = Vrset( "LowerCase", "Checked", 0 )
+    Ok = Vrset( "UpperCase", "Checked", 0 )
+    Ok = Vrset( "MixedCase", "Checked", 1 )
+RETURN
+
+/*:VRX         Numeric_Click
+*/
+Numeric_click:
+    Passmode = 2
+    Ok = Vrset( "Alpha", "Checked", 0 )
+    Ok = Vrset( "Numeric", "Checked", 1 )
+    Ok = Vrset( "AlphaNumeric", "Checked", 0 )
+    Ok = Vrset( "AlphaNumericPunct", "Checked", 0 )
+RETURN
+
+/*:VRX         OpenIconFileItem_Click
+*/
+Openiconfileitem_click:
+    Filename = Vrfiledialog( Vrwindow(), Vlsmsg(170) /* Select an Icon for this secret */, "Open", AddBackSlash(Vrgetini( Appname, "IconPath", Ininame )) || "*.ico", , , )
+
+    Ok = Vrsetini( Appname, "IconPath", Vrparsefilepath(Filename, "DP" ), Ininame )
+    IF Filename = "" THEN DO
+        Filename = "$3"
+	END
+    Ok = Vrset( "IconField", "PicturePath", Filename )
+RETURN
+
+/*:VRX         Quit
+*/
+Quit:
+    Ok = Vrsetini( Appname, "EDITRECTOP", Vrget("EDITREC", "Top" ), Ininame)
+    Ok = Vrsetini( Appname, "EDITRECLEFT", Vrget("EDITREC", "Left" ), Ininame)
+    Ok = Vrsetini( Appname, "EDITRECHYT", Vrget("EDITREC", "Height" ), Ininame)
+    Ok = Vrsetini( Appname, "EDITRECWID", Vrget("EDITREC", "Width" ), Ininame)
+
+    Window = Vrwindow()
+    CALL Vrset Window, "Shutdown", 1
+    DROP Window
+RETURN
+
+/*:VRX         QuitButton_Click
+*/
+Quitbutton_click:
+    Editresult = ""
+    CALL EditRec_Close
+RETURN
+
+/*:VRX         RestoreProps
+*/
+Restoreprops:
+RETURN
+    Ok = Vrmethod( Vrget(Vrwindow(), "name"), "ListChildren", "child." )
+
+    Lastchild=Child.0+1
+    Child.lastchild= Vrget(Vrwindow(), "name")
+    Child.0=Lastchild
+    Initstring=""
+    DO X=1 TO Child.0
+        Value = Vrgetini(Appname, Vrget(Child.x, Name), Ininame, "NOCLOSE" )
+        PARSE VAR VALUE Font "þ" Fore "þ" Back
+        Ok = Vrset(Child.x, "font", Font)
+        Ok = Vrset(Child.x, "forecolor", Fore)
+        Ok = Vrset(Child.x, "backcolor", Back)
+    END
+
+RETURN
+
+/*:VRX         SaveButton_Click
+*/
+Savebutton_click: PROCEDURE EXPOSE Initargs. Editresult AppName INiName DirtyFlag
+    Spinval = Vrget( "ExpDaysSpinner", "Value" )
+    Expdate = ""
+    IF Spinval <> Vlsmsg(171) THEN DO                       /* No Exp */
+        Expdate = Krcalcdate("", Spinval)
+    END
+    Ok = Vrset(Initargs.1, "Visible", 0)
+
+    /* set the icon view fields of the record */
+    Ok = Vrmethod( Initargs.1, "SetRecordAttr", Initargs.2, "Icon", Vrget( "IconField", "PicturePath" ))
+
+    /* Update the caption using the current description field string */
+    Value = Vrget(Geteditfieldname("D"), "Value")
+    Value = StuffCR(Value)
+    Ok = Vrmethod( Initargs.1, "SetRecordAttr", Initargs.2, "Caption", Value)
+
+    /* get list of field handles for current container */
+    Ok = Vrmethod(Initargs.1, "GetFieldList", "Fields." )
+
+    /* now set the rest of the fields */
+    Ok = Vrmethod( Initargs.1, "GetFieldData", Initargs.2, "Fieldvals." )
+    	order = Fieldvals.10
+
+    DO J = 1 TO 9
+        Tf = Geteditfieldname(SUBSTR(Order, J, 1))/* get the name of the Nth field */
+        SELECT
+            WHEN Tf = "LastUpdateField" THEN DO/* handle special case */
+                Ok = Vrmethod( Initargs.1, "SetFieldData", Initargs.2, Fields.j, Krgettime())
+            END
+            WHEN Tf = "IconField" THEN DO      /* handle special case */
+                Ok = Vrmethod( Initargs.1, "SetFieldData", Initargs.2, Fields.j, Vrget( "IconField", "PicturePath" ))
+            END
+            OTHERWISE DO/* handle all the normal user-editable text fields */
+                Ok = Vrmethod( Initargs.1, "SetFieldData", Initargs.2, Fields.j, Vrget(Tf, "Value" ))
+            END
+        END
+    END
+    Ok = Vrset(Initargs.1, "Visible", 1)
+
+    Editresult = 1
+    DirtyFlag = 1
+    CALL EditRec_Close
+RETURN
+
+/*:VRX         SaveProps
+*/
+Saveprops:
+RETURN
+    Ok = Vrmethod( Vrget(Vrwindow(), "name"), "ListChildren", "child." )
+
+    Lastchild=Child.0+1
+    Child.lastchild = Vrget(Vrwindow(), "name")
+    Child.0 = Lastchild
+    Initstring = ""
+    DO X = 1 TO Child.0
+        IF Vrmethod( "Application", "SupportsProperty", Child.x , "font" ) = 1 THEN DO
+            IF Vrmethod( "Application", "SupportsProperty", Child.x , "forecolor" ) = 1 THEN DO
+                IF Vrmethod( "Application", "SupportsProperty", Child.x , "backcolor" ) = 1 THEN DO
+                    Initstrg = Vrget(Child.x, "font") || "þ" Vrget(Child.x, "forecolor") || "þ" Vrget(Child.x, "backcolor")
+                    Ok = Vrsetini( "KR2", Vrget(Child.x, "Name"), Initstrg, "KR2.INI", "NOCLOSE" )
+                END
+            END
+        END
+    END
+RETURN
+
+/*:VRX         SetHints
+*/
+Sethints:
+    Ctr = 1
+    DO I = 1 TO 9
+        SELECT
+            WHEN I = Iconindx THEN DO
+                Ok = Vrset("IconField", "HintText", Vlsmsg(157))
+            END
+            WHEN I = Lastindx THEN DO
+                /* just skip last update field */
+            END
+            WHEN I = Expindx THEN DO
+                Ok = Vrset("CurrentExpDateField", "HintText", Vlsmsg(154))
+            END
+            OTHERWISE DO
+                Ok = Vrset("F" || Ctr, "HintText", Gethinttext(SUBSTR(Order, I, 1)))
+                Ctr = Ctr + 1
+            END
+        END
+    END
+RETURN
+
+/*:VRX         StuffCR
+*/
+StuffCR: 
+    Strg = ARG(1)
+    p = Pos( "^", Strg)
+    
+    do while p > 0
+        Strg = Overlay(D2C(10), Strg, p)
+        p = Pos( "^", Strg)
+    end
+
+    drop p
+return Strg
+    
+    
+
+/*:VRX         SuggestPW_Click
+*/
+Suggestpw_click:
+    Id = 1
+    IF Vrget(Passwordfield, "Value") <> "" THEN DO
+        Buttons.1 = Vlsmsg(172)                               /* ~Yes */
+        Buttons.2 = Vlsmsg(173)                                /* ~No */
+        Buttons.0 = 2
+        Id = Vrmessage( Vrwindow(), Vlsmsg(174) /* Are you sure you want to overwrite the existing password? */, Vlsmsg(120) /* Warning! */, "Warning", "Buttons.", 2, 2 )
+        DROP Buttons
+    END
+    IF Id = 1 THEN
+        Ok = Vrset(Passwordfield, "Value", Krmakepassword( Passmode, Passcase) )
+    DROP Id Ok
+RETURN
+/*:VRX         Uppercase_Click
+*/
+Uppercase_click:
+    Passcase = 2
+    Ok = Vrset( "LowerCase", "Checked", 0 )
+    Ok = Vrset( "UpperCase", "Checked", 1 )
+    Ok = Vrset( "MixedCase", "Checked", 0 )
+RETURN
+

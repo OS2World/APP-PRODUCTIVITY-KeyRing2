@@ -1,0 +1,2049 @@
+
+
+      OOFILER and OOVREC: Object-Oriented Fileblock Management
+
+               Copyright (c) 1991 TurboPower Software
+                             July 1993
+                            Version 5.50
+
+------- Overview -----------------------------------------------------
+
+The OOFILER unit provides a simple Fileblock object that builds on top
+of the procedures and functions in the FILER unit. Although the object
+is simple, it still provides a number of advantages over the non-OOP
+routines:
+
+  - fixed and variable length records are handled transparently
+  - single-user and network fileblocks are handled transparently
+  - locks are placed and removed automatically
+  - operations that fail due to locks placed by other stations are
+    retried automatically
+  - high level routines are provided to add, modify, or delete a
+    record with all of its keys
+  - the Fileblock object can be extended and modified using
+    object-oriented principles
+  - the Fileblock can be stored in an Object Professional stream
+
+The OOFILER unit interfaces one object type, Fileblock, which is the
+object-oriented version of the IsamFileBlock type provided by the
+FILER unit. OOVREC interfaces the VFileBlock object, which is derived
+from Fileblock to support variable length record fileblocks. OOFILER
+depends upon the FILER unit as well as REORG and REBUILD for
+rebuilding fileblocks. OOVREC also depends upon VREC, VREORG, and
+VREBUILD. The units neither contain nor depend upon any code for
+screen handling, so they can be used along with Object Professional,
+Turbo Professional, Turbo Vision, or some other library of user
+interface objects. As of version 5.24, OOFILER and OOVREC can be
+compiled and used in applications written with Turbo Pascal for
+Windows.
+
+Like the FILER unit itself, the Fileblock object doesn't know anything
+about the contents of the records in a fileblock. It is more
+sophisticated about hiding its ignorance, however, because it can
+define just a few abstract virtual methods that provide the
+information it needs to know. The application program is responsible
+for overriding these methods with versions specific to its needs.
+
+The most important method to override is BuildKey, which is declared
+as follows:
+
+  function BuildKey(var Rec; KeyNr : Word) : IsamKeyStr; virtual;
+    {-Return key string for given record and index number}
+
+Whenever a method of Fileblock needs the key string for a given index
+and record, it calls this method to get it. You'll note that the data
+record is passed as an untyped parameter, as is done throughout the
+Fileblock object. The BuildKey method is exactly analogous to the
+CreateKey function described in Section 4.C of the Filer manual.
+
+Another Fileblock method that must be overridden is EqualRec:
+
+  function EqualRec(var Rec1, Rec2) : Boolean; virtual;
+    {-Return True if two records are considered to be the same}
+
+The Fileblock's higher level methods for modifying and deleting
+records call upon EqualRec in two situations: 1) to avoid wasting time
+by modifying a record that hasn't changed; and 2) to detect when
+another workstation has modified a record before the Fileblock was
+locked. In the second case, the high level routines exit with an error
+and the application must prompt the user to decide how to proceed.
+
+For fileblocks that contain variable length records, one more method
+must be overridden. This method returns the length of the record that
+is passed to it as a parameter:
+
+  function RecLen(var Rec) : Word; virtual;
+    {-Return the length of a record in memory}
+
+In order for you to implement a RecLen method, each data record must
+store enough information to allow its length to be computed. This is
+not a requirement for the VREC unit in general, but it's usually easy
+for an application to do. It allows OOFILER and OOVREC to handle
+variable length records without complicating the use of the Fileblock
+object for fixed length record fileblocks. The example given in
+Section 6.B of the manual shows one way of computing a variable
+record's length from its contents. The OODEMO program that's part of
+OOFILER.LZH shows another. In any case, you could meet the requirement
+for a RecLen method by including one field within the record type that
+simply contains the number of bytes in the record.
+
+Another method that must be overridden in some situations is
+ConvertRec:
+
+  function ConvertRec(var OldRec, NewRec;
+                      var Len : Word) : Boolean; virtual;
+    {-Convert old record to new record
+      (only for Reorganize constructor)}
+
+This method is called only by the Reorganize constructor of the
+Fileblock object. This constructor allows you to open an old
+Fileblock, add new fields to it, and reindex it. In this case, the old
+record is passed in the OldRec parameter and the method must return
+the new record in the NewRec parameter. Len contains the length of
+OldRec. If the fileblock contains variable length records, ConvertRec
+must modify Len to specify the length of the new record before
+returning. ConvertRec should return a True function result if NewRec
+should be added to the reorganized Fileblock, or False if the record
+should be discarded. Generally, the ConvertRec virtual method works
+just like the corresponding routine described for the REORG and VREORG
+units.
+
+The Fileblock object contains other virtual methods that may be
+overridden to customize its behavior, but these methods provide
+reasonable default behavior if they are left alone. These methods are
+described in the "Miscellaneous Topics" section below.
+
+The Fileblock includes constructors to open an existing fileblock, to
+create and open a new one, to open an existing one that has been
+corrupted during a previous access, or to reorganize an existing one:
+
+  constructor Init(FName : IsamFileBlockName;
+                   ReadOnly, AllReadOnly, Save, Net : Boolean);
+    {-Open an existing fileblock in the specified mode}
+  constructor Create(FName : IsamFileBlockName;
+                     RecordLen : LongInt;
+                     NrOfIndexes : Word;
+                     var IID : IsamIndDescr;
+                     ReadOnly, AllReadOnly, Save, Net : Boolean);
+    {-Create new fileblock and open it in the specified mode}
+  constructor Recover(FName : IsamFileBlockName;
+                      RecordLen : LongInt;
+                      NrOfIndexes : Word;
+                      var IID : IsamIndDescr;
+                      AddNull : Boolean;
+                      ReadOnly, AllReadOnly, Save, Net : Boolean);
+    {-Open an existing fileblock that has a corrupted index}
+  constructor Reorganize(FName : IsamFileBlockName;
+                         OldRecordLen, NewRecordLen : LongInt;
+                         NewNrOfIndexes : Word;
+                         var NewIID : IsamIndDescr;
+                         AddNull : Boolean;
+                         ReadOnly, AllReadOnly, Save, Net : Boolean);
+     {-Reorganize a data file leaving a new, opened fileblock}
+
+Many of the methods of the Fileblock object are simply shells around
+the procedures in the FILER unit. For example, a full complement of
+methods for searching and scanning the index file is provided.
+Assorted methods return information about a fileblock -- number of
+valid records, number of indexes, file names, whether opened for
+network access, etc. There are about 25 such methods, described in the
+reference section later.
+
+Whenever a method of the Fileblock object needs to modify the data or
+index file, it automatically places a fileblock lock. Whenever an
+operation might fail because another workstation already has the
+fileblock locked, the Fileblock object automatically retries the
+operation. Retry behavior can be customized by overriding a virtual
+method. Additional information about locking appears in the
+"Miscellaneous Topics" section below.
+
+Fileblock also offers higher level methods that have no direct
+counterparts in the FILER unit. These include:
+
+  procedure AddRecord(var RefNr : LongInt; var Rec);
+    {-Add a record Rec and its keys, returning reference number}
+  procedure DeleteRecord(RefNr : LongInt; var Rec);
+    {-Delete record and keys with reference number RefNr}
+  procedure ModifyRecord(RefNr : LongInt; var OldRec, NewRec);
+    {-Modify record and keys with reference number RefNr}
+  procedure Rebuild;
+    {-Rebuild the fileblock}
+
+The first three methods work in generally the same way as described in
+Sections 4.C and 4.F of the manual. For network fileblocks they manage
+locks and detect modifications of the record by another workstation.
+The last method simplifies calling the RebuildFileBlock and
+RebuildVFileBlock procedures of the REBUILD and VREBUILD units,
+respectively.
+
+The OOVREC unit's VFileblock object overrides several methods of the
+Fileblock object. With the exception of requiring a RecLen method,
+VFileblock is used exactly like Fileblock.
+
+
+------- A Simple Example ---------------------------------------------
+
+The following is a simplistic demonstration program that works with
+the same fileblock defined in Section 4.C of the manual. If you
+compare it to the code in EXAMPLE.PAS, you'll note that the
+object-oriented program is much shorter because the OOFILER unit
+handles many of the details.
+
+program OOSIMPLE;
+  {-Simple example of using OOFILER}
+uses
+  FILER, OOFILER;
+
+type
+  PersonDef =
+    record
+      Del       : LongInt;
+      FirstName : String[20];
+      LastName  : String[25];
+      Street    : String[30];
+      City      : String[30];
+      State     : String[2];
+      ZipCode   : String[9];
+      Telephone : String[15];
+      Age       : Integer;
+    end;
+
+  PersonFile =
+    object(Fileblock)
+      CurRef : LongInt;
+      CurRec : PersonDef;
+
+      {---- custom constructor for this file type ----}
+      constructor Init(FName : IsamFileBlockName; SaveMode : Boolean);
+
+      {---- required implementations of abstract methods ----}
+      function BuildKey(var Rec; KeyNr : Word) : IsamKeyStr; virtual;
+      function EqualRec(var Rec1, Rec2) : Boolean; virtual;
+
+      {---- optional overrides of virtual methods ----}
+      procedure HardError; virtual;
+    end;
+
+const
+  APerson : PersonDef =
+  (Del : 0;
+   FirstName : 'George';
+   LastName : 'Bush';
+   Street : '1 Pennsylvania Ave';
+   City : 'Washington';
+   State : 'DC';
+   ZipCode : '10011-0001';
+   Telephone : '301-222-1111';
+   Age : 64);
+
+var
+  PS : LongInt;
+  F : PersonFile;
+
+constructor PersonFile.Init(FName : IsamFileBlockName; SaveMode : Boolean);
+var
+  NetMode : Boolean;
+  IID : IsamIndDescr;
+
+  procedure InitIID;
+  begin
+    IID[1].KeyL := 30;
+    IID[1].AllowDupK := False;
+    IID[2].KeyL := 5;
+    IID[2].AllowDupK := True;
+    IID[3].KeyL := 15;
+    IID[3].AllowDupK := True;
+  end;
+
+begin
+  {Assume network fileblock if the FILER unit was initialized for a network}
+  NetMode := (BTNetSupported <> NoNet);
+
+  {Initialize data fields new to a PersonFile}
+  CurRef := 0;
+  {CurRec can remain undefined until we use it}
+
+  if Fileblock.Init(FName, False, False, SaveMode, NetMode) then
+    {Opened existing file}
+    Exit;
+
+  case IsamError of
+     9903 : {Data file not found}
+       begin
+         InitIID;
+         if Fileblock.Create(FName, SizeOf(PersonDef), 3, IID,
+                             False, False, SaveMode, NetMode) then
+           Exit;
+       end;
+    10010 : {Fileblock corrupt}
+      begin
+        InitIID;
+        if Fileblock.Recover(FName, SizeOf(PersonDef), 3, IID, True,
+                             False, False, SaveMode, NetMode) then
+          Exit;
+      end;
+  else
+    {Unexpected error. Recover might still succeed}
+    Fail;
+  end;
+
+  {Couldn't open, create, or rebuild fileblock if we get here}
+  Fail;
+end;
+
+function StUpcase(S : String) : String;
+var
+  I : Integer;
+begin
+  for I := 1 to Length(S) do
+    S[I] := Upcase(S[I]);
+  StUpcase := S;
+end;
+
+function Pad(S : String; Len : Byte) : String;
+var
+  SLen : Byte absolute S;
+begin
+  if SLen > Len then
+    SLen := Len
+  else
+    while SLen < Len do
+      S := S+' ';
+  Pad := S;
+end;
+
+function PersonFile.BuildKey(var Rec; KeyNr : Word) : IsamKeyStr;
+begin
+  with PersonDef(Rec) do
+    case KeyNr of
+      1 : BuildKey := StUpcase(Pad(LastName, 20)+Pad(FirstName, 10));
+      2 : BuildKey := Copy(ZipCode, 1, 5);
+      3 : BuildKey := Copy(Telephone, 1, 15);
+    else
+      BuildKey := '';
+    end;
+end;
+
+function PersonFile.EqualRec(var Rec1, Rec2) : Boolean;
+var
+  P1 : PersonDef absolute Rec1;
+  P2 : PersonDef absolute Rec2;
+begin
+  EqualRec := False;
+  if P1.Del <> P2.Del then
+    Exit;
+  if P1.FirstName <> P2.FirstName then
+    Exit;
+  if P1.LastName <> P2.LastName then
+    Exit;
+  if P1.Street <> P2.Street then
+    Exit;
+  if P1.City <> P2.City then
+    Exit;
+  if P1.State <> P2.State then
+    Exit;
+  if P1.ZipCode <> P2.ZipCode then
+    Exit;
+  if P1.Telephone <> P2.Telephone then
+    Exit;
+  if P1.Age <> P2.Age then
+    Exit;
+  EqualRec := True;
+end;
+
+procedure ReportError;
+begin
+  Writeln('Isam error ', IsamError);
+end;
+
+procedure PersonFile.HardError;
+begin
+  ReportError;
+  Done;
+  BTExitIsam;
+  Halt;
+end;
+
+procedure CheckOK;
+begin
+  if not IsamOK then begin
+    ReportError;
+    Halt;
+  end;
+end;
+
+begin
+  {Initialize Filer unit}
+  PS := BTInitIsam(NoNet, MinimizeUseOfNormalHeap, 0);
+  CheckOK;
+
+  {Open fileblock}
+  if not F.Init('TEST', False) then
+    CheckOK;
+
+  {See if any records}
+  if F.UsedRecs = 0 then
+    {Add a record}
+    F.AddRecord(F.CurRef, APerson);
+
+  {Search for a record}
+  F.FindKey(2, F.CurRef, '10011');
+  if not IsamOk then
+    Writeln('key not found')
+  else begin
+    {Read the record}
+    F.GetRec(F.CurRef, F.CurRec);
+    {Do something with the record}
+    {...}
+    {Delete the record}
+    F.DeleteRecord(F.CurRef, F.CurRec);
+  end;
+
+  {Close fileblock}
+  F.Done;
+
+  {Deinstall FILER unit}
+  BTExitIsam;
+end.
+
+The program starts off with a definition of the record type for the
+data file. The PersonDef type is just like the one in Section 4.C.
+We still need this record type even though the fileblock is
+object-oriented.
+
+The object-oriented part of the program starts with the definition of
+PersonFile. This particular fileblock uses fixed length records, so
+PersonFile is derived from the Fileblock object rather than
+VFileblock. It's convenient to declare two new data fields for the
+PersonFile. Both of these variables are used as scratch variables for
+various fileblock operations. CurRef is the reference number of the
+last record found by an index operation or the last record added to
+the fileblock. CurRec is a complete PersonDef record used whenever a
+record is read.
+
+PersonFile overrides the default Fileblock constructor with one that
+works specifically with a PersonDef. The implementation of this method
+is instructive because it shows how to recover automatically from
+common errors when a fileblock is opened. Init first determines
+whether to open the fileblock for network access by checking whether
+the FILER unit itself is initialized for a network. This test could be
+made more thorough by also testing whether the specified data file
+name is on a network drive (see the SHARE unit's IsDriveLocal
+routine). After initializing its own data fields, Init calls
+Fileblock.Init to open the fileblock. If this succeeds, initialization
+is done.
+
+If the data file is not found, however, Init calls Fileblock.Create to
+create a new fileblock and open it. Note that Init calls the local
+procedure InitIID to initialize the fileblock's index descriptor. If
+the data file is found but error 10010 (fileblock may be corrupt) is
+returned, Init calls Fileblock.Recover, which automatically rebuilds
+the fileblock and opens it. If none of these tactics work, Init gives
+up and lets the program shut down.
+
+As mentioned in the overview, PersonFile must override two methods of
+the Fileblock object. The BuildKey method provides the key string for
+each index of a given record. The implementation of this routine is
+just like the non-object-oriented version. The EqualRec method
+compares two data records and returns True if they are identical,
+False otherwise. This method illustrates two points worth remembering.
+First, as with all data records in B-Tree Filer, the two records
+passed to EqualRec are untyped parameters. To treat those parameters
+as records of type PersonDef, we declare two variables of type
+PersonDef at the same absolute address as the var parameters. In that
+way, when we refer to the variables P1 and P2, the compiler knows that
+it has a PersonDef data record, and the absolute statement assures
+that we're reading the correct region of memory. Second, we can't just
+compare every byte of the two records to determine whether they are
+logically equal. Each string field of a data record may contain
+garbage bytes beyond the current length of the string; even if those
+garbage bytes differ, the two strings may still be logically
+equivalent. As a result, EqualRec must compare each field of the two
+records. (An alternate approach is to assure that bytes beyond the
+current length of each string are always filled with zeros. However,
+it's difficult to cover all possible cases where garbage might be
+generated.)
+
+The PersonFile object also overrides one optional method, HardError.
+Fileblock calls HardError whenever an IsamError with error class of 3
+or 4 is generated by any of its methods. By overriding this method we
+avoid the need to check IsamOK after many calls. The implementation of
+HardError is very simple in this example: it writes the error number
+to the screen, closes the fileblock by calling its Done method, shuts
+down the FILER unit by calling BTExitIsam, and halts the application.
+
+The example continues by declaring a typed constant containing one
+PersonDef record. This constant is just a convenient way to avoid
+prompting for a new record in the example. The variable F is an
+instance of our new PersonFile object type.
+
+The main block of the example initializes the FILER unit by calling
+BTInitIsam. It continues by opening the TEST fileblock using the
+custom Init constructor we've described. Then it performs a few simple
+operations on the fileblock. It adds a record if none already exists,
+then searches for a record and loads it if found, and finally deletes
+the record. Finally, it closes the fileblock and shuts down the FILER
+unit.
+
+
+------- A Comprehensive Example: OODEMO -----------------------------
+
+A more thorough sample program is OODEMO (OODEMO.PAS and OODMAIN.PAS),
+which is similar to the NETDEMO and FBDEMO programs also provided with
+B-Tree Filer. Like those programs, OODEMO works with the ADDRESS.DAT
+and ADDRESS.IX files provided with B-Tree Filer. OODEMO counts on
+user-interface components from Object Professional to prompt for data
+records and memo fields. It also uses the FBROWSER unit to browse
+through the fileblock.
+
+OODEMO is used in essentially the same way as is NETDEMO or FBDEMO.
+See Section 1.C of the manual for more information.
+
+From the standpoint of the fileblock objects, OODEMO demonstrates the
+following additional features as compared to OOSIMPLE:
+
+  - use of variable length records and the RecLen virtual method
+  - initialization for network operation
+  - customized behavior for lock error retries
+  - use of OOFILER's internal record buffer
+  - custom status report during fileblock rebuild
+  - integration with user-interface components such as data entry
+    screens
+
+Because it illustrates so many of the basic features of OOFILER and
+OOVREC, the OODEMO demonstration should be considered a useful
+supplement to the documentation provided here, and it is referred to
+in the sections that follow.
+
+
+------- Fileblock Relations: RELATE ---------------------------------
+
+A common need for business applications is to relate several files of
+information. Perhaps the most common scenario is the Customer - Order
+- Line Item problem. The Customer file contains a record for each
+customer; the Order file contains a record for each order placed by a
+customer; the Line Item file contains a record for each line item in
+each order. What we need to do is link those files together so that
+it's fast and easy to find all the orders placed by a given customer
+and all the line items in a given order. Of course, by substituting
+different names we can relate this same scenario to many common
+business situations.
+
+The solution to this problem is shared keys. The RELATE.PAS example
+program shows how to implement the solution using OOFILER. A primary
+key of the Customer file is a unique customer number. Each record in
+the Order file contains a customer number as a field, and this field
+becomes a secondary (non-unique) key for the file. A primary key of
+the Order file is a unique order number. Each record in the Line Item
+file contains an order number as a field, and this field becomes a
+secondary key for the Line Item file. The Line Item file doesn't have
+a primary key. No information is duplicated among the three files,
+except for the one field that links each pair of files together.
+
+If you haven't related files this way before, it may be easier to
+understand if you compile and run RELATE.PAS, then take a look at its
+source code. RELATE demonstrates several features that are often
+useful, especially for new database programmers:
+
+  - three fileblocks are opened in one program
+  - fileblocks are linked by shared keys
+  - unique customer and order numbers are generated by reserving
+    an unkeyed counter record in the Customer and Order files
+  - NUMKEYS is used to generate compact key strings for
+    customer and order numbers
+  - by using logical keys for links rather than physical record
+    numbers, and by using the counter record to generate unique
+    identifying numbers, all data structures survive a rebuild of the
+    fileblocks
+  - Explicit Fileblock locks guarantee multi-user integrity when new
+    customers or orders are added
+
+RELATE is long enough that we won't attempt to provide a line by line
+explanation of its actions. The following routines are worth careful
+study, however:
+
+  CreateCFile - demonstrates how to reserve an unkeyed "counter
+    record", which is used to generate unique customer numbers
+
+  CustomerFile.BuildKey - demonstrates how to avoid adding keys for
+    the counter record
+
+  CustomerFile.AddNewCustomer - demonstrates how to access and update
+    the counter record, then add a new customer with a unique
+    identifying number
+
+  OrderFile.ShowOrders - demonstrates how to show all the orders for a
+    given customer, including the detailed line items in the ItemFile
+
+  AddDummyData - demonstrates how to add a new customer, a new order,
+    and line items for the order
+
+RELATE uses a dummy set of data so that you don't need to type it in,
+but the same principles will work in a real application.
+
+
+------- Reorganizing a Fileblock: SHOREORG and SHVREORG --------------
+
+Provided in the OOFILER archive are two small programs demonstrating
+the use of the Reorganize constructor. SHOREORG reorganizes a fixed
+length record fileblock, and SHVREORG reorganizes a variable length
+record fileblock. Both demo programs first create a small database
+named JUNK and add 20 records to it. Then they close this fileblock,
+and reopen it using the Reorganize constructor. In the process, they
+add a new field to the fileblock. Then as a check they scan the new
+fileblock in index order and dump the records to the screen. Finally
+they delete the JUNK database.
+
+You'll note that in the reorganized fileblock (newfb), the demo
+programs override the ConvertRec virtual method in order to convert
+each old data record into the new format. This method is called by the
+Reorganize constructor. ConvertRec fills in each of the fields of the
+new record by copying them from the old one. In the variable length
+record example, ConvertRec also returns the new length of the variable
+length record.
+
+Although SHOREORG and SHVREORG don't do anything visually interesting,
+you may want to use their code as a template for your own use of the
+Reorganize constructor.
+
+
+------- Miscellaneous Topics -----------------------------------------
+
+In this section we discuss various specific issues for using the
+OOFILER and OOVREC units. See the reference sections that follow for
+an alphabetized list of methods in the objects.
+
+Assumptions
+-----------
+OOFILER makes several assumptions about the fileblocks and data
+records that it manages. Your program must follow these guidelines or
+OOFILER won't work.
+
+  1. The first four bytes of each record must be reserved for a
+  deletion flag and must be initialized to zero before the record is
+  added
+
+  2. Data records must be no longer than $FFF0 bytes
+
+  3. Each record must supply zero or one keys per index
+
+  4. No record locks may be used and no operations may be done in
+  spite of locks
+
+  5. All locking operations must be performed by calling the methods
+  of the Fileblock object
+
+  6. For variable length records, there must be a way to determine
+  record length by inspecting a record already loaded into memory
+
+In order to proceed safely, some methods of the Fileblock object must
+determine whether a record has been deleted by another workstation.
+These methods call the virtual IsDeleted method to do so. The default
+implementation of this method simply checks whether the first LongInt
+in the data record is non-zero. If there is another well-defined
+technique to detect a deleted record, a new IsDeleted method can
+implement it. (See page 236 of the Filer manual for one such
+technique.) Note, however, that other portions of the B-Tree Filer
+package, such as the BROWSER, FBROWSE, REORG, VREORG, REBUILD, and
+VREBUILD units, do not offer this same flexibility.
+
+OOFILER typically assumes that there is exactly one key string added
+for each index and record. It's possible to avoid adding a key string
+for a particular index and record by calling the NullKeys method with
+a parameter of False and then returning an empty string from the
+BuildKey method when appropriate. OOFILER isn't designed to allow
+adding more than one key per index and record.
+
+OOFILER manages locks for you, but in order to do so it must make
+certain assumptions about how locks are used. We'll discuss this issue
+below.
+
+Calling FILER Routines Directly
+-------------------------------
+There are only a few routines of the FILER unit that you should call
+directly once you start using OOFILER. These include (in alphabetical
+order):
+
+  BTExitIsam
+      finish working with FILER
+  BTFlushAllFileBlocks
+      store all new data of all open fileblocks
+  BTForceNetBufferWriteThrough
+      activate automatic flushing of save mode, network fileblocks
+  BTForceWritingMark
+      activate automatic flushing of the fileblock modified flag
+  BTInitIsam
+      initialize network environment and allocate index buffers
+  BTIsamErrorClass
+      divide IsamError into one of five error classes
+  BTNetSupported
+      return the currently initialized network type
+  BTNoNetCompiled
+      return True if FILER was compiled with the NoNet define
+  BTSetDosRetry
+      set retry attempts and delay time for DOS read retries
+
+There are several FILER routines that you should *NOT* call directly.
+These are:
+
+  BTLockAllOpenFileBlocks
+  BTLockFileBlock
+  BTLockRec
+  BTReadLockAllOpenFileBlocks
+  BTReadLockFileBlock
+  BTUnlockAllOpenFileBlocks (unless last thing in program)
+  BTUnlockFileBlock
+
+As you can see, all of these routines perform locking operations. The
+reasons why you shouldn't call them directly will become clear in the
+Locking section below.
+
+Error Handling
+--------------
+OOFILER uses the same IsamOK and IsamError global variables that the
+FILER unit itself does. Unless you override the HardError and/or
+LockError methods, you should check IsamOK after every call to a
+Fileblock method, just like you do for the FILER unit.
+
+HardError is a virtual method that the other OOFILER methods call
+whenever an IsamError of class 3 (save mode error) or 4 (hard error)
+is detected internally. By default, this method does nothing. You can
+override it to have a central location where errors are reported. The
+method should check the value of IsamError or BTIsamErrorClass to
+determine what to do. Note that, by the time HardError is called,
+Fileblock has undone whatever damage it can, but it won't retry the
+last operation automatically no matter what HardError does. Typically
+a derivative HardError method will notify the user that the last
+operation failed. Then, depending on the severity of error, it will
+either shut down the application or return so that the application's
+event handling loop can continue with new operations.
+
+Note that HardError is never called for an IsamError of class 1
+(warning). Most class 1 errors are reported when index search
+operations cannot find a matching key. It's always the application's
+responsibility to check IsamOK and IsamError after an index search
+operation.
+
+IsamError's of class 2 are always related to locks. LockError is a
+virtual boolean function that is called whenever a FILER operation
+might fail because another workstation has the fileblock locked. This
+method is discussed in the next section.
+
+OOFILER defines several new IsamError codes:
+
+  TooManyRetries = 8100; {Too many retries for a locking error}
+  RecordModified = 8101; {Another station modified record}
+  RecordDeleted  = 8102; {Another station deleted record}
+  UndoError      = 8103; {Error undoing changes after another error}
+  OutOfMemory    = 8108; {No memory for a temporary record}
+
+These are described in more detail in the reference section below.
+
+Locking
+-------
+OOFILER automatically manages fileblock locks for you; in many cases
+you won't need any explicit locking calls in your own code. To do so,
+OOFILER must assume that it controls the locks and you don't.
+
+Whenever OOFILER performs an operation that writes to the data or
+index file, it automatically places a fileblock lock. When the
+operation is complete, it removes the fileblock lock, *unless* a
+fileblock lock was already active when the operation started.
+
+Whenever OOFILER performs an operation that might fail because another
+workstation has locked the fileblock, it automatically retries the
+operation if a lock error is detected. The virtual boolean function
+LockError determines the retry behavior.
+
+A typical calling sequence used within a Fileblock method is:
+
+  Tries := 0;
+  repeat
+    BTOpenFileBlock(IFB, FName, ReadOnly, AllReadOnly, Save, Net);
+  until not LockError;
+  if not IsamOK then
+    Exit;
+
+Tries is a LongInt field of the Fileblock object which keeps track of
+the number of milliseconds that a particular operation has been
+retried. If the FILER
+operation succeeds, LockError returns False and the repeat loop
+terminates. If the operation does not succeed because of a locking
+error, LockError determines whether it has already tried for
+IsamReadTimeOut milliseconds. (IsamReadTimeOut is a OOFILER typed
+constant that defaults to 768.) If it has, it sets IsamError to the
+special value TooManyRetries, calls the HardError function, and
+returns False, thus causing the repeat loop to terminate and the
+Fileblock method to exit. If it hasn't, LockError delays by a random
+number of milliseconds between 1 and IsamDelayBetwLocks (a typed
+constant from the FILER unit) and increments the Tries counter by the
+same amount. It then returns True, and cycles around the repeat loop.
+
+We'll refer to this general behavior as a "lock error retry loop" in
+the reference section below.
+
+It's possible to override LockError to prompt the user when the
+retries run out, or to implement a completely different algorithm for
+retries. OODEMO's LockError method demonstrates the prompting
+technique.
+
+Sometimes it is more efficient for your application to get involved in
+the locking. For example, suppose that you are going to add several
+records one after the other. Or suppose that you're going to scan all
+the records of a fileblock in index order and that you must guarantee
+that the fileblock is not changed until the scan is done. For these
+situations, the Fileblock object provides three methods for
+controlling locks directly:
+
+  procedure Lock; virtual;
+    {-Lock the fileblock for exclusive write access}
+  procedure ReadLock; virtual;
+    {-Prevent other stations from modifying the fileblock}
+  procedure Unlock; virtual;
+    {-Remove a read or write lock}
+
+If you're adding a series of records, you'd call Lock before the
+series and Unlock afterward. If you're scanning all the records for a
+critical report, you'd call ReadLock before and Unlock after. Given
+that the initial locking calls succeeded, you wouldn't have to worry
+about locking errors throughout the rest of the sequence.
+
+Remember that, as with the FILER unit itself, you should minimize the
+time during which locks are in place. Most especially, you should
+never leave locks in place while a user is editing data in an entry
+screen.
+
+The Fileblock object maintains a system of internal counters for
+managing locks. When the Lock method is called, a counter is
+incremented. If the counter reaches 1 (i.e., it was incremented for
+the first time), BTLockFileBlock is called to place the lock. If the
+counter is already greater than 1, BTLockFileBlock is not called. When
+Unlock is called, the internal counter is decremented, and
+BTUnlockFileBlock is called only when the counter reaches zero. In
+this way, OOFILER's internal locking calls neither disturb existing
+locks nor waste time requesting redundant locks.
+
+Note that Lock and ReadLock cancel each other regardless of the
+internal counters. That is, the internal counter for read locks is
+always reset to zero when Lock is called, and the internal counter for
+write locks is reset when ReadLock is called. Unlock removes either
+kind of lock.
+
+All locking methods are virtual so that alternate algorithms may be
+employed by overriding them.
+
+Of course, for fileblocks opened with the Net parameter set to False,
+the locking routines don't do anything at all.
+
+Fileblock's Temporary Record Buffer
+-----------------------------------
+The DeleteRecord and ModifyRecord methods of Fileblock must read an
+existing record into memory before they proceed. The existing record
+is used to determine whether another workstation has modified the
+record, which might occur after your application has displayed the
+record for your user to edit, before the Fileblock object could place
+a lock.
+
+By default, DeleteRecord and ModifyRecord allocate a temporary heap
+buffer that's just large enough to hold the temporary record, and
+deallocate it before the method returns. That's a little dangerous,
+however, because you must assure that sufficient heap space is
+available each time they are called.
+
+To avoid this situation, Fileblock provides the AllocTempRec method:
+
+  procedure AllocTempRec(Size : Word);
+    {-Allocate a temporary record buffer}
+
+This buffer may be allocated at any time after the Fileblock object is
+instantiated; it remains allocated until the object is destroyed. For
+a fixed length record, Size is simply the record size (which can be
+obtained from the SectSize method). For a variable length record
+fileblock, Size must specify the longest possible record in the file.
+
+Only DeleteRecord and ModifyRecord use the temporary record buffer,
+and they do not count on its contents except while they are active.
+Your application may make use of the same buffer at other times. To do
+so, just refer to the TempRecPtr field (of type Pointer) within the
+Fileblock instance.
+
+Status Reporting During Rebuild and Reorganize
+----------------------------------------------
+One of Fileblock's high level methods is Rebuild, which calls the
+RebuildFileBlock or RebuildVFileBlock procedure from REBUILD or
+VREBUILD, respectively. For a large fileblock, the rebuild may take
+long enough that you'd like to update a status display or give the
+user an opportunity to abort the operation. A similar situation
+applies when you call the Reorganize constructor.
+
+The RebuildStatus virtual method provides this capability, and it is
+declared as follows:
+
+  procedure RebuildStatus(KeyNr : Word;
+                          RecsRead, RecsWritten : LongInt;
+                          var Rec; Len : Word); virtual;
+    {-Called during rebuild for status reporting}
+
+By default, RebuildStatus does nothing. You can override it to write a
+status display. Within it you can check the keyboard for keystrokes.
+If you decide to stop the rebuild, just set IsamOK to False and
+return. If you do so, however, the Fileblock object will no longer be
+usable.
+
+The parameters passed to RebuildStatus are interpreted just like those
+passed to the IsamReXUserProcPtr routine described on page 89 of the
+manual.
+
+Streams
+-------
+The Fileblock object supports the Object Professional stream system if
+UseStreams is defined in OOFILER.PAS. In this case, OOFILER uses the
+OPROOT unit, the Fileblock object is derived from the Root object,
+Fileblock has Load and Store methods, and OOFILER declares a
+FileblockStream registration procedure.
+
+Fileblock.Load opens or creates the actual fileblock in the same mode
+that it had when Store was called. The actual pathname originally used
+to open the fileblock is stored in the stream. If this includes drive
+and directory name, the data file must be in the same location when
+the stream is loaded.
+
+The stream support is used in exactly the same way as in all OPRO
+objects. There are no pointers that need to be registered for a
+Fileblock stream. OOFILER declares the constants otFileblock (= 997)
+and veFileblock (= 0).
+
+
+Extensions
+----------
+There are many obvious ways in which OOFILER could be extended. We
+haven't implemented them, primarily for lack of time, but the
+object-oriented base should make them possible without rewriting
+OOFILER itself.
+
+One important extension would be a new object that managed a list of
+open Fileblock objects. When each Fileblock was instantiated it would
+be added to such a list and when the Fileblock was destroyed it would
+be removed from the list. The list could have methods for:
+
+  - locking all open Fileblocks (by calling the locking methods
+    described above)
+  - opening and closing Fileblocks automatically based on a file
+    handle pool
+
+To support the latter possibility, the Fileblock object has three
+virtual methods defined as follows:
+
+  procedure FileblockIsOpen; virtual;
+    {-Called when Fileblock has been opened successfully}
+  procedure FileblockIsClosed; virtual;
+    {-Called when Fileblock has been closed successfully}
+  function AssureFileblockOpen : Boolean; virtual;
+    {-Called on entry to each routine that assumes an open Fileblock}
+
+Whenever a Fileblock is successfully opened, the FileblockIsOpen
+method is called. The method does nothing by default, but it could be
+overridden to update a global list of open Fileblocks. Similarly,
+FileblockIsClosed is called whenever a Fileblock is successfully
+closed. Note that the Rebuild method of Fileblock temporarily closes
+the fileblock, then reopens it after a successful rebuild, thus
+generating a call to each of these virtual methods.
+
+AssureFileblockOpen is called on entry to each public method of the
+Fileblock object that requires an open fileblock. If
+AssureFileblockOpen returns True, the method continues; otherwise it
+exits immediately. The default AssureFileblockOpen implementation
+always returns True. A derivative object might check to see whether
+the Fileblock was truly open. If not, and if insufficient file handles
+were available, it would close other Fileblocks and then open this
+one.
+
+Another obvious way to extend the Fileblock object would be to give it
+more information about the data records and keys stored within the
+files. You might want the constructor of the Fileblock to read a
+separate file that described the fields in each data record, and the
+indexes computed from the fields. Probably such a derived object would
+contain a linked list of data field descriptors and a linked list of
+index descriptors. Its BuildKey method would then access the linked
+lists to build the key strings rather than using code specific to a
+particular data and index file.
+
+
+------- OOFILER Reference Section ------------------------------------
+
+OOFILER interfaces the following constants and types:
+
+Constants
+---------
+  TooManyRetries = 8100; {Too many retries}
+  RecordModified = 8101; {Another station modified record}
+  RecordDeleted  = 8102; {Another station deleted record}
+  UndoError      = 8103; {Error undoing changes after another error}
+  OutOfMemory    = 8108; {No memory for a temporary record}
+
+If IsamOK is False after one of Fileblock's methods returns, one of
+these constants may be returned in IsamError, in addition to the
+normal IsamError codes documented in Appendix A of the manual.
+
+TooManyRetries is reported only if a locking error (error class 2) is
+generated internally for more than the number of retries allowed by
+the FILER unit's IsamRetriesForLock typed constant. The virtual method
+LockError is the only one to generate this error, and it may be
+overridden to handle retries in a different way. The application can
+cancel the operation or prompt the user to start another retry loop.
+
+RecordModified is returned by ModifyRecord or DeleteRecord if another
+workstation has modified the specified record since the time when the
+operation was requested. The typical response to this error is to
+redisplay the modified record and ask the user to reconfirm the
+operation.
+
+RecordDeleted is returned by ModifyRecord if another workstation has
+deleted the record since the modification was requested.
+
+UndoError is reported if a second error occurs while a Fileblock
+method is attempting to undo changes made before a first error was
+detected. At this point further undo actions are aborted and the state
+of the fileblock is unknown. Recommended response is to correct the
+problem if possible, or halt the application after closing all
+fileblocks. The affected fileblock should be rebuilt in any case.
+
+OutOfMemory is reported by ModifyRecord and DeleteRecord if they
+cannot allocate a temporary heap buffer which is used to detect
+changes in the record to be modified. This error can be avoided by
+preallocating the buffer with the AllocTempRec method.
+
+  IsamReadTimeOut : Word = 768; {Milliseconds for non-lock timeouts}
+
+This typed constant determines approximately how many milliseconds
+OOFILER will retry any non-locking operation that fails because
+another workstation has the fileblock locked. It is used only within
+the LockError method, which is called by a number of the other methods
+of Fileblock. Note that the retry timeout used when *placing* locks is
+controlled by the FILER unit typed constants IsamFBLockTimeOutFactor
+and IsamLockTimeOut. See "Locking" above for more information.
+
+Types
+-----
+  FileblockPtr = ^Fileblock;
+  Fileblock =
+    object
+      IFB : IsamFileBlockPtr;    {The low-level fileblock variable}
+      OrigName : IsamFileBlockName; {File name passed to constructor}
+      LockLev : Integer;         {Positive when write locked}
+      ReadLockLev : Integer;     {Positive when read locked}
+      AddNulls : Boolean;        {True to add null keys}
+      Tries : LongInt;           {Current retry time for lock errors}
+      TempRecPtr : Pointer;      {Pointer to temporary record}
+      TempRecSize : Word;        {Size of buffer for temporary record}
+      ...
+    end;
+
+The object used to manage a B-Tree Filer fileblock. The data fields of
+the object may be read by an application but should generally not be
+modified except by calling methods of the Fileblock object.
+
+IFB is a pointer to the low-level fileblock variable used by the FILER
+unit. OrigName is the original pathname used to open the fileblock; it
+contains up to three semicolon-delimited paths for the data, index,
+and save files. LockLev and ReadLockLev are counters that keep track
+of locking requests. Each fileblock lock request (made by calling the
+Lock method) increments LockLev and each unlock request (by calling
+Unlock) decrements it. Only when LockLev makes the transition from 0
+to 1 is BTLockFileBlock called, and only when it changes from 1 to 0
+is BTUnlockFileBlock called. ReadLockLev works similarly for read
+locks. AddNulls is True when empty key strings are to be added to the
+indexes of the fileblock. AddNulls defaults to True and may be
+modified by calling the NullKeys method. TempRecPtr and TempRecSize
+specify the temporary record buffer used by the ModifyRecord and
+DeleteRecord methods. TempRecPtr defaults to Nil and can be
+initialized by calling AllocTempRec. If TempRecPtr is Nil, a temporary
+buffer is allocated within ModifyRecord and DeleteRecord.
+
+Methods
+-------
+Because many of the methods are shells around procedures or functions
+from the FILER unit, you should refer to the B-Tree Filer manual for
+further details.
+
+
+Declaration
+  procedure AddRecord(var RefNr : LongInt; var Rec);
+Purpose
+  Add a record Rec and its keys, returning reference number.
+Description
+  AddRecord assures that the fileblock is open, locks it for write
+  access, adds the data record, adds all the keys, unlocks the
+  fileblock, and returns the reference number of the new record. It
+  calls the BuildKey method to generate each key string. If
+  NullKeys(False) has been called and BuildKey returns an empty
+  string, no key will be added for that index.
+
+  If an error occurs within AddRecord, it attempts to undo any changes
+  made to that point, leaving the fileblock in the same condition as
+  before AddRecord was called.
+See Also
+  BuildKey  DeleteRecord  Lock  NullKeys
+
+
+Declaration
+  procedure AllocTempRec(Size : Word);
+Purpose
+  Allocate a temporary record buffer.
+Description
+  The ModifyRecord and DeleteRecord methods need a temporary record
+  buffer, which is used to compare the current contents of a fileblock
+  to the value passed to the method, thus detecting changes made by
+  other workstations. If AllocTempRec has not been called,
+  ModifyRecord and DeleteRecord allocate the record buffer themselves
+  and deallocate it before exiting. If you'd prefer to preallocate
+  this buffer and keep it allocated until the Fileblock is destroyed,
+  call AllocTempRec. For a fileblock containing fixed length records,
+  pass the record size in the Size parameter. For variable length
+  records, pass the Size of the longest record in the fileblock.
+
+  Note that the buffer may be used by the application itself whenever
+  ModifyRecord and DeleteRecord are not active. The buffer pointer is
+  stored in the instance field TempRecPtr, of type Pointer.
+Example
+    F.Init('ADDRESS', False, False, False, False);
+    F.AllocTempRec(F.SectSize);
+  Allocates temporary record buffer for a fixed length record
+  fileblock.
+See Also
+  DeleteRecord  ModifyRecord
+
+
+Declaration
+  function AssureFileblockOpen : Boolean; virtual;
+Purpose
+  Called on entry to each public routine that assumes an open
+  Fileblock.
+Description
+  This virtual method is a hook provided for possible extensions to
+  the Fileblock object. The default implementation of the method
+  simply returns True. See the section entitled "Extensions" above for
+  more information.
+See Also
+  FileblockIsClosed  FileblockIsOpen
+
+
+Declaration
+  function BuildKey(var Rec; KeyNr : Word) : IsamKeyStr; virtual;
+Purpose
+  Return key string for given record and index number.
+Description
+  This abstract method must be overridden in order for the Fileblock
+  object to work correctly. It is called whenever a Fileblock method
+  needs a key string for a particular record (Rec) and index (KeyNr).
+  The function must return a string that is no longer than the maximum
+  allowed length of a key string for the specified index. (The other
+  methods do not automatically truncate the key string, and the FILER
+  unit will generate an error if the string is too long.)
+
+  BuildKey should set IsamOK to False and return a null string if it
+  is unable to generate the key string for any reason.
+
+  If BuildKey returns a null string and if NullKeys(False) has been
+  called for the Fileblock, no key will be added (by AddRecord or
+  ModifyRecord) for that record and index.
+
+  Because Rec is an untyped parameter, the application must usually
+  typecast it to an appropriate record type in order to access it. See
+  the OOSIMPLE introductory example for a couple of ways to typecast
+  the parameter.
+See Also
+  NullKeys
+
+
+Declaration
+  procedure ClearKey(KeyNr : Word);
+Purpose
+  Reset sequential pointer for specified index.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTClearKey in a lock error retry loop.
+
+
+Declaration
+  function ConvertRec(var OldRec, NewRec;
+                      var Len : Word) : Boolean; virtual;
+Purpose
+  Convert old record to new record for a Reorganize constructor.
+Description
+  This function is called by the Reorganize constructor in order to
+  convert an old format record into a new one. OldRec contains the old
+  record. ConvertRec must initialize all fields of NewRec, usually by
+  copying most of them from OldRec.
+
+  Len specifies the length of OldRec. For a fileblock of fixed length
+  records, the value of Len can generally be ignored, and should not
+  be modified. For a fileblock of variable length records, Len
+  specifies the length of the variable length record OldRec. Before
+  returning, ConvertRec must set Len to the length of the new record
+  NewRec.
+
+  ConvertRec should return True if the record passed to it should be
+  added to the reorganized fileblock. If the record should be skipped
+  over, ConvertRec should return False.
+
+  For fixed length records, ConvertRec is called for all records in
+  the original data file, regardless of whether they are deleted. For
+  variable length records, ConvertRec is called only for non-deleted
+  records.
+Example
+  See SHOREORG.PAS and SHVREORG.PAS.
+See Also
+  Reorganize
+
+Declaration
+  constructor Create(FName : IsamFileBlockName;
+                     RecordLen : LongInt;
+                     NrOfIndexes : Word;
+                     var IID : IsamIndDescr;
+                     ReadOnly, AllReadOnly, Save, Net : Boolean);
+Purpose
+  Create new fileblock and open it in the specified mode.
+Description
+  This constructor first calls BTCreateFileBlock, which creates or
+  overwrites the files of the specified fileblock. If this succeeds,
+  then it calls the Init constructor to allocate the IsamFileBlockPtr
+  variable and open the files in the requested mode.
+
+  If the constructor fails, check IsamError for further information
+  about the error.
+
+  For a Fileblock containing variable length records, remember that
+  RecordLen specifies the length of each record section, not the
+  overall length of a record.
+Example
+  See PersonFile.Init in OOSIMPLE above.
+See Also
+  Init
+
+
+Declaration
+  function DataName : IsamFileName;
+Purpose
+  Return data file's name.
+Description
+  This method assures that the fileblock is open, then calls
+  BTDataFileName to get the DOS path name of the data file. If the
+  fileblock isn't open, it returns an empty string.
+See Also
+  IndexName
+
+
+Declaration
+  destructor Delete;
+Purpose
+  Close fileblock and erase its files.
+Description
+  This destructor first calls the virtual Done destructor. If that
+  succeeds, then it calls BTDeleteFileBlock to delete the data, index,
+  and dialog files of the fileblock.
+Example
+    F.Create('TEMP', SizeOf(Rec), NrOfIndexes, IID,
+             False, False, False, False);
+    ... use the TEMP fileblock ....
+    F.Delete;
+  Creates a temporary fileblock, then closes and deletes it when done.
+See Also
+  Done
+
+
+Declaration
+  procedure DeleteRecord(RefNr : LongInt; var Rec);
+Purpose
+  Delete record with reference number RefNr and data Rec.
+Description
+  DeleteRecord assures that the fileblock is open and then locks it
+  for write access. It then reads the data record specified by RefNr
+  into a temporary record buffer. If AllocTempRec has been called,
+  that buffer is used; otherwise, adequate heap space to load the
+  specified record must be free. If there is insufficient heap space,
+  or if the size of the preallocated buffer is too small, DeleteRecord
+  exits with IsamError set to OutOfMemory.
+
+  If the data record has already been deleted (by the current
+  workstation or by another), DeleteRecord exits without generating an
+  error. If the record specified by RefNr is now different than the
+  record passed in Rec, DeleteRecord exits with IsamOK set to False
+  and IsamError equal to RecordModified.
+
+  With these preliminaries out of the way, DeleteRecord removes the
+  keys for the given record from the index file, then deletes the data
+  record itself, and finally unlocks the fileblock.
+
+  If an error occurs within DeleteRecord, it attempts to undo any changes
+  made to that point, leaving the fileblock in the same condition as
+  before DeleteRecord was called.
+See Also
+  AddRecord   AllocTempRec   Lock
+
+
+Declaration
+  destructor Done; virtual;
+Purpose
+  Close an open fileblock.
+Description
+  This destructor first deallocates the temporary record buffer, if
+  any. Then it calls BTCloseFileBlock in a lock error retry loop. If
+  the close succeeds, it calls the virtual method FileblockIsClosed.
+See Also
+  AllocTempRec  FileblockIsClosed
+
+
+Declaration
+  function EqualRec(var Rec1, Rec2) : Boolean; virtual;
+Purpose
+  Return True if two records are the same.
+Description
+  This abstract method must be overridden in order for the Fileblock
+  object to work correctly. It is called by DeleteRecord and
+  ModifyRecord to determine whether it is safe to proceed with the
+  requested operation. You'll probably also find good reasons to call
+  it from your own applications.
+
+  Generally, EqualRec should compare each field of the two records and
+  return True only if all fields are the same. See OOSIMPLE above for
+  an example and further information.
+See Also
+  DeleteRecord  ModifyRecord
+
+
+Declaration
+  procedure FileblockIsClosed; virtual;
+Purpose
+  Called when Fileblock has been closed successfully.
+Description
+  This virtual method is a hook provided for possible extensions to
+  the Fileblock object. The default implementation of the method
+  does nothing. See the section entitled "Extensions" above for
+  more information.
+See Also
+  AssureFileblockOpen  FileblockIsOpen
+
+
+Declaration
+  procedure FileblockIsOpen; virtual;
+Purpose
+  Called when Fileblock has been opened successfully.
+Description
+  This virtual method is a hook provided for possible extensions to
+  the Fileblock object. The default implementation of the method
+  does nothing. See the section entitled "Extensions" above for
+  more information.
+See Also
+  AssureFileblockOpen  FileblockIsClosed
+
+
+Declaration
+  procedure FindKey(KeyNr : Word; var RefNr : LongInt;
+                    KeyStr : IsamKeyStr);
+Purpose
+  Find matching key string, returning reference number.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTFindKey in a lock error retry loop.
+
+  If the key is not found, the HardError routine is *not* called
+  (since the error is of class 1). Be sure to check IsamOK after
+  calling this method.
+See Also
+  FindKeyAndRef  KeyExists  SearchKey
+
+
+Declaration
+  procedure FindKeyAndRef(KeyNr : Word; var RefNr : LongInt;
+                          var KeyStr : IsamKeyStr;
+                          Search : Integer);
+Purpose
+  Position sequential pointer at specified key string and reference
+  number; if not found, search up if Search is positive, search down
+  if Search is negative, or quit with error if Search is zero.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTFindKeyAndRef in a lock error retry loop.
+
+  If no matching key is found, the HardError routine is *not* called
+  (since the error is of class 1). Be sure to check IsamOK after
+  calling this method.
+See Also
+  FindKey  KeyExists  SearchKey
+
+
+Declaration
+  procedure Flush;
+Purpose
+  Assure that all data and index information goes to disk.
+Description
+  This method assures that the fileblock is open, locks the fileblock
+  for write access, calls BTFlushFileBlock, then unlocks the
+  fileblock.
+
+
+Declaration
+  function FreeRecs : LongInt;
+Purpose
+  Return number of deleted records in data file.
+Description
+  This method assures the fileblock is open, then calls BTFreeRecs in
+  a lock error retry loop. If the fileblock is closed, it returns
+  zero.
+See Also
+  TotalRecs  UsedRecs
+
+
+Declaration
+  procedure GetRec(RefNr : LongInt; var Rec);
+Purpose
+  Read specific record, not returning length.
+Description
+  GetRec calls the GetRecAndLen method and throws out the returned Len
+  parameter. It is most suitable for use with fileblocks containing
+  fixed length records.
+See Also
+  GetRecAndLen  GetRecLen
+
+
+Declaration
+  procedure GetRecAndLen(RefNr : LongInt; var Rec;
+                         var Len : Word); virtual;
+Purpose
+  Read record, returning length.
+Description
+  This method assures the fileblock is open, then calls BTGetRec in a
+  lock error retry loop. For a fixed length record, the Len parameter
+  always just returns the record size specified when the fileblock was
+  created. The method is overridden in the VFileblock object to call
+  BTGetVariableRec, which also returns the actual record length.
+See Also
+  GetRec
+
+
+Declaration
+  function GetRecLen(RefNr : LongInt) : Word; virtual;
+Purpose
+  Return the length of an existing record on disk.
+Description
+  For a fixed length record fileblock, this method always returns just
+  the record size specified when the fileblock was opened. The method
+  is overridden in the VFileblock object to return the actual length.
+
+
+Declaration
+  procedure HardError; virtual;
+Purpose
+  Called when error of class 3 or 4 occurs within a Fileblock method.
+Description
+  The default implementation of this method does nothing. Override it
+  to perform centralized error handling tasks. See the "Error
+  Handling" section above for more information.
+Example
+  See the HardError method in OOSIMPLE above.
+See Also
+  LockError
+
+Declaration
+  function IndexCount : Word;
+Purpose
+  Return number of indexes.
+Description
+  This function assures that the fileblock is open, then calls
+  BTNrOfKeys. If the fileblock is closed, it returns 0.
+See Also
+  UsedKeys
+
+
+Declaration
+  function IndexName : IsamFileName;
+Purpose
+  Return index file's name.
+Description
+  This method assures that the fileblock is open, then calls
+  BTIndexFileName to get the DOS path name of the data file. If the
+  fileblock isn't open, it returns an empty string.
+See Also
+  DataName
+
+
+Declaration
+  constructor Init(FName : IsamFileBlockName;
+                   ReadOnly, AllReadOnly, Save, Net : Boolean);
+Purpose
+  Open an existing fileblock in the specified mode.
+Description
+  This constructor first initializes the data fields of the Fileblock
+  object: the OrigName field gets a copy of FName; LockLev and
+  ReadLockLev are set to zero; AddNulls is set to True; TempRecPtr is
+  set to Nil; TempRecSize is set to zero. Then BTOpenFileBlock is
+  called in a lock error retry loop, passing it the boolean parameters
+  ReadOnly, AllReadOnly, Save, and Net. If the fileblock is opened
+  successfully, the IFB field is the instance is initialized and the
+  FileblockIsOpen method is called.
+See Also
+  Create  FileblockIsOpen  Recover
+
+
+Declaration
+  function IsDeleted(var Rec) : Boolean; virtual;
+Purpose
+  Return True if the record is deleted.
+Description
+  This virtual method provides a hook for using a different way of
+  marking deleted records. The default implementation checks the first
+  four bytes of the record and returns True if any of those bytes is
+  non-zero. See the section entitled "Assumptions" above for further
+  information.
+
+
+Declaration
+  function IsLocked : Boolean; virtual;
+Purpose
+  Return True if fileblock locked for write access.
+Description
+  This method first assures that the fileblock is open, then calls
+  the BTFileBlockIsLocked function. If the fileblock isn't open,
+  IsLocked returns False. The method is virtual so that you can
+  override the entire locking methodology of the Fileblock object.
+See Also
+  IsReadLocked
+
+
+Declaration
+  function IsNet : Boolean;
+Purpose
+  Return True if network fileblock.
+Description
+  This method first assures that the fileblock is open, then calls
+  the BTIsNetFileBlock function. If the fileblock isn't open, it
+  always returns False.
+
+
+Declaration
+  function IsReadLocked : Boolean; virtual;
+Purpose
+  Return True if fileblock is read-locked.
+Description
+  This method first assures that the fileblock is open, then calls
+  the BTFileBlockIsReadLocked function. If the fileblock isn't open,
+  it always returns False.
+
+
+Declaration
+  function IsReadOnly : Boolean;
+Purpose
+  Return True if fileblock was opened in read-only mode.
+Description
+  This method first assures that the fileblock is open, then checks an
+  internal field of the IsamFileBlockPtr type to determine whether the
+  fileblock is read-only. If the fileblock isn't open, it always
+  returns False.
+
+
+Declaration
+  function IsSave : Boolean;
+Purpose
+  Return True if fileblock was opened in save mode.
+Description
+  This method first assures that the fileblock is open, then checks an
+  internal field of the IsamFileBlockPtr type to determine whether the
+  fileblock is operating in save mode. If the fileblock isn't open, it
+  always returns False.
+
+
+Declaration
+  function KeyExists(KeyNr : Word; RefNr : LongInt;
+                     KeyStr : IsamKeyStr) : Boolean;
+Purpose
+  Return True if specified key string and reference is in index.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTKeyExists in a lock error retry loop. If the key is not found, or
+  if the fileblock isn't open, KeyExists returns False.
+See Also
+  FindKey  FindKeyAndRef  SearchKey
+
+
+Declaration
+  {$IFDEF UseStreams}
+  constructor Load(var S: IdStream);
+Purpose
+  Load the fileblock from a stream.
+Description
+  This constructor loads a stream image of the Fileblock and reopens
+  or, if necessary, creates the data and index files. The Fileblock is
+  reopened in exactly the same mode as when it was stored. See
+  "Streams" earlier in this file for more information.
+See Also
+  Store
+
+
+Declaration
+  procedure Lock; virtual;
+Purpose
+  Lock the fileblock for exclusive write access.
+Description
+  This method first assures that the fileblock is open, and exits
+  immediately if it isn't. For a single-user fileblock, Lock just sets
+  IsamOK to True and exits. If the LockLev counter is already greater
+  than zero, the fileblock is already locked, so Lock just increments
+  the counter and exits. Otherwise, it calls BTLockFileBlock (using
+  the FILER unit's automatic retry mechanism). If the call succeeds,
+  it increments LockLev and sets ReadLockLev to zero. See the
+  introductory section entitled "Locking" for more information.
+See Also
+  ReadLock  Unlock
+
+
+Declaration
+  function LockError : Boolean; virtual;
+Purpose
+  Called to test whether last operation failed because of lock error.
+Description
+  This virtual method is called at the end of a repeat loop whenever a
+  FILER non-locking routine might fail because the fileblock is
+  already locked by another station. It returns True if the operation
+  failed because of a lock error, False if the operation succeeded,
+  and False if it failed because of any other kind of error. See the
+  introductory section entitled "Locking" for more information.
+See Also
+  HardError
+
+
+Declaration
+  procedure ModifyRecord(RefNr : LongInt; var OldRec, NewRec);
+Purpose
+  Modify record with reference number RefNr.
+Description
+  OldRec is the data of the record prior to the modification. NewRec
+  is the new data. These are used in two ways, as described in the
+  following.
+
+  ModifyRecord immediately calls EqualRec to determine whether the
+  data was modified at all; if not, it exits without further ado.
+
+  ModifyRecord assures that the fileblock is open and then locks it
+  for write access. It then reads the data record specified by RefNr
+  into a temporary record buffer. If AllocTempRec has been called,
+  that buffer is used; otherwise, adequate heap space to load the
+  specified record must be free. If there is insufficient heap space,
+  or if the size of the preallocated buffer is too small, ModifyRecord
+  exits with IsamError set to OutOfMemory.
+
+  If the data record has already been deleted (by the current
+  workstation or by another), ModifyRecord exits with IsamError set to
+  RecordDeleted. If the record specified by RefNr is now different
+  than the record passed in OldRec, ModifyRecord exits with IsamOK set
+  to False and IsamError equal to RecordModified.
+
+  With these preliminaries out of the way, ModifyRecord deletes and
+  re-adds any keys that were changed as a result of the data
+  modifications, updates the data record, and finally unlocks the
+  fileblock.
+
+  If an error occurs within ModifyRecord, it attempts to undo any changes
+  made to that point, leaving the fileblock in the same condition as
+  before ModifyRecord was called.
+See Also
+  AddRecord  DeleteRecord
+
+
+Declaration
+  procedure NextDiffKey(KeyNr : Word; var RefNr : LongInt;
+                        var KeyStr : IsamKeyStr);
+Purpose
+  Advance sequential pointer to next different key string, returning
+  key and reference.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTNextDiffKey in a lock error retry loop.
+See Also
+  NextKey  PrevDiffKey
+
+
+Declaration
+  procedure NextKey(KeyNr : Word; var RefNr : LongInt;
+                    var KeyStr : IsamKeyStr);
+Purpose
+  Advance sequential pointer, returning key and reference.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTNextKey in a lock error retry loop. Be sure to read the manual's
+  description of BTNextKey for information about the
+  "SearchForSequential" option.
+See Also
+  PrevKey
+
+
+Declaration
+  procedure NullKeys(Add : Boolean);
+Purpose
+  Enable or disable addition of null key strings.
+Description
+  This method updates the value of the Fileblock's data field
+  AddNulls. When AddNulls is False, Fileblock methods that add and
+  delete keys do nothing when the key string returned by BuildKey is
+  an empty string. When AddNulls is True, empty key strings are added
+  and deleted from the index like any other string. AddNulls affects
+  the behavior of the Rebuild method in the same way.
+See Also
+  AddRecord  DeleteRecord  ModifyRecord  Rebuild
+
+
+Declaration
+  procedure PrevDiffKey(KeyNr : Word; var RefNr : LongInt;
+                        var KeyStr : IsamKeyStr);
+
+Purpose
+  Decrement sequential pointer to previous different key string,
+  returning key and reference.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTPrevDiffKey in a lock error retry loop.
+See Also
+  NextDiffKey  PrevKey
+
+
+Declaration
+  procedure PrevKey(KeyNr : Word; var RefNr : LongInt;
+                    var KeyStr : IsamKeyStr);
+Purpose
+  Decrement sequential pointer, returning key and reference.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTPrevKey in a lock error retry loop. Be sure to read the manual's
+  description of BTPrevKey for information about the
+  "SearchForSequential" option.
+See Also
+  NextKey
+
+
+Declaration
+  procedure PutRec(RefNr : LongInt; var Rec); virtual;
+Purpose
+  Update a record without updating keys.
+Description
+  This low level routine is useful for updating special unkeyed
+  records. It assures that the fileblock is open, locks the fileblock,
+  calls BTPutRec (with ISOLock set to False), then unlocks the
+  fileblock.
+Example
+  See RELATE.LZH also on the BONUS disk.
+See Also
+  ModifyRecord
+
+
+Declaration
+  procedure ReadLock; virtual;
+Purpose
+  Prevent other stations from modifying fileblock.
+Description
+  This method first assures that the fileblock is open, and exits
+  immediately if it isn't. For a single-user fileblock, ReadLock just
+  sets IsamOK to True and exits. If the ReadLockLev counter is already
+  greater than zero, the fileblock is already read locked, so ReadLock
+  just increments the counter again and exits. Otherwise, it calls
+  BTReadLockFileBlock (using the FILER unit's automatic retry
+  mechanism). If the call succeeds, it increments ReadLockLev and sets
+  LockLev to zero. See the introductory section entitled "Locking" for
+  more information.
+See Also
+  ReadLock  Unlock
+
+
+Declaration
+  procedure Rebuild;
+Purpose
+  Rebuild the fileblock.
+Description
+  This method first assures the fileblock is open and exits if it
+  isn't. (Although the RebuildFileBlock procedure in the REBUILD unit
+  needs a closed fileblock, the Rebuild method must first collect some
+  information from the open fileblock so that it can reopen the
+  fileblock when the rebuild is complete.)
+
+  Rebuild builds an IID variable from internal structures of the
+  fileblock and then saves the number of indexes, the data record
+  size, and the open mode (read-only, save mode, and net mode). Then
+  it closes the fileblock by calling BTCloseFileBlock in a lock error
+  retry loop. If the close fails, Rebuild exits. Otherwise it calls
+  the FileblockIsClosed method.
+
+  Rebuild then calls the RebuildFileBlock procedure (or
+  RebuildVFileBlock for a VFileblock object). Rebuild initializes the
+  FILER unit's global variables so that the object's AddNulls field
+  determines whether null keys are added and so that the object's
+  RebuildStatus method gains control for status updates during the
+  rebuild.
+
+  If the rebuild succeeds, Rebuild reopens the fileblock by calling
+  BTOpenFileBlock in a lock error retry loop. If the open succeeds, it
+  calls the FileblockIsOpen method.
+
+  WARNING: the IFB field of the object may change as a result of
+  calling the Rebuild method. If other objects, such as an FBrowser
+  file browser, depend on the value of IFB, be sure to update them
+  after calling Rebuild. OODEMO contains an example.
+
+  A disadvantage of the Fileblock object is that you cannot easily
+  change the index definition during a rebuild.
+See Also
+  NullKeys  RebuildStatus
+
+
+Declaration
+  procedure RebuildStatus(KeyNr : Word;
+                          RecsRead, RecsWritten : LongInt;
+                          var Rec; Len : Word); virtual;
+Purpose
+  Called during rebuild for status reporting.
+Description
+  This method is called regularly during a rebuild of a Fileblock
+  object. See the section entitled "Status Reporting During Rebuild"
+  for more information.
+Example
+  See OODMAIN.PAS.
+See Also
+  Rebuild
+
+
+Declaration
+  function RecLen(var Rec) : Word; virtual;
+Purpose
+  Return the length of a record in memory.
+Description
+  In the Fileblock object, this method always returns the fixed record
+  length. In a VFileblock object, it is an abstract method that must be
+  overridden. Methods of the VFileblock object call this method to
+  determine how many bytes to write for a new or modified record.
+Example
+  See OODMAIN.PAS.
+See Also
+  GetRecLen
+
+
+Declaration
+  constructor Recover(FName : IsamFileBlockName;
+                      RecordLen : LongInt;
+                      NrOfIndexes : Word;
+                      var IID : IsamIndDescr;
+                      AddNull : Boolean;
+                      ReadOnly, AllReadOnly, Save, Net : Boolean);
+Purpose
+  Open an existing fileblock that has a corrupted index.
+Description
+  This constructor first calls the appropriate rebuild routine to
+  clean up the data and index files of the fileblock. If the rebuild
+  succeeds, it then calls Init to open the fileblock in the specified
+  mode. You should generally call this constructor only if a call to
+  Init fails with error 10010.
+
+  Note that the RebuildStatus method will be called during the initial
+  rebuild.
+
+  If Recover fails, check IsamError for further information about the
+  error.
+
+  For a Fileblock containing variable length records, remember that
+  RecordLen specifies the length of each record section, not the
+  overall length of a record.
+Example
+  See PersonFile.Init in OOSIMPLE above.
+See Also
+  Init
+
+
+Declaration
+  constructor Reorganize(FName : IsamFileBlockName;
+                         OldRecordLen, NewRecordLen : LongInt;
+                         NewNrOfIndexes : Word;
+                         var NewIID : IsamIndDescr;
+                         AddNull : Boolean;
+                         ReadOnly, AllReadOnly, Save, Net : Boolean);
+Purpose
+  Reorganize a data file leaving a new, opened fileblock.
+Description
+  This constructor calls the ReorgFileBlock procedure of the REORG
+  unit in order to convert the existing data file specified via FName
+  into a new one. OldRecordLen specifies the record length in the
+  existing data file. NewRecordLen specifies the desired new record
+  length.
+
+  The ConvertRec virtual method must be overridden in order for
+  Reorganize to work. ConvertRec converts each old data record into
+  the new format.
+
+  The index is also rebuilt (the old index file is never used)
+  according to NewNrOfIndexes and NewIID.
+
+  The fileblock is then opened using the specified values of ReadOnly,
+  AllReadOnly, Save, and Net.
+
+  Note that the RebuildStatus method will be called during the
+  reorganization.
+
+  If Reorganize fails, check IsamError for further information about
+  the error.
+
+  For a Fileblock containing variable length records, there is another
+  Reorganize constructor that has different parameters. See the OOVREC
+  reference section following.
+Example
+  See SHOREORG.PAS.
+See Also
+  ConvertRec  Init  Recover
+
+
+Declaration
+  procedure SearchKey(KeyNr : Word; var RefNr : LongInt;
+                      var KeyStr : IsamKeyStr);
+Purpose
+  Find matching key string, or next larger one, returning both
+  reference number and key string.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTSearchKey in a lock error retry loop.
+
+  If no matching key is found, the HardError routine is *not* called
+  (since the error is of class 1). Be sure to check IsamOK after
+  calling this method.
+See Also
+  FindKey  FindKeyAndRef  KeyExists
+
+
+Declaration
+  function SectSize : Word;
+Purpose
+  Returns size of each data record or section.
+Description
+  This method returns the record length of a fixed length record
+  fileblock, or the section length of a variable length fileblock. If
+  the fileblock is not open, it always returns zero.
+See Also
+  GetRecLen  RecLen
+
+
+Declaration
+  {$IFDEF UseStreams}
+  procedure Store(var S: IdStream);
+Purpose
+  Store the fileblock to a stream.
+Description
+  This constructor stores a stream image of the Fileblock. It stores
+  the original file name as passed to the constructor, an IID for the
+  fileblock's indexes, booleans for the open mode of the fileblock,
+  and the state of AddNull for keys. See "Streams" earlier in this
+  file for more information.
+See Also
+  Load
+
+
+Declaration
+  function TotalRecs : LongInt;
+Purpose
+  Return total number of records in data file.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTFileLen in a lock error retry loop. If the fileblock is not open,
+  it always returns zero.
+See Also
+  FreeRecs  UsedKeys  UsedRecs
+
+
+Declaration
+  procedure Unlock; virtual;
+Purpose
+  Remove read or write locks.
+Description
+  Unlock removes locks placed by the Lock or ReadLock methods. If the
+  fileblock is not opened in network mode, the method exits
+  immediately.
+
+  If either ReadLockLev or LockLev equals 1, Unlock calls
+  BTUnlockFileBlock. If the unlock does not succeed, Unlock calls the
+  HardError method and exits. Otherwise it decrements the non-zero
+  lock counter.
+
+  Unlock preserves the state of IsamOK and IsamError unless IsamOK was
+  previously True and an error occurs while unlocking. This is
+  important because Unlock may be called after a fileblock update
+  fails and the application needs to detect the original failure.
+See Also
+  IsLocked  IsReadLocked  Lock  ReadLock
+
+
+Declaration
+  function UsedKeys(KeyNr : Word) : LongInt;
+Purpose
+  Return number of keys in index KeyNr.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTUsedKeys in a lock error retry loop. If the fileblock is not open,
+  it always returns zero.
+See Also
+  TotalRecs  UsedRecs
+
+
+Declaration
+  function UsedRecs : LongInt;
+Purpose
+  Return number of valid records in data file.
+Description
+  This routine assures that the fileblock is open, then calls
+  BTUsedRecs in a lock error retry loop. If the fileblock is not open,
+  it always returns zero.
+
+  Remember that for a variable length record fileblock, this method
+  returns the number of sections, not the number of logical records.
+See Also
+  FreeRecs  TotalRecs  UsedKeys
+
+
+------- OOVREC Reference Section -------------------------------------
+
+OOVREC interfaces one object type:
+
+  VFileblockPtr = ^VFileblock;
+  VFileblock =
+    object(Fileblock)
+      ...
+    end;
+
+VFileblock overrides various internal methods of the Fileblock object
+just described. With two exceptions, it is used exactly like a
+Fileblock. Exception #1: the RecordLen parameter passed to Fileblock
+constructors is the section length for variable records. Exception #2:
+a derivative of VFileblock *must* override the RecLen method, as
+described in the introduction to this file.
+
+VFileblock has one method that needs documentation:
+
+Declaration
+  constructor Reorganize(FName : IsamFileBlockName;
+                         OldSectionLen, NewSectionLen : LongInt;
+                         NewNrOfIndexes : Word;
+                         var NewIID : IsamIndDescr;
+                         MaxDiffBytes : Word;
+                         AddNull : Boolean;
+                         ReadOnly, AllReadOnly, Save, Net : Boolean);
+Purpose
+  Reorganize a data file leaving a new, opened fileblock.
+Description
+  This constructor calls the ReorgVFileBlock procedure of the VREORG
+  unit in order to convert the existing data file specified via FName
+  into a new one. It works like the Reorganize constructor of the
+  Fileblock object with a couple of exceptions.
+
+  First, instead of passed record lengths to this constructor, you
+  pass the old and new section lengths. Second, you must pass an
+  additional parameter, MaxDiffBytes. MaxDiffBytes specifies the
+  maximum amount by which a new variable length record may be longer
+  than one in the original fileblock.
+
+  See Fileblock.Reorganize for more information.
+Example
+  See SHVREORG.PAS.
+See Also
+  ConvertRec  Init  Recover

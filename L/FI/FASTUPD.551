@@ -1,0 +1,97 @@
+This file summarizes the changes made between B-Tree Filer versions
+5.50 and 5.51.
+
+
+New Features and Changes
+---------------------------------------------------------------------
+This version of B-Tree Filer has been released for three main reasons:
+
+   1. Delphi compatibility
+   2. Revised NetWare access units
+   3. Minor bug fixes and other sundry items.
+
+
+1. Delphi compatibility
+-----------------------
+
+B-Tree Filer and its ancillary units will now compile with the Delphi
+1.0 compiler.
+
+We have included a browser for Delphi. The browser is a normal Delphi
+component and can be installed onto the palette. Documentation for the
+browser is found in an on-line help file; this is also installable
+into the Delphi IDE. The browser is based on the LOWBROWS, MEDBROWS
+and HIBROWS set, and so for more documentation you can peruse the
+manuals under WBROWSER. Details on installation are in the READ.1ST
+file.
+
+The FILER.MAK make file has been changed so that you can specify
+Delphi as the compiler, in which case the make file will use DCC.EXE.
+
+
+2. Revised NetWare access units
+-------------------------------
+
+The NetWare units, especially NWBASE.PAS, have gone through a few
+revisions since version 5.50. These changes have come about because
+of incompatibilities between adapters and networks, faults in the
+Novell Client API documentation, and bugs. The changes are too
+numerous but can be summarized as follows:
+
+  - NWBASE no longer initializes through its initialization block.
+    The first time a NWBASE routine is called, it will cause an
+    initialization routine to run; the best routine to call would be
+    nwShellType.
+  - Under Windows, VLM support is now provided through Novell's
+    NWCALLS.DLL. The linkage is through a dynamic link, not a static
+    one; this enables an application to be NetWare aware, and yet run
+    if the NetWare DLLs are not present.
+  - The TTS support through NCP was broken for certain adapters and
+    drivers (we *think* we have got it right now, but we'd like
+    feedback if you have problems with nwTTSEnd).
+
+
+3. Minor bug fixes and other sundry items
+-----------------------------------------
+
+BASESUPP  Return value from GlobalDOSAlloc was assumed to be positive.
+
+NWFILE    Doubly defined error code $7F23; nwErrNoFileName is now
+          $7F24.
+
+NWBASE    Windows VLM calls must go through NWCALLS.DLL
+
+NWSEMA    The $6F Wait On Semaphore API call doesn't work; all
+          semaphore calls now use $20.
+
+FILER     BTOpenFileBlock left FlagSetReadLocked uninitialised.
+
+NWFILE    Locking routines wouldn't work 100% with NETX/Windows
+
+FILER     TimeOut for a lock is wrong if SupportVLM is defined
+
+NWBASE    Under Windows NWCALLS.DLL had to be present; now the DLL
+          is used in a dynamic sense
+
+TTSFILER  nwTTSEnd should be called after BTUnlockFileBlock
+
+SHARE     Pmode/Win: ShareInstalled returns false instead of true
+
+SHARE     Pmode/Win: IBMPCLanLoaded doesn't use real mode intr
+
+SHARE     GetMachineName used bogus address in call
+
+NWFILE    Added nwGetDirRights--get effective directory rights
+
+NWTTS     TTS calls fail with some adapters under IPX.COM/Windows
+
+SHARE     RedirectDevice was using the wrong string conversion
+
+OOFILER   Unlock doesn't preserve IsamError
+
+NETBIOS   DPMI Post Event routines only supported one NCB
+
+NWBASE    Crash if Filer's ExitProc executed after NWBASE's
+
+NWBASE    Uppercasing routine *must* be compiled with $P-
+

@@ -1,0 +1,200 @@
+(**************************************************************)
+(*             B-Tree Isam Tools Ver 5.51                     *)
+(*         C-BTree Isam Ver 3.5 Pascal Interface              *)
+(*     Copyright (C) 1991-1994 ENZ EDV-Beratung GmbH          *)
+(*                All rights reserved                         *)
+(*   Parts Copyright (C) TurboPower Software 1989-1994        *)
+(**************************************************************)
+
+(***Moved to ISAMTOOL.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$F-,V-,B-,S-,I-,R-,X+,A-,N+}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+
+{--Definition of possible languages for error messages of IsamErrormessage }
+{$DEFINE GermanMessage}
+{ $DEFINE EnglishMessage}
+  {-Adding a space before the $ sign of the DEFINE deactivates the error
+    messages of this language}
+
+
+Unit IsamTool;
+ ***)
+
+Interface
+
+Uses
+  Strings,
+  BaseSupp,
+  Filer;     {!!.TP}
+
+Type
+  UsedErrorMessages = ( NoMsg, German, English );
+
+Var
+  UseErrorMessage : UsedErrorMessages Absolute __UsedErrorMessage;
+
+
+  Procedure ExtendHandles ( NumHandles : Word );
+    {-Extends the number of file handles available to this application}
+
+  Function IsamErrorMessage ( ErrorNr : Integer ) : String;
+    {-Returns an error describing string}
+
+{$IFDEF LengthByteKeys}
+  Procedure InvertString ( Var Dest   : String;
+                               Source : String;
+                               MaxLen : Byte );
+    {-Inverts the string Source under a maximum length of MaxLen returning
+      the result in Dest}
+{$ENDIF}
+{$IFDEF ASCIIZeroKeys}
+  Procedure InvertString ( Var Dest;
+                           Var Source;
+                               MaxLen : Byte );
+    {-Inverts the null terminated array of character Source under a
+      maximum length of MaxLen returning the result in Dest}
+{$ENDIF}
+
+
+Implementation
+
+  Const
+    DLLName = 'CBTLWDS';
+
+
+  Function BDExtendHandles ( IPDPtr     : Pointer;
+                             NumHandles : Word ) : LongInt;
+      Far; External DLLName Index 2816;  {Name 'BDEXTENDHANDLES';}
+
+  Function BDInvertString ( KeyType   : Word;
+                            DestPtr   : Pointer;
+                            SourcePtr : Pointer;
+                            MaxLen    : Word ) : PChar;
+      Far; External DLLName Index 2817;  {Name 'BDINVERTSTRING';}
+
+  Function BDIsamErrorMessage ( IPDPtr  : Pointer;
+                                ErrorNr : LongInt ) : PChar;
+      Far; External DLLName Index 2818;  {Name 'BDISAMERRORMESSAGE';}
+
+
+{$IFDEF Windows}
+  Procedure ExtendHandles ( NumHandles : Word );
+
+  Begin
+    IsamOk := BDExtendHandles ( @___ValidSign, NumHandles ) = 0;
+  End;
+
+{$ELSE}
+
+  Procedure ExtendHandles ( NumHandles : Word );
+    {-Extends the number of file handles available to this application}
+  Var
+    ParasNeeded : Word;
+    IRR         : GenRegisters;
+    FirstTrial,
+    Continue    : Boolean;
+
+  Begin
+    IsamClearOK;
+
+    {!!.41 removed NumHandles <= 20}
+
+  {--Assure this service is available}
+    DefaultRegisters ( IRR );
+    With IRR Do Begin
+      AX := $3000;
+      If IsamDOSError = 0 Then IsamDOSFunc := AX;
+      CallMsDos ( IRR );
+        {-DOS 3.3 or greater?}
+      If Odd (Flags) And (IsamDOSError = 0) Then IsamDOSError := AX;
+      If Swap ( AX ) < $031E Then Begin
+        IsamOK := False;
+        IsamError := 10190;
+        Exit;
+      End;
+    End;
+
+    If NumHandles >= 255 Then NumHandles := 254;
+
+    FirstTrial := True;
+    Continue := True;
+    While Continue Do Begin
+      DefaultRegisters ( IRR );
+      With IRR Do Begin
+        AX := $6700;
+        BX := NumHandles;
+        If IsamDOSError = 0 Then IsamDOSFunc := AX;
+        CallMsDos ( IRR );
+        If Odd (Flags) Then Begin
+          If IsamDOSError = 0 Then IsamDOSError := AX;
+          If FirstTrial Then Begin
+            IsamClearOK;
+          End Else Begin
+            IsamOK := False;
+            IsamError := 10192;
+            Continue := False;
+          End;
+        End Else Begin
+          Continue := False;
+        End;
+      End;
+      FirstTrial := False;
+
+    {--Adjust for DOS 3.3 bug - number of handles must either be even or odd,
+       depending on the origin}
+      Inc (NumHandles);
+    End;
+  End;
+{$ENDIF}
+
+
+
+{$IFDEF LengthByteKeys}
+  Procedure InvertString ( Var Dest   : String;
+                               Source : String;
+                               MaxLen : Byte );
+
+  Begin
+    BDInvertString ( $0000, @Dest, @Source, MaxLen );
+  End;
+{$ENDIF}
+{$IFDEF ASCIIZeroKeys}
+  Procedure InvertString ( Var Dest;
+                           Var Source;
+                               MaxLen : Byte );
+
+  Begin
+    BDInvertString ( $0101, @Dest, @Source, MaxLen );
+  End;
+{$ENDIF}
+
+
+  Function IsamErrorMessage ( ErrorNr : Integer ) : String;
+
+  Var
+    ErrMsgPtr : PChar;
+
+  Begin
+    ErrMsgPtr := BDIsamErrorMessage ( @___ValidSign, ErrorNr );
+    IsamErrorMessage := StrPas ( ErrMsgPtr );
+  End;
+
+
+(***Moved to ISAMTOOL.PAS***  !!.TP
+Begin
+  UseErrorMessage :=
+{$IFDEF EnglishMessage}
+  English;
+{$ELSE}
+  {$IFDEF GermanMessage}
+    German;
+  {$ELSE}
+    NoMsg;
+  {$ENDIF}
+{$ENDIF}
+End.
+ ***)

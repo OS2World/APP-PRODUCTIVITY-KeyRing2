@@ -1,0 +1,253 @@
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+deutsch.msg
+DUTCH.MSG
+english.msg
+HSILGNE.MSG
+LANGUAGE.MSG
+NL_NL.MSG
+POLSKI.MSG
+spanish.msg
+        8 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+.\instboil\FILE_ID.DIZ
+.\instboil\IDK.ICO
+.\instboil\IDKO.ICO
+.\instboil\INFO.ICO
+.\instboil\INFO1.ICO
+.\instboil\INFO1_O.ICO
+.\instboil\KR2.ICO
+.\instboil\LANGUAGE.TXT
+.\instboil\PLASTER.BMP
+.\instboil\readme.now
+.\instboil\README.TXT
+.\instboil\REGISTER.TXT
+.\instboil\VLMSG.DLL
+.\instboil\VREXTRAS.DLL
+       14 file(s) copied.
+.\bmtapps\ORDER.FRM
+.\bmtapps\PURCHASE.APP
+.\bmtapps\PURCHASE.DOC
+.\bmtapps\PURCHASE.EXE
+.\bmtapps\REGISTER.FRM
+        5 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+No stub set, creating plain WPI.
+Collecting files:
+  changing to subdir "build\common"... OK.
+  adding "*" to package 1.................................
+  changing to subdir "build\register"... OK.
+  adding "*" to package 2..
+  changing to subdir "build\sounds"... OK.
+  adding "*" to package 3....
+Script "kr2k.wis" successfully read, 5853 bytes.
+Writing script to archive... OK
+Now going for package 1...
+Compressing deutsch.msg (000%)Compressing deutsch.msg (100%)[60C69% compression 
+Compressing DUTCH.MSG (000%)Compressing DUTCH.MSG (100%)[60C70% compression 
+Compressing english.msg (000%)Compressing english.msg (100%)[60C69% compression 
+Compressing FILE_ID.DIZ (000%)Compressing FILE_ID.DIZ (100%)[60C35% compression 
+Compressing HSILGNE.MSG (000%)Compressing HSILGNE.MSG (100%)[60C69% compression 
+Compressing IDK.ICO (000%)Compressing IDK.ICO (100%)[60C74% compression 
+Compressing IDKO.ICO (000%)Compressing IDKO.ICO (100%)[60C73% compression 
+Compressing INFO.ICO (000%)Compressing INFO.ICO (100%)[60C71% compression 
+Compressing INFO1.ICO (000%)Compressing INFO1.ICO (100%)[60C71% compression 
+Compressing INFO1_O.ICO (000%)Compressing INFO1_O.ICO (100%)[60C70% compression 
+Compressing keyring2.exe (000%)Compressing keyring2.exe (004%)Compressing keyring2.exe (008%)Compressing keyring2.exe (012%)Compressing keyring2.exe (016%)Compressing keyring2.exe (020%)Compressing keyring2.exe (024%)Compressing keyring2.exe (028%)Compressing keyring2.exe (032%)Compressing keyring2.exe (036%)Compressing keyring2.exe (040%)Compressing keyring2.exe (044%)Compressing keyring2.exe (048%)Compressing keyring2.exe (052%)Compressing keyring2.exe (056%)Compressing keyring2.exe (060%)Compressing keyring2.exe (064%)Compressing keyring2.exe (068%)Compressing keyring2.exe (072%)Compressing keyring2.exe (076%)Compressing keyring2.exe (080%)Compressing keyring2.exe (084%)Compressing keyring2.exe (088%)Compressing keyring2.exe (092%)Compressing keyring2.exe (096%)Compressing keyring2.exe (100%)Compressing keyring2.exe (100%)[60C55% compression 
+Compressing KR2.ICO (000%)Compressing KR2.ICO (100%)[60C77% compression 
+Compressing kr2.INF (000%)Compressing kr2.INF (001%)Compressing kr2.INF (003%)Compressing kr2.INF (004%)Compressing kr2.INF (005%)Compressing kr2.INF (006%)Compressing kr2.INF (008%)Compressing kr2.INF (009%)Compressing kr2.INF (010%)Compressing kr2.INF (012%)Compressing kr2.INF (013%)Compressing kr2.INF (014%)Compressing kr2.INF (015%)Compressing kr2.INF (017%)Compressing kr2.INF (018%)Compressing kr2.INF (019%)Compressing kr2.INF (020%)Compressing kr2.INF (022%)Compressing kr2.INF (023%)Compressing kr2.INF (024%)Compressing kr2.INF (026%)Compressing kr2.INF (027%)Compressing kr2.INF (028%)Compressing kr2.INF (029%)Compressing kr2.INF (031%)Compressing kr2.INF (032%)Compressing kr2.INF (033%)Compressing kr2.INF (035%)Compressing kr2.INF (036%)Compressing kr2.INF (037%)Compressing kr2.INF (038%)Compressing kr2.INF (040%)Compressing kr2.INF (041%)Compressing kr2.INF (042%)Compressing kr2.INF (044%)Compressing kr2.INF (045%)Compressing kr2.INF (046%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (049%)Compressing kr2.INF (050%)Compressing kr2.INF (051%)Compressing kr2.INF (052%)Compressing kr2.INF (054%)Compressing kr2.INF (055%)Compressing kr2.INF (056%)Compressing kr2.INF (058%)Compressing kr2.INF (059%)Compressing kr2.INF (060%)Compressing kr2.INF (061%)Compressing kr2.INF (063%)Compressing kr2.INF (064%)Compressing kr2.INF (065%)Compressing kr2.INF (067%)Compressing kr2.INF (068%)Compressing kr2.INF (069%)Compressing kr2.INF (070%)Compressing kr2.INF (072%)Compressing kr2.INF (073%)Compressing kr2.INF (074%)Compressing kr2.INF (076%)Compressing kr2.INF (077%)Compressing kr2.INF (078%)Compressing kr2.INF (079%)Compressing kr2.INF (081%)Compressing kr2.INF (082%)Compressing kr2.INF (083%)Compressing kr2.INF (084%)Compressing kr2.INF (086%)Compressing kr2.INF (087%)Compressing kr2.INF (088%)Compressing kr2.INF (090%)Compressing kr2.INF (091%)Compressing kr2.INF (092%)Compressing kr2.INF (093%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (096%)Compressing kr2.INF (097%)Compressing kr2.INF (099%)Compressing kr2.INF (100%)Compressing kr2.INF (100%)[60C06% compression 
+Compressing KRICON.DLL (000%)Compressing KRICON.DLL (004%)Compressing KRICON.DLL (008%)Compressing KRICON.DLL (012%)Compressing KRICON.DLL (016%)Compressing KRICON.DLL (020%)Compressing KRICON.DLL (024%)Compressing KRICON.DLL (029%)Compressing KRICON.DLL (033%)Compressing KRICON.DLL (037%)Compressing KRICON.DLL (041%)Compressing KRICON.DLL (045%)Compressing KRICON.DLL (049%)Compressing KRICON.DLL (053%)Compressing KRICON.DLL (057%)Compressing KRICON.DLL (061%)Compressing KRICON.DLL (065%)Compressing KRICON.DLL (069%)Compressing KRICON.DLL (073%)Compressing KRICON.DLL (077%)Compressing KRICON.DLL (082%)Compressing KRICON.DLL (086%)Compressing KRICON.DLL (090%)Compressing KRICON.DLL (094%)Compressing KRICON.DLL (098%)Compressing KRICON.DLL (100%)[60C23% compression 
+Compressing KRINI.DLL (000%)Compressing KRINI.DLL (036%)Compressing KRINI.DLL (072%)Compressing KRINI.DLL (100%)[60C06% compression 
+Compressing KRYPTON.DLL (000%)Compressing KRYPTON.DLL (100%)[60C01% compression 
+Compressing LANGUAGE.MSG (000%)Compressing LANGUAGE.MSG (100%)[60C71% compression 
+Compressing LANGUAGE.TXT (000%)Compressing LANGUAGE.TXT (100%)[60C52% compression 
+Compressing NL_NL.MSG (000%)Compressing NL_NL.MSG (100%)[60C70% compression 
+Compressing ORDER.FRM (000%)Compressing ORDER.FRM (100%)[60C64% compression 
+Compressing PLASTER.BMP (000%)Compressing PLASTER.BMP (045%)Compressing PLASTER.BMP (090%)Compressing PLASTER.BMP (100%)[60C53% compression 
+Compressing POLSKI.MSG (000%)Compressing POLSKI.MSG (100%)[60C68% compression 
+Compressing PURCHASE.APP (000%)Compressing PURCHASE.APP (100%)[60C37% compression 
+Compressing PURCHASE.DOC (000%)Compressing PURCHASE.DOC (100%)[60C53% compression 
+Compressing PURCHASE.EXE (000%)Compressing PURCHASE.EXE (027%)Compressing PURCHASE.EXE (055%)Compressing PURCHASE.EXE (082%)Compressing PURCHASE.EXE (100%)[60C49% compression 
+Compressing readme.now (000%)Compressing readme.now (100%)[60C64% compression 
+Compressing README.TXT (000%)Compressing README.TXT (100%)Compressing README.TXT (100%)[60C00% compression 
+Compressing REGISTER.FRM (000%)Compressing REGISTER.FRM (100%)[60C63% compression 
+Compressing REGISTER.TXT (000%)Compressing REGISTER.TXT (100%)[60C62% compression 
+Compressing spanish.msg (000%)Compressing spanish.msg (100%)[60C69% compression 
+Compressing VLMSG.DLL (000%)Compressing VLMSG.DLL (087%)Compressing VLMSG.DLL (100%)[60C07% compression 
+Compressing VREXTRAS.DLL (000%)Compressing VREXTRAS.DLL (018%)Compressing VREXTRAS.DLL (037%)Compressing VREXTRAS.DLL (055%)Compressing VREXTRAS.DLL (074%)Compressing VREXTRAS.DLL (092%)Compressing VREXTRAS.DLL (100%)[60C56% compression 
+Compressing VRPRINT.DLL (000%)Compressing VRPRINT.DLL (017%)Compressing VRPRINT.DLL (034%)Compressing VRPRINT.DLL (050%)Compressing VRPRINT.DLL (067%)Compressing VRPRINT.DLL (084%)Compressing VRPRINT.DLL (100%)[60C53% compression 
+Now going for package 2...
+Compressing KREGISTR.dll (000%)Compressing KREGISTR.dll (091%)Compressing KREGISTR.dll (100%)[60C02% compression 
+Compressing readme.reg (000%)Compressing readme.reg (100%)[60C64% compression 
+Now going for package 3...
+Compressing INTRO.MID (000%)Compressing INTRO.MID (100%)[60C43% compression 
+Compressing STARTUP.WAV (000%)Compressing STARTUP.WAV (050%)Compressing STARTUP.WAV (099%)Compressing STARTUP.WAV (100%)[60C49% compression 
+Compressing twilitzn.wav (000%)Compressing twilitzn.wav (005%)Compressing twilitzn.wav (011%)Compressing twilitzn.wav (016%)Compressing twilitzn.wav (021%)Compressing twilitzn.wav (026%)Compressing twilitzn.wav (032%)Compressing twilitzn.wav (037%)Compressing twilitzn.wav (042%)Compressing twilitzn.wav (047%)Compressing twilitzn.wav (053%)Compressing twilitzn.wav (058%)Compressing twilitzn.wav (063%)Compressing twilitzn.wav (068%)Compressing twilitzn.wav (074%)Compressing twilitzn.wav (079%)Compressing twilitzn.wav (084%)Compressing twilitzn.wav (089%)Compressing twilitzn.wav (095%)Compressing twilitzn.wav (100%)Compressing twilitzn.wav (100%)[60C56% compression 
+Compressing wakeup.WAV (000%)Compressing wakeup.WAV (017%)Compressing wakeup.WAV (035%)Compressing wakeup.WAV (052%)Compressing wakeup.WAV (070%)Compressing wakeup.WAV (087%)Compressing wakeup.WAV (100%)[60C34% compression 
+Done.
+Archive: "kr2k.wpi"
+WPI revision: 3
+Stub size: 0 bytes
+Package 1
+    33 files, size:  3.843.587 bytes original
+                     2.920.472 bytes compressed (25% compression)
+Package 2
+     2 files, size:     27.666 bytes original
+                        26.884 bytes compressed (3% compression)
+Package 3
+     4 files, size:    665.636 bytes original
+                       331.538 bytes compressed (51% compression)
+Summary: 3 package(s), 39 files total
+     4.536.889 bytes original
+     3.278.894 bytes compressed (28% compression)
+        1 file(s) copied.
+        1 file(s) copied.
+No stub set, creating plain WPI.
+Collecting files:
+  changing to subdir "build\common"... OK.
+  adding "*" to package 1.................................
+  changing to subdir "build\register"... OK.
+  adding "*" to package 2..
+  changing to subdir "build\sounds"... OK.
+  adding "*" to package 3....
+Script "kr2b.wis" successfully read, 5933 bytes.
+Writing script to archive... OK
+Now going for package 1...
+Compressing deutsch.msg (000%)Compressing deutsch.msg (100%)[60C69% compression 
+Compressing DUTCH.MSG (000%)Compressing DUTCH.MSG (100%)[60C70% compression 
+Compressing english.msg (000%)Compressing english.msg (100%)[60C69% compression 
+Compressing FILE_ID.DIZ (000%)Compressing FILE_ID.DIZ (100%)[60C35% compression 
+Compressing HSILGNE.MSG (000%)Compressing HSILGNE.MSG (100%)[60C69% compression 
+Compressing IDK.ICO (000%)Compressing IDK.ICO (100%)[60C74% compression 
+Compressing IDKO.ICO (000%)Compressing IDKO.ICO (100%)[60C73% compression 
+Compressing INFO.ICO (000%)Compressing INFO.ICO (100%)[60C71% compression 
+Compressing INFO1.ICO (000%)Compressing INFO1.ICO (100%)[60C71% compression 
+Compressing INFO1_O.ICO (000%)Compressing INFO1_O.ICO (100%)[60C70% compression 
+Compressing keyring2.exe (000%)Compressing keyring2.exe (004%)Compressing keyring2.exe (008%)Compressing keyring2.exe (012%)Compressing keyring2.exe (016%)Compressing keyring2.exe (020%)Compressing keyring2.exe (024%)Compressing keyring2.exe (028%)Compressing keyring2.exe (032%)Compressing keyring2.exe (036%)Compressing keyring2.exe (040%)Compressing keyring2.exe (044%)Compressing keyring2.exe (048%)Compressing keyring2.exe (052%)Compressing keyring2.exe (056%)Compressing keyring2.exe (060%)Compressing keyring2.exe (064%)Compressing keyring2.exe (068%)Compressing keyring2.exe (072%)Compressing keyring2.exe (076%)Compressing keyring2.exe (080%)Compressing keyring2.exe (084%)Compressing keyring2.exe (088%)Compressing keyring2.exe (092%)Compressing keyring2.exe (096%)Compressing keyring2.exe (100%)Compressing keyring2.exe (100%)[60C55% compression 
+Compressing KR2.ICO (000%)Compressing KR2.ICO (100%)[60C77% compression 
+Compressing kr2.INF (000%)Compressing kr2.INF (001%)Compressing kr2.INF (003%)Compressing kr2.INF (004%)Compressing kr2.INF (005%)Compressing kr2.INF (006%)Compressing kr2.INF (008%)Compressing kr2.INF (009%)Compressing kr2.INF (010%)Compressing kr2.INF (012%)Compressing kr2.INF (013%)Compressing kr2.INF (014%)Compressing kr2.INF (015%)Compressing kr2.INF (017%)Compressing kr2.INF (018%)Compressing kr2.INF (019%)Compressing kr2.INF (020%)Compressing kr2.INF (022%)Compressing kr2.INF (023%)Compressing kr2.INF (024%)Compressing kr2.INF (026%)Compressing kr2.INF (027%)Compressing kr2.INF (028%)Compressing kr2.INF (029%)Compressing kr2.INF (031%)Compressing kr2.INF (032%)Compressing kr2.INF (033%)Compressing kr2.INF (035%)Compressing kr2.INF (036%)Compressing kr2.INF (037%)Compressing kr2.INF (038%)Compressing kr2.INF (040%)Compressing kr2.INF (041%)Compressing kr2.INF (042%)Compressing kr2.INF (044%)Compressing kr2.INF (045%)Compressing kr2.INF (046%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (049%)Compressing kr2.INF (050%)Compressing kr2.INF (051%)Compressing kr2.INF (052%)Compressing kr2.INF (054%)Compressing kr2.INF (055%)Compressing kr2.INF (056%)Compressing kr2.INF (058%)Compressing kr2.INF (059%)Compressing kr2.INF (060%)Compressing kr2.INF (061%)Compressing kr2.INF (063%)Compressing kr2.INF (064%)Compressing kr2.INF (065%)Compressing kr2.INF (067%)Compressing kr2.INF (068%)Compressing kr2.INF (069%)Compressing kr2.INF (070%)Compressing kr2.INF (072%)Compressing kr2.INF (073%)Compressing kr2.INF (074%)Compressing kr2.INF (076%)Compressing kr2.INF (077%)Compressing kr2.INF (078%)Compressing kr2.INF (079%)Compressing kr2.INF (081%)Compressing kr2.INF (082%)Compressing kr2.INF (083%)Compressing kr2.INF (084%)Compressing kr2.INF (086%)Compressing kr2.INF (087%)Compressing kr2.INF (088%)Compressing kr2.INF (090%)Compressing kr2.INF (091%)Compressing kr2.INF (092%)Compressing kr2.INF (093%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (096%)Compressing kr2.INF (097%)Compressing kr2.INF (099%)Compressing kr2.INF (100%)Compressing kr2.INF (100%)[60C06% compression 
+Compressing KRICON.DLL (000%)Compressing KRICON.DLL (004%)Compressing KRICON.DLL (008%)Compressing KRICON.DLL (012%)Compressing KRICON.DLL (016%)Compressing KRICON.DLL (020%)Compressing KRICON.DLL (024%)Compressing KRICON.DLL (029%)Compressing KRICON.DLL (033%)Compressing KRICON.DLL (037%)Compressing KRICON.DLL (041%)Compressing KRICON.DLL (045%)Compressing KRICON.DLL (049%)Compressing KRICON.DLL (053%)Compressing KRICON.DLL (057%)Compressing KRICON.DLL (061%)Compressing KRICON.DLL (065%)Compressing KRICON.DLL (069%)Compressing KRICON.DLL (073%)Compressing KRICON.DLL (077%)Compressing KRICON.DLL (082%)Compressing KRICON.DLL (086%)Compressing KRICON.DLL (090%)Compressing KRICON.DLL (094%)Compressing KRICON.DLL (098%)Compressing KRICON.DLL (100%)[60C23% compression 
+Compressing KRINI.DLL (000%)Compressing KRINI.DLL (036%)Compressing KRINI.DLL (072%)Compressing KRINI.DLL (100%)[60C06% compression 
+Compressing KRYPTON.DLL (000%)Compressing KRYPTON.DLL (100%)[60C01% compression 
+Compressing LANGUAGE.MSG (000%)Compressing LANGUAGE.MSG (100%)[60C71% compression 
+Compressing LANGUAGE.TXT (000%)Compressing LANGUAGE.TXT (100%)[60C52% compression 
+Compressing NL_NL.MSG (000%)Compressing NL_NL.MSG (100%)[60C70% compression 
+Compressing ORDER.FRM (000%)Compressing ORDER.FRM (100%)[60C64% compression 
+Compressing PLASTER.BMP (000%)Compressing PLASTER.BMP (045%)Compressing PLASTER.BMP (090%)Compressing PLASTER.BMP (100%)[60C53% compression 
+Compressing POLSKI.MSG (000%)Compressing POLSKI.MSG (100%)[60C68% compression 
+Compressing PURCHASE.APP (000%)Compressing PURCHASE.APP (100%)[60C37% compression 
+Compressing PURCHASE.DOC (000%)Compressing PURCHASE.DOC (100%)[60C53% compression 
+Compressing PURCHASE.EXE (000%)Compressing PURCHASE.EXE (027%)Compressing PURCHASE.EXE (055%)Compressing PURCHASE.EXE (082%)Compressing PURCHASE.EXE (100%)[60C49% compression 
+Compressing readme.now (000%)Compressing readme.now (100%)[60C64% compression 
+Compressing README.TXT (000%)Compressing README.TXT (100%)Compressing README.TXT (100%)[60C00% compression 
+Compressing REGISTER.FRM (000%)Compressing REGISTER.FRM (100%)[60C63% compression 
+Compressing REGISTER.TXT (000%)Compressing REGISTER.TXT (100%)[60C62% compression 
+Compressing spanish.msg (000%)Compressing spanish.msg (100%)[60C69% compression 
+Compressing VLMSG.DLL (000%)Compressing VLMSG.DLL (087%)Compressing VLMSG.DLL (100%)[60C07% compression 
+Compressing VREXTRAS.DLL (000%)Compressing VREXTRAS.DLL (018%)Compressing VREXTRAS.DLL (037%)Compressing VREXTRAS.DLL (055%)Compressing VREXTRAS.DLL (074%)Compressing VREXTRAS.DLL (092%)Compressing VREXTRAS.DLL (100%)[60C56% compression 
+Compressing VRPRINT.DLL (000%)Compressing VRPRINT.DLL (017%)Compressing VRPRINT.DLL (034%)Compressing VRPRINT.DLL (050%)Compressing VRPRINT.DLL (067%)Compressing VRPRINT.DLL (084%)Compressing VRPRINT.DLL (100%)[60C53% compression 
+Now going for package 2...
+Compressing KREGISTR.dll (000%)Compressing KREGISTR.dll (091%)Compressing KREGISTR.dll (100%)[60C02% compression 
+Compressing readme.reg (000%)Compressing readme.reg (100%)[60C64% compression 
+Now going for package 3...
+Compressing INTRO.MID (000%)Compressing INTRO.MID (100%)[60C43% compression 
+Compressing STARTUP.WAV (000%)Compressing STARTUP.WAV (050%)Compressing STARTUP.WAV (099%)Compressing STARTUP.WAV (100%)[60C49% compression 
+Compressing twilitzn.wav (000%)Compressing twilitzn.wav (005%)Compressing twilitzn.wav (011%)Compressing twilitzn.wav (016%)Compressing twilitzn.wav (021%)Compressing twilitzn.wav (026%)Compressing twilitzn.wav (032%)Compressing twilitzn.wav (037%)Compressing twilitzn.wav (042%)Compressing twilitzn.wav (047%)Compressing twilitzn.wav (053%)Compressing twilitzn.wav (058%)Compressing twilitzn.wav (063%)Compressing twilitzn.wav (068%)Compressing twilitzn.wav (074%)Compressing twilitzn.wav (079%)Compressing twilitzn.wav (084%)Compressing twilitzn.wav (089%)Compressing twilitzn.wav (095%)Compressing twilitzn.wav (100%)Compressing twilitzn.wav (100%)[60C56% compression 
+Compressing wakeup.WAV (000%)Compressing wakeup.WAV (017%)Compressing wakeup.WAV (035%)Compressing wakeup.WAV (052%)Compressing wakeup.WAV (070%)Compressing wakeup.WAV (087%)Compressing wakeup.WAV (100%)[60C34% compression 
+Done.
+Archive: "kr2b.wpi"
+WPI revision: 3
+Stub size: 0 bytes
+Package 1
+    33 files, size:  3.843.587 bytes original
+                     2.920.472 bytes compressed (25% compression)
+Package 2
+     2 files, size:     27.681 bytes original
+                        26.879 bytes compressed (3% compression)
+Package 3
+     4 files, size:    665.636 bytes original
+                       331.538 bytes compressed (51% compression)
+Summary: 3 package(s), 39 files total
+     4.536.904 bytes original
+     3.278.889 bytes compressed (28% compression)
+        1 file(s) copied.
+        1 file(s) copied.
+        1 file(s) copied.
+No stub set, creating plain WPI.
+Collecting files:
+  changing to subdir "build\common"... OK.
+  adding "*" to package 1.................................
+  changing to subdir "build\register"... OK.
+  adding "*" to package 2..
+  changing to subdir "build\sounds"... OK.
+  adding "*" to package 3....
+Script "kr2w.wis" successfully read, 5966 bytes.
+Writing script to archive... OK
+Now going for package 1...
+Compressing deutsch.msg (000%)Compressing deutsch.msg (100%)[60C69% compression 
+Compressing DUTCH.MSG (000%)Compressing DUTCH.MSG (100%)[60C70% compression 
+Compressing english.msg (000%)Compressing english.msg (100%)[60C69% compression 
+Compressing FILE_ID.DIZ (000%)Compressing FILE_ID.DIZ (100%)[60C35% compression 
+Compressing HSILGNE.MSG (000%)Compressing HSILGNE.MSG (100%)[60C69% compression 
+Compressing IDK.ICO (000%)Compressing IDK.ICO (100%)[60C74% compression 
+Compressing IDKO.ICO (000%)Compressing IDKO.ICO (100%)[60C73% compression 
+Compressing INFO.ICO (000%)Compressing INFO.ICO (100%)[60C71% compression 
+Compressing INFO1.ICO (000%)Compressing INFO1.ICO (100%)[60C71% compression 
+Compressing INFO1_O.ICO (000%)Compressing INFO1_O.ICO (100%)[60C70% compression 
+Compressing keyring2.exe (000%)Compressing keyring2.exe (004%)Compressing keyring2.exe (008%)Compressing keyring2.exe (012%)Compressing keyring2.exe (016%)Compressing keyring2.exe (020%)Compressing keyring2.exe (024%)Compressing keyring2.exe (028%)Compressing keyring2.exe (032%)Compressing keyring2.exe (036%)Compressing keyring2.exe (040%)Compressing keyring2.exe (044%)Compressing keyring2.exe (048%)Compressing keyring2.exe (052%)Compressing keyring2.exe (056%)Compressing keyring2.exe (060%)Compressing keyring2.exe (064%)Compressing keyring2.exe (068%)Compressing keyring2.exe (072%)Compressing keyring2.exe (076%)Compressing keyring2.exe (080%)Compressing keyring2.exe (084%)Compressing keyring2.exe (088%)Compressing keyring2.exe (092%)Compressing keyring2.exe (096%)Compressing keyring2.exe (100%)Compressing keyring2.exe (100%)[60C55% compression 
+Compressing KR2.ICO (000%)Compressing KR2.ICO (100%)[60C77% compression 
+Compressing kr2.INF (000%)Compressing kr2.INF (001%)Compressing kr2.INF (003%)Compressing kr2.INF (004%)Compressing kr2.INF (005%)Compressing kr2.INF (006%)Compressing kr2.INF (008%)Compressing kr2.INF (009%)Compressing kr2.INF (010%)Compressing kr2.INF (012%)Compressing kr2.INF (013%)Compressing kr2.INF (014%)Compressing kr2.INF (015%)Compressing kr2.INF (017%)Compressing kr2.INF (018%)Compressing kr2.INF (019%)Compressing kr2.INF (020%)Compressing kr2.INF (022%)Compressing kr2.INF (023%)Compressing kr2.INF (024%)Compressing kr2.INF (026%)Compressing kr2.INF (027%)Compressing kr2.INF (028%)Compressing kr2.INF (029%)Compressing kr2.INF (031%)Compressing kr2.INF (032%)Compressing kr2.INF (033%)Compressing kr2.INF (035%)Compressing kr2.INF (036%)Compressing kr2.INF (037%)Compressing kr2.INF (038%)Compressing kr2.INF (040%)Compressing kr2.INF (041%)Compressing kr2.INF (042%)Compressing kr2.INF (044%)Compressing kr2.INF (045%)Compressing kr2.INF (046%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (047%)Compressing kr2.INF (049%)Compressing kr2.INF (050%)Compressing kr2.INF (051%)Compressing kr2.INF (052%)Compressing kr2.INF (054%)Compressing kr2.INF (055%)Compressing kr2.INF (056%)Compressing kr2.INF (058%)Compressing kr2.INF (059%)Compressing kr2.INF (060%)Compressing kr2.INF (061%)Compressing kr2.INF (063%)Compressing kr2.INF (064%)Compressing kr2.INF (065%)Compressing kr2.INF (067%)Compressing kr2.INF (068%)Compressing kr2.INF (069%)Compressing kr2.INF (070%)Compressing kr2.INF (072%)Compressing kr2.INF (073%)Compressing kr2.INF (074%)Compressing kr2.INF (076%)Compressing kr2.INF (077%)Compressing kr2.INF (078%)Compressing kr2.INF (079%)Compressing kr2.INF (081%)Compressing kr2.INF (082%)Compressing kr2.INF (083%)Compressing kr2.INF (084%)Compressing kr2.INF (086%)Compressing kr2.INF (087%)Compressing kr2.INF (088%)Compressing kr2.INF (090%)Compressing kr2.INF (091%)Compressing kr2.INF (092%)Compressing kr2.INF (093%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (095%)Compressing kr2.INF (096%)Compressing kr2.INF (097%)Compressing kr2.INF (099%)Compressing kr2.INF (100%)Compressing kr2.INF (100%)[60C06% compression 
+Compressing KRICON.DLL (000%)Compressing KRICON.DLL (004%)Compressing KRICON.DLL (008%)Compressing KRICON.DLL (012%)Compressing KRICON.DLL (016%)Compressing KRICON.DLL (020%)Compressing KRICON.DLL (024%)Compressing KRICON.DLL (029%)Compressing KRICON.DLL (033%)Compressing KRICON.DLL (037%)Compressing KRICON.DLL (041%)Compressing KRICON.DLL (045%)Compressing KRICON.DLL (049%)Compressing KRICON.DLL (053%)Compressing KRICON.DLL (057%)Compressing KRICON.DLL (061%)Compressing KRICON.DLL (065%)Compressing KRICON.DLL (069%)Compressing KRICON.DLL (073%)Compressing KRICON.DLL (077%)Compressing KRICON.DLL (082%)Compressing KRICON.DLL (086%)Compressing KRICON.DLL (090%)Compressing KRICON.DLL (094%)Compressing KRICON.DLL (098%)Compressing KRICON.DLL (100%)[60C23% compression 
+Compressing KRINI.DLL (000%)Compressing KRINI.DLL (036%)Compressing KRINI.DLL (072%)Compressing KRINI.DLL (100%)[60C06% compression 
+Compressing KRYPTON.DLL (000%)Compressing KRYPTON.DLL (100%)[60C02% compression 
+Compressing LANGUAGE.MSG (000%)Compressing LANGUAGE.MSG (100%)[60C71% compression 
+Compressing LANGUAGE.TXT (000%)Compressing LANGUAGE.TXT (100%)[60C52% compression 
+Compressing NL_NL.MSG (000%)Compressing NL_NL.MSG (100%)[60C70% compression 
+Compressing ORDER.FRM (000%)Compressing ORDER.FRM (100%)[60C64% compression 
+Compressing PLASTER.BMP (000%)Compressing PLASTER.BMP (045%)Compressing PLASTER.BMP (090%)Compressing PLASTER.BMP (100%)[60C53% compression 
+Compressing POLSKI.MSG (000%)Compressing POLSKI.MSG (100%)[60C68% compression 
+Compressing PURCHASE.APP (000%)Compressing PURCHASE.APP (100%)[60C37% compression 
+Compressing PURCHASE.DOC (000%)Compressing PURCHASE.DOC (100%)[60C53% compression 
+Compressing PURCHASE.EXE (000%)Compressing PURCHASE.EXE (027%)Compressing PURCHASE.EXE (055%)Compressing PURCHASE.EXE (082%)Compressing PURCHASE.EXE (100%)[60C49% compression 
+Compressing readme.now (000%)Compressing readme.now (100%)[60C64% compression 
+Compressing README.TXT (000%)Compressing README.TXT (100%)Compressing README.TXT (100%)[60C00% compression 
+Compressing REGISTER.FRM (000%)Compressing REGISTER.FRM (100%)[60C63% compression 
+Compressing REGISTER.TXT (000%)Compressing REGISTER.TXT (100%)[60C62% compression 
+Compressing spanish.msg (000%)Compressing spanish.msg (100%)[60C69% compression 
+Compressing VLMSG.DLL (000%)Compressing VLMSG.DLL (087%)Compressing VLMSG.DLL (100%)[60C07% compression 
+Compressing VREXTRAS.DLL (000%)Compressing VREXTRAS.DLL (018%)Compressing VREXTRAS.DLL (037%)Compressing VREXTRAS.DLL (055%)Compressing VREXTRAS.DLL (074%)Compressing VREXTRAS.DLL (092%)Compressing VREXTRAS.DLL (100%)[60C56% compression 
+Compressing VRPRINT.DLL (000%)Compressing VRPRINT.DLL (017%)Compressing VRPRINT.DLL (034%)Compressing VRPRINT.DLL (050%)Compressing VRPRINT.DLL (067%)Compressing VRPRINT.DLL (084%)Compressing VRPRINT.DLL (100%)[60C53% compression 
+Now going for package 2...
+Compressing KREGISTR.dll (000%)Compressing KREGISTR.dll (091%)Compressing KREGISTR.dll (100%)[60C02% compression 
+Compressing readme.reg (000%)Compressing readme.reg (100%)[60C64% compression 
+Now going for package 3...
+Compressing INTRO.MID (000%)Compressing INTRO.MID (100%)[60C43% compression 
+Compressing STARTUP.WAV (000%)Compressing STARTUP.WAV (050%)Compressing STARTUP.WAV (099%)Compressing STARTUP.WAV (100%)[60C49% compression 
+Compressing twilitzn.wav (000%)Compressing twilitzn.wav (005%)Compressing twilitzn.wav (011%)Compressing twilitzn.wav (016%)Compressing twilitzn.wav (021%)Compressing twilitzn.wav (026%)Compressing twilitzn.wav (032%)Compressing twilitzn.wav (037%)Compressing twilitzn.wav (042%)Compressing twilitzn.wav (047%)Compressing twilitzn.wav (053%)Compressing twilitzn.wav (058%)Compressing twilitzn.wav (063%)Compressing twilitzn.wav (068%)Compressing twilitzn.wav (074%)Compressing twilitzn.wav (079%)Compressing twilitzn.wav (084%)Compressing twilitzn.wav (089%)Compressing twilitzn.wav (095%)Compressing twilitzn.wav (100%)Compressing twilitzn.wav (100%)[60C56% compression 
+Compressing wakeup.WAV (000%)Compressing wakeup.WAV (017%)Compressing wakeup.WAV (035%)Compressing wakeup.WAV (052%)Compressing wakeup.WAV (070%)Compressing wakeup.WAV (087%)Compressing wakeup.WAV (100%)[60C34% compression 
+Done.
+Archive: "kr2w.wpi"
+WPI revision: 3
+Stub size: 0 bytes
+Package 1
+    33 files, size:  3.835.494 bytes original
+                     2.912.321 bytes compressed (25% compression)
+Package 2
+     2 files, size:     27.719 bytes original
+                        26.905 bytes compressed (3% compression)
+Package 3
+     4 files, size:    665.636 bytes original
+                       331.538 bytes compressed (51% compression)
+Summary: 3 package(s), 39 files total
+     4.528.849 bytes original
+     3.270.764 bytes compressed (28% compression)

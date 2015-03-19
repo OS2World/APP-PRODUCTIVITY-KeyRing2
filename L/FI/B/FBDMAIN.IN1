@@ -1,0 +1,420 @@
+{*********************************************************}
+{*                   FBDMAIN.IN1 5.50                    *}
+{*     Copyright (c) TurboPower Software 1990, 1994.     *}
+{*                 All rights reserved.                  *}
+{*********************************************************}
+
+  function IsLockError : Boolean;
+    {-Return true for a locking error}
+  begin
+    {$IFDEF Btree52}
+    IsLockError := (BTIsamErrorClass = 2);
+    {$ELSE}
+    IsLockError := (IsamErrorClass = 2);
+    {$ENDIF}
+  end;
+
+  function Extend(S : String; Len : Byte) : String;
+    {-Pad or truncate string to specified length}
+  var
+    SLen : Byte absolute S;
+  begin
+    if SLen >= Len then begin
+      SLen := Len;
+      Extend := S;
+    end
+    else
+      Extend := Pad(S, Len);
+  end;
+
+  procedure WriteHeader(Prompt : String; ShowFilter : Boolean);
+    {-Write header and bottom divider}
+  const
+    FilterOn : array[Boolean] of string[8] = ('        ', '®Filter¯');
+  var
+    S : String;
+    I, J, L : Integer;
+    {$IFDEF UseMouse}
+    SaveMouse : Boolean;
+    {$ENDIF}
+  begin
+    {$IFDEF UseMouse}
+    HideMousePrim(SaveMouse);
+    {$ENDIF}
+
+    {draw header}
+    S := Header;
+    L := Length(Prompt);
+    if L > ScreenWidth then
+      L := ScreenWidth;
+    J := 40-(L shr 1);
+    for I := 1 to L do
+      S[J+I] := Prompt[I];
+    FastWrite(S, 1, 1, HeadFootAttr);
+
+    {indicate whether filtering is enabled}
+    if ShowFilter then
+      FastWrite(FilterOn[VB.IsFilteringEnabled], 1, 50, HeadFootAttr);
+
+    {display active key}
+    if ActKeyNr = 1 then
+      S := ' Key: Last Name '
+    else
+      S := ' Key: Zip Code ';
+    FastWrite(S, 1, 62, HeadFootAttr);
+
+    {$IFDEF UseMouse}
+    ShowMousePrim(SaveMouse);
+    {$ENDIF}
+  end;
+
+  procedure WriteFooter(Prompt : String);
+    {-Write a footer on the menu line}
+  {$IFDEF UseMouse}
+  var
+    SaveMouse : Boolean;
+  {$ENDIF}
+  begin
+    {$IFDEF UseMouse}
+    HideMousePrim(SaveMouse);
+    {$ENDIF}
+
+    FastWrite(Extend(Prompt, ScreenWidth), ScreenHeight, 1, HeadFootAttr);
+    GotoXYabs(Length(Prompt)+2, ScreenHeight);
+
+    {$IFDEF UseMouse}
+    ShowMousePrim(SaveMouse);
+    {$ENDIF}
+  end;
+
+  function Menu(Selection, Prompt : String) : Char;
+    {-Draw a bar menu and get a selection in the CharSet}
+  var
+    ChWord : Word;
+    Ch  : Char absolute ChWord;
+    CursorSL, CursorXY : Word;
+  begin
+    {save the cursor position and shape}
+    GetCursorState(CursorXY, CursorSL);
+    NormalCursor;
+
+    {display prompt}
+    WriteFooter(Prompt);
+
+    {flush keyboard buffer}
+    while KeyPressed do
+      Ch := ReadKey;
+
+    {wait for valid key}
+    repeat
+      ChWord := ReadKeyWord;
+      Ch := Upcase(Ch);
+    until Pos(Ch, Selection) <> 0;
+
+    {Restore cursor position and shape}
+    RestoreCursorState(CursorXY, CursorSL);
+
+    {clear prompt line}
+    WriteFooter('');
+
+    Menu := Ch;
+  end;
+
+  procedure DispMessage(Prompt : String; WaitKey, SoundBell : Boolean);
+    {-Display a message on the menu line, optionally waiting for keystroke and
+      ringing bell}
+  var
+    C  : Word;
+  begin
+    if WaitKey then begin
+      if Prompt[Length(Prompt)] <> '.' then
+        Prompt := Prompt+'.';
+      WriteFooter(' '+Prompt+' Press any key...');
+      if SoundBell then
+        RingBell;
+      C := ReadKeyWord;
+    end
+    else
+      WriteFooter(' '+Prompt);
+  end;
+
+  procedure DispMessageTemp(Prompt : String; Time : Word);
+    {-Display a timed message}
+  begin
+    WriteFooter(Prompt);
+    Delay(Time);
+    WriteFooter('');
+  end;
+
+  procedure IsamErrorNum(F : Integer);
+    {-Display Isam error number and wait for key}
+  begin
+    DispMessage('IsamError: '+Long2Str(F), True, True);
+  end;
+
+  function YesNo(Prompt : String; Default : Char) : Boolean;
+    {-Display Yes/No prompt}
+  var
+    Ch : Char;
+  begin
+    Ch := Menu('YN'^M, Prompt+' ['+Default+']');
+    if Ch = ^M then
+      Ch := Default;
+    YesNo := (Ch = 'Y');
+  end;
+
+  function LockAbort : Boolean;
+    {-If a file lock prevents progress, ask whether to try again}
+  begin
+    LockAbort := False;
+    Locked := IsLockError;
+    if not Locked then
+      Exit;
+    LockAbort := not YesNo('A lock prevents access. Try again?', 'Y');
+  end;
+
+  procedure AbortPrintMessage;
+    {-Display this message while printing}
+  begin
+    WriteFooter('Press any key to abort print ');
+  end;
+
+  function Aborting : Boolean;
+    {-Check for a keypress during printing, and offer a chance to quit}
+  var
+    C  : Char;
+  begin
+    Aborting := False;
+    if KeyPressed then begin
+      repeat
+        C := ReadKey;
+      until not KeyPressed;
+      if YesNo('Do you really wish to quit?', 'N') then
+        Aborting := True
+      else
+        AbortPrintMessage;
+    end;
+  end;
+
+  procedure Abort;
+    {-Abort the program with an out-of-memory error message}
+  begin
+    DispMessage(emInsufficientMemory, True, True);
+    NormalCursor;
+    ClrScr;
+    Halt(1);
+  end;
+
+
+{$IFDEF Novell}
+  {$F+}
+  function SemaphoreRefresh(FBP : FBrowserPtr) : Boolean;
+  var
+    Ticks : LongInt absolute $40:$6C;
+    T : LongInt;
+  begin
+    {assume false}
+    SemaphoreRefresh := False;
+
+    with FBP^ do
+      {do nothing if this is a single-user fileblock}
+      if LongFlagIsSet(fbOptions, fbIsNet) then begin
+        {save tick count}
+        T := Ticks;
+
+        {loop while key not pressed}
+        while not cwCmdPtr^.cpKeyPressed do
+          {is it time to check again?}
+          if (Ticks-T) >= RefreshPeriod then
+            {check to see if page stack has been invalidated}
+            if Sync.IsDirty(GetKeyNumber) then begin
+              {we need to refresh the display}
+              SemaphoreRefresh := True;
+              Exit;
+            end
+            else
+              {save the current tick count}
+              T := Ticks;
+      end;
+  end;
+  {$F-}
+{$ENDIF}
+
+{$IFDEF UseAdjustableWindows}
+const
+  Step = 1;
+
+  procedure MoveBrowseWindow;
+    {-Move the browse window interactively}
+  var
+    Finished : Boolean;
+  begin
+    if VB.IsZoomed then
+      Exit;
+    WriteFooter(' Use cursor keys to move, <Enter> to accept');
+    Finished := False;
+    with VB do
+      repeat
+        case ReadKeyWord of
+          $4700 : MoveWindow(-Step, -Step); {Home}
+          $4800 : MoveWindow(0, -Step);     {Up arrow}
+          $4900 : MoveWindow(Step, -Step);  {PgUp}
+          $4B00 : MoveWindow(-Step, 0);     {Left Arrow}
+          $4D00 : MoveWindow(Step, 0);      {Right Arrow}
+          $4F00 : MoveWindow(-Step, Step);  {End}
+          $5000 : MoveWindow(0, Step);      {Down arrow}
+          $5100 : MoveWindow(Step, Step);   {PgDn}
+          $1C0D : Finished := True;         {Enter}
+        end;
+
+        if ClassifyError(GetLastError) = etFatal then
+          Abort;
+      until Finished;
+
+    WriteFooter('');
+  end;
+
+  procedure ResizeBrowseWindow;
+    {-Resize the browse window interactively}
+  var
+    Finished : Boolean;
+  begin
+    if VB.IsZoomed then
+      Exit;
+    WriteFooter(' Use cursor keys to resize, <Enter> to accept');
+    Finished := False;
+    with VB do
+      repeat
+        case ReadKeyWord of
+          $4700 : ResizeWindow(-Step, -Step); {Home}
+          $4800 : ResizeWindow(0, -Step);     {Up}
+          $4900 : ResizeWindow(Step, -Step);  {PgUp}
+          $4B00 : ResizeWindow(-Step, 0);     {Left}
+          $4D00 : ResizeWindow(Step, 0);      {Right}
+          $4F00 : ResizeWindow(-Step, Step);  {End}
+          $5000 : ResizeWindow(0, Step);      {Down}
+          $5100 : ResizeWindow(Step, Step);   {PgDn}
+          $1C0D : Finished := True;           {Enter}
+        end;
+
+        if ClassifyError(GetLastError) = etFatal then
+          Abort;
+      until Finished;
+
+    WriteFooter('');
+  end;
+
+  procedure ToggleZoom;
+    {-Toggle zoom status of the browse window}
+  begin
+    with VB do begin
+      if IsZoomed then
+        Unzoom
+      else
+        Zoom;
+
+      if ClassifyError(GetLastError) = etFatal then
+        Abort;
+    end;
+  end;
+{$ENDIF}
+
+{$F+}
+  function ValidateState(EFP : EntryFieldPtr; var Err : Word;
+                         var ErrSt : StringPtr) : Boolean;
+    {-Validate a state entry}
+  const
+    StateStrings   : array[1..51] of array[1..2] of Char = (
+      'AK', 'AL', 'AR', 'AZ', 'CA', 'CO', 'CT', 'DC', 'DE', 'FL', 'GA', 'HI',
+      'IA', 'ID', 'IL', 'IN', 'KS', 'KY', 'LA', 'MA', 'MD', 'ME', 'MI', 'MN',
+      'MO', 'MS', 'MT', 'NC', 'ND', 'NE', 'NH', 'NJ', 'NM', 'NV', 'NY', 'OH',
+      'OK', 'OR', 'PA', 'RI', 'SC', 'SD', 'TN', 'TX', 'UT', 'VA', 'VT', 'WA',
+      'WI', 'WV', 'WY');
+    BadState : String[36] = 'Not a valid abbreviation for a state';
+  var
+    I  : Word;
+    S  : String[2];
+  begin
+    ValidateState := True;
+
+    S := Trim(EFP^.efEditSt^);
+    if not ValidationOff then
+      case Length(S) of
+        1 :                  {no 1-character abbreviations}
+          begin
+            Err := ecPartialEntry;    {standard error code}
+            ErrSt := @emPartialEntry; {standard error message}
+            ValidateState := False;
+          end;
+        2 :                  {check list of valid abbreviations}
+          begin
+            for I := 1 to 51 do
+              if S = StateStrings[I] then
+                Exit;
+            Err := 1; {arbitrary}
+            ErrSt := @BadState;
+            ValidateState := False;
+          end;
+      end;
+  end;
+
+  function ValidatePhone(EFP : EntryFieldPtr; var Err : Word;
+                         var ErrSt : StringPtr) : Boolean;
+    {-Validate a phone number}
+  begin
+    if ValidationOff then
+      ValidatePhone := True
+    else
+      ValidatePhone := ValidateSubfields(ValidPhone, EFP, Err, ErrSt);
+  end;
+
+  function ValidateZip(EFP : EntryFieldPtr; var Err : Word;
+                       var ErrSt : StringPtr) : Boolean;
+    {-Validate a zip code}
+  begin
+    if ValidationOff then
+      ValidateZip := True
+    else
+      ValidateZip := ValidateSubfields(ValidZip, EFP, Err, ErrSt);
+  end;
+
+  procedure PhoneZipConversion(EFP : EntryFieldPtr; PostEdit : Boolean);
+    {-Conversion routine for phone numbers and zip codes.}
+    {-Special note: This special conversion routine is needed to meet the
+      demands of the Search routine, which allows searches based on partial
+      zip codes and phone numbers. The ValidationOff flag used in the three
+      validation routines shown above is needed for the same reason.}
+  var
+    S : String[20];
+    SLen : Byte absolute S;
+    AllDone : Boolean;
+  begin
+    with EFP^ do
+      if PostEdit then begin
+        S := efEditSt^;
+        AllDone := False;
+        repeat
+          {trim trailing blanks and hyphens}
+          case S[SLen] of
+            ' ', '-' :
+              Dec(SLen);
+            else
+              AllDone := True;
+          end;
+        until AllDone;
+        String(efVarPtr^) := S;
+      end
+      else begin
+        {is string too long? if so, truncate it}
+        if Byte(efVarPtr^) > efMaxLen then
+          Byte(efVarPtr^) := efMaxLen;
+
+        {initialize the edit string}
+        efEditSt^ := String(efVarPtr^);
+
+        {merge picture mask characters if necessary}
+        if Length(efEditSt^) < efMaxLen then
+          MergePicture(efEditSt^, efEditSt^);
+      end;
+  end;
+{$F-}

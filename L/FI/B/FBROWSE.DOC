@@ -1,0 +1,1860 @@
+
+
+          FBROWSE: Object-Oriented Browser for B-Tree Filer
+
+             Copyright (c) 1990, 1994 TurboPower Software
+                            November 1994
+                            Version 5.50
+
+
+------- Overview ----------------------------------------------------
+
+
+The main purpose of the FBROWSE unit is to merge the functionality of
+B-Tree Filer's BROWSER unit into an object based on Object
+Professional's CommandWindow. Besides making it easier to provide a
+consistent user interface throughout a program that uses both
+products, FBROWSE offers several other advantages over the BROWSER
+unit:
+
+  - encapsulation of data allows multiple browsers to be active at
+    once
+  - support for multi-line items
+  - built-in support for horizontal scrolling
+  - browse window can be moved, zoomed, or resized
+  - improved mouse and scroll bar support
+  - limits on rows and columns can be set at runtime
+  - scroll-by-page option
+  - refresh function hook allows browser to promptly detect and
+    display changes made at other workstations
+  - hook that allows the programmer to add incremental searching
+    capabilities
+
+The FBrowser object implemented in FBROWSE.PAS also, of course,
+provides all of the other features inherited from its parents (hot
+spots, shadows, headers, etc.).
+
+Important note: In order to compile FBROWSE.PAS, you must have version
+5.05 or higher of B-Tree Filer, and version 1.01 or higher of Object
+Professional.
+
+
+------- A Simple Example: FBSIMPLE ----------------------------------
+
+
+The following is a simplistic demonstration program that works with
+the same files used by NETDEMO.PAS (from B-Tree Filer) and BTFDEMO.PAS
+(found on the Object Professional BONUS disk). It assumes that these
+files (ADDRESS.DAT and ADDRESS.IX) already exist and contain data. The
+purpose of the program is simply to show those steps that *must* be
+taken in any program that uses the FBrowser object implemented in
+FBROWSE. (Actually, in this case an object of type VBrowser is used,
+since ADDRESS.DAT contains variable-length records.)
+
+
+{$I BTDEFINE.INC}
+program FbSimple;
+uses
+  OpCrt, OpCmd, OpFrame, OpWindow, Filer, VRec, FBrowse;
+const
+  SectionLength = 140;
+type
+  PersonDef =
+    record
+      Dele             : LongInt;
+      FirstName, Name  : String[15];
+      Company, Address : String[25];
+      City             : String[15];
+      State            : String[2];
+      Zip              : String[10];
+      Telephone        : String[12];
+      NotesLen         : Word;
+      Notes            : array[1..932] of Char;
+    end;
+var
+  PS     : LongInt;
+  Pf     : IsamFileBlockPtr;
+  Person : PersonDef;
+  VB     : VBrowser;
+  DatLen : Word;
+
+  {$F+}
+  procedure BuildItem(Row : Byte;
+                      var DatS;
+                      DatLen : Word;
+                      Ref : LongInt;
+                      Key : IsamKeyStr;
+                      var S : String;
+                      FBP : FBrowserPtr);
+    {-Return one row of an item to the browser in S}
+  var
+    P : PersonDef absolute DatS;
+  begin
+    {for this simple demo, just return the key}
+    S := Key;
+  end;
+
+begin
+  {allocate buffer for variable-length records}
+  {$IFDEF BTree52}
+  if not BTSetVariableRecBuffer(SectionLength) then
+  {$ELSE}
+  if not SetVariableRecBuffer(SectionLength) then
+  {$ENDIF}
+    Halt;
+
+  {allocate page stack}
+  {$IFDEF BTree52}
+  PS := BTInitIsam(NoNet, 20000, 0);
+  {$ELSE}
+  PS := GetPageStack(20000);
+  {$ENDIF}
+  if not IsamOK then
+    Halt;
+
+  {open file block}
+  {$IFDEF BTree52}
+  BTOpenFileBlock(Pf, 'ADDRESS', False, False, False, False);
+  {$ELSE}
+  OpenFileBlock(Pf, 'ADDRESS');
+  {$ENDIF}
+  if not IsamOK then
+    Halt;
+
+  {initialize browser}
+  if not VB.Init(1, 1, 80, 25,  {window coordinates}
+                 Pf,            {fileblock pointer}
+                 1,             {key number}
+                 Person,        {record buffer}
+                 0,             {maximum number of rows in window}
+                 1,             {number of rows per item}
+                 30) then       {maximum number of columns per row}
+    Halt;
+  VB.SetBuildItemProc(BuildItem);
+  VB.fbOptionsOn(fbBuildOnKey);
+
+  repeat
+    {process commands}
+    VB.Process;
+
+    {read the current record}
+    case VB.GetLastCommand of
+      ccSelect, ccQuit, ccError : {ok} ;
+      else VB.GetCurrentRecord(Person, DatLen);
+    end;
+  until (VB.GetLastCommand = ccQuit) or (VB.GetLastCommand = ccError);
+
+  {erase and destroy the browse window}
+  VB.Erase;
+  VB.Done;
+
+  {close file block}
+  {$IFDEF BTree52}
+  BTCloseFileBlock(Pf);
+  {$ELSE}
+  CloseFileBlock(Pf);
+  {$ENDIF}
+end.
+
+
+The example will compile with B-Tree Filer 5.0 or 5.2, by taking
+advantage of the BTree52 conditional define as shown. Throughout the
+following we will refer to identifier names from B-Tree Filer 5.0.
+
+The first order of business here is to initialize B-Tree Filer by
+calling SetVariableRecBuffer (needed only if the VREC unit is in use)
+and GetPageStack. If the program were a multi-user application,
+InitNetIsam would need to be called as well.
+
+The second step is to open the fileblock to be browsed. The timing of
+this step is extremely important. When instantiated, an FBrowser
+object needs to obtain information about the fileblock to be browsed
+(the number of keys in the index file, whether it's a multi-user
+fileblock, etc.), so the fileblock must be opened successfully before
+we can initialize a browser for it.
+
+The next task is to instantiate the browser by calling the Init
+constructor. As with all window-based objects, the first four
+parameters indicate the dimensions of the window. In this case, we've
+assumed an 80x25 screen. The fifth parameter is the IsamFileBlockPtr
+for the fileblock just opened. The sixth parameter indicates which set
+of index keys to use. In this case, we've passed 1, so that the items
+will be arranged alphabetically by name (see the source for NETDEMO or
+FBDEMO). The seventh parameter names a record variable of the type
+stored in the data file. This variable will be used as a buffer by
+FBrowser when it reads records in from disk.
+
+The eighth parameter indicates the maximum number of rows that will
+ever be displayed in the browse window. We've used 0 to indicate that
+we want the value to be calculated based on the height of the window.
+The ninth parameter indicates that each item (record) will be
+displayed on a single row of the window. The tenth and final parameter
+indicates the maximum number of columns on a given row (if this value
+is greater than the width of the window, the display may be scrolled
+horizontally). Although we could pass 0 here, we've used 30 to
+conserve memory, since that's the actual maximum and it's less than
+the width of the window. In this case, the savings is 1250 bytes: 25
+rows * 50 (80-30) columns. Note that FBrowser will automatically pad
+each row with blanks to the full width of the window if necessary.
+
+The next step is the only other one that is required in all
+situations: calling SetBuildItemProc to specify the routine that,
+given a record in the database, will produce a string of text that can
+be displayed in the browse window to represent that "item." In keeping
+with the spirit of the program, the BuildItem routine shown here is
+extremely simple: it just returns the Key parameter, which contains a
+first and last name. A more typical routine would extract information
+from the DatS parameter (or rather from the PersonDef variable
+declared absolute on top of it). This step is unnecessary only in
+cases where a derived object type has overridden the BuildOneItem
+method.
+
+The call to fbOptionsOn sets an option that is normally undesirable.
+The fbBuildOnKey option tells the browser that the build item routine
+needs only the index key to do its job, making it unnecessary to read
+the actual record in from the data file. Few applications can use this
+option, but those that can will benefit greatly in terms of
+performance. If and when you use it, do keep in mind that the DatS and
+DatLen parameters to the build item routine will contain meaningless
+data.
+
+Now we're ready to start browsing. The main program loop just does two
+things over and over: it calls the Process method to display the
+browse window and process browsing commands, and it calls
+GetLastCommand to determine the command used to exit from the browser.
+In this simple case, only two exit commands are likely--ccQuit, which
+means quit browsing, and ccError, which means that a fatal error
+occurred while browsing--and the loop ends when either of them is
+returned.
+
+The code that follows Process reads the currently highlighted record
+into Person. There's no need to do that in this sample program, but
+we've done so to illustrate an important point. There is only one case
+where it is safe to assume that the record buffer passed to the Init
+constructor contains the current record on return from Process: the
+case where GetLastCommand returns ccSelect. In all other cases,
+FBrowser leaves it up to you to decide whether or not the record
+should be loaded from disk.
+
+NOTE: In this last regard the behavior of FBROWSE differs from that of
+the BROWSER unit, which always loads the current record before exiting
+from the Browse function. A similar difference in behavior exists in
+the handling of the special task hook: BROWSER always loads the
+current record before calling a special task routine, whereas FBrowser
+never does. The reason behind FBrowser's behavior in these two cases
+is simple: if the record doesn't need to be loaded, it's a waste of
+time to do it, and FBrowser has no way of knowing when you need it
+loaded and when you don't.
+
+The program ends with some basic cleanup code. The browse window is
+erased and destroyed, and the fileblock being browsed is closed.
+
+Although this is an extremely atypical example, it does show the basic
+steps involved in setting up a browse window and examining the
+contents of a data file with it. The next section discusses a more
+typical one.
+
+
+------- A Comprehensive Example: FBDEMO -----------------------------
+
+
+A more realistic example program is FBDEMO.PAS, which is based on the
+NETDEMO program in B-Tree Filer. Like FBSIMPLE, FBDEMO works with
+ADDRESS.DAT and ADDRESS.IX. Unlike FBSIMPLE, it allows records to be
+added, deleted, and modified as well as displayed.
+
+FBDEMO demonstrates most of the features of FBROWSE that distinguish
+it from BROWSER:
+
+  - The <AltM> command allows the user to move the browse window
+  - The <AltR> command allows the user to resize the browse window
+  - The <AltZ> command allows the user to zoom the browse window
+  - The RowsPerItem constant in the source code may be increased,
+    allowing you to see what multi-line items look like.
+  - By defining TestStream in the source code, you can test FBROWSE's
+    streams support.
+  - FBROWSE better handles the case where no records are in the
+    database being browsed.
+
+Because it illustrates so many of the basic features of FBROWSE,
+FBDEMO (see FBDEMO.PAS and FBDMAIN.PAS) should be considered a useful
+supplement to the documentation provided here, and it is referred to
+frequently in the sections that follow.
+
+
+------- Miscellaneous Issues ----------------------------------------
+
+The fbForceUpdate Option
+------------------------
+The fbForceUpdate option is VERY IMPORTANT. It MUST be set--BY
+YOU--before you call either Draw or Process after adding, deleting, or
+modifying a record in the data file being browsed:
+
+  FB.fbOptionsOn(fbForceUpdate);
+
+This tells the browser that it needs to rebuild the current page
+before displaying it. See FBDMAIN.PAS for examples of cases where
+fbForceUpdate needs to be set.
+
+Variable-length Records
+-----------------------
+The FBrowser object works only with Fileblocks containing fixed-length
+records. To browse through a file containing variable-length records,
+you must use the VBrowser object instead, as was done in FBSIMPLE and
+FBDEMO. This child object simply overrides the FBrowser's GetRecord
+method, routing all requests to read a record to the appropriate
+routine in the VREC unit.
+
+Rows Longer than 255 Characters
+-------------------------------
+The FBrowser object stores the data to be displayed for a given row of
+an item in a string of up to 255 characters. In cases where that data
+exceeds 255 characters, it is usually best to display it on multiple
+rows. It is possible, however, to set the maximum number of columns to
+a value greater than 255. If this is done, the FBrowser will have to
+check, when scrolling the display horizontally, to be certain that the
+necessary columns of data are loaded into memory. If they're not, the
+build item routine will be called to build new sets of strings for all
+the items, containing the data that is needed.
+
+What the build item routine needs to do in such cases is to call the
+FBrowser's GetFirstCol method to see which columns of data are
+desired. For example, if GetFirstCol returns 1 (as it would
+initially), then the build item routine should provide columns 1-255.
+If GetFirstCol returns 200, then the build item routine should supply
+columns 200-354. That is, if the maximum number of columns is greater
+than 255, the build item routine should always return 255 columns of
+data starting at the column indicated by GetFirstCol. It may return
+fewer than 255 columns only if the starting column is within 255
+characters of the end of the row.
+
+Keep in mind when using this facility that the records for each item
+being displayed must be reread from disk before the build item
+procedure is called. Consequently, there is a performance penalty to
+be paid when scrolling the display horizontally. That is one of the
+reasons why we said that the multiple rows approach is generally
+preferable to setting the maximum number of columns to a value greater
+than 255.
+
+Programmer's Hooks
+------------------
+The FBrowser provides a variety of programmer's hooks that allow you
+to easily customize it for a particular application. See the entries
+for the following methods:
+
+  - CharHook
+  - GetRecord
+  - SetBuildItemProc
+  - SetFilterFunc
+  - SetPreMoveProc
+  - SetRefreshFunc
+  - SetScreenUpdateProc
+  - SetSpecialTaskProc
+
+Special Issues in Multi-user Applications
+-----------------------------------------
+One problem that commonly occurs when browsing through a data file in
+a multi-user application is The Full Keyboard Buffer Problem. If you
+hold down one of the cursor keys (e.g. <Up>) for too long, the browser
+can appear to hang the machine as it tries repeatedly to scroll the
+display even though there are no records beyond the current one. The
+fbFlushKbd option allows you to minimize the effects of this problem
+by flushing the keyboard buffer when a request to scroll the display
+fails.
+
+A more serious issue is that of keeping the screen up-to-date, since
+another workstation can make a change that affects the records
+displayed on the current workstation. FBrowser deals with this issue
+in two ways. First, when the ccSelect command is issued, it checks to
+make sure that the selected record still exists. If it doesn't, a
+warning error is generated and the screen is redrawn.
+
+Second, it provides the SetRefreshFunc hook, which allows you to
+specify a function that is called by Process just before it checks for
+another command. If the function returns True, Process will rebuild
+the display. Two ready-made refresh functions are provided that
+approach the problem in slightly different ways, RefreshAtEachCommand
+and RefreshPeriodically. The FBDEMO program also demonstrates a third
+technique that relies on Novell's semaphore services. The chief
+advantage of this technique is that it provides virtually
+instantaneous updates to a browser's display when another workstation
+modifies a fileblock, without generating a significant amount of
+network traffic. The chief disadvantage of the technique is that it is
+less transparent than the others, since it requires you to keep the
+semaphores up to date when adding, modifying, or deleting records.
+
+In any case, you can use one of the refresh functions we've provided,
+or you can write your own, or you can ignore the problem entirely. The
+choice is yours. But we highly recommend that you use some kind of
+refresh function in any multi-user application that you write.
+
+Yet another problem can occur if a workstation locks a fileblock while
+the current one is in the middle of refreshing its display. If this
+happens (and the build item routine called by the browser is written
+properly), the browse window will display a single item marked as a
+locked record. (FBDEMO uses sequences of asterisks to indicate locked
+records.) The best way to avoid this problem is to use the
+fbUseReadLock option, which tells the FBrowser to read-lock the
+fileblock before it starts reading records. This insures that no other
+workstation will be able to lock the browser out of the fileblock
+while it is trying to refresh the screen or scroll the display.
+
+Of course, there's no guarantee that the current workstation will be
+able to read-lock the fileblock on the first try. For this and other
+reasons, FBrowser provides the SetRetries method, which allows you to
+specify the number of times that it should retry a FILER I/O call that
+has failed due to a lock error. The default setting of 50 should be
+appropriate for most applications, but a higher setting may be needed
+on large networks where many users might be modifying the same
+fileblock simultaneously.
+
+Errors and Error Handling
+-------------------------
+FBROWSE defines the following error codes in addition to those defined
+in the OPROOT unit of Object Professional:
+
+  ecWinTooSmall     = 06000; {init error--window/max rows too small}
+  ecNoIndex         = 06001; {init error--fileblock is not indexed}
+  ecIsamError       = 06002; {fatal Isam error--IsamError has actual code}
+  ecNoKeysFound     = 06003; {no keys found in requested range}
+  ecRecordGone      = 06004; {tried to select record that no longer exists}
+  ecRecordLocked    = 06005; {tried to select record and lock error occurred}
+  ecFileBlockLocked = 06006; {non-fatal error due to locked fileblock}
+
+The first two errors can occur only in a constructor. The
+ecWinTooSmall error will occur if either the height of the window or
+the maximum number of rows is less than the number of rows per item.
+The ecNoIndex error will occur if you try to browse a fileblock that
+is not indexed. The ecIsamError code indicates that a fatal FILER I/O
+error has occurred. FILER's IsamError variable contains the actual
+error code.
+
+The ecNoKeysFound error occurs when the browser is unable to find any
+records to display. It is classified as "fatal," because in most cases
+it is. But in two cases it may not be: 1) the case where the cause of
+the error was simply that SetKeyRange had been calling using a range
+that was too narrow, and the range can be reset, or 2) the case where
+the cause is a filter function that can be deactivated. The latter
+case can be seen in FBDMAIN.PAS, which corrects the problem by calling
+the browser's ClearErrors method and then deactivating the filter.
+Note that this error will never occur if the fbProcessZero option has
+been selected.
+
+The last three errors can occur only in multi-user applications, in
+cases where another workstation has deleted the record just selected
+by the user (ecRecordGone), a lock prevents access to it
+(ecRecordLocked), or a fileblock lock prevents the browse window from
+being drawn completely. These three errors are always classifies as
+warnings.
+
+Streams
+-------
+Like all other CommandWindow-based objects, an FBrowser/VBrowser may
+be stored in and reloaded from a stream, and the steps required are
+essentially identical to those for other window objects. You
+absolutely must, however, register two pointers before loading/storing
+a browser: the IsamFileBlockPtr and the address of the record buffer
+passed to the object's constructor.
+
+FBrowser's Store method saves all the data associated with the
+FBrowser itself, including the key and reference number for the
+currently highlighted record, but it does not save any of the data
+associated with the fileblock being browsed. That fileblock must be
+opened, and its address registered with the stream, both before the
+FBrowser is stored in the stream and before it is reloaded.
+
+See the InitBrowser routine in FBDMAIN.PAS for an example of how to
+store a browser in a stream and reload it.
+
+
+------- The Help File: FBROWSE.TXT ----------------------------------
+
+
+FBROWSE.TXT is intended to be merged with the help files for B-Tree
+Filer and/or Object Professional, allowing you to obtain popup help on
+FBROWSE using our POPHELP utility.
+
+To combine help files, you should use a text editor to modify the main
+text file of one of the help databases. Let's say that you want to
+combine Object Professional's help with the help for FBROWSE. To do
+so, you would edit OPRO.TXT and add FBROWSE.TXT to the list of
+included help files. Just prior to the INCLUDE directive for
+FBROWSE.TXT, you would insert an additional line with a !BIAS
+directive. The BIAS directive specifies how much to offset the topic
+numbers for all topics that follow. As this is written, there are 2813
+topics in the OPRO help file, so the merged OPRO.TXT would look
+something like the following:
+
+...
+!INCLUDE OPSWAP1.TXT
+!INCLUDE OPTSR.TXT
+!INCLUDE OPWINDOW.TXT
+;
+;highest topic number used 2813
+;
+!BIAS 2813
+;
+!INCLUDE FBROWSE.TXT
+
+You would then use MAKEHELP to recompile the combined help database:
+
+   MAKEHELP /Q OPRO
+
+
+------- Commands  ---------------------------------------------------
+
+
+The commands available while browsing are arranged by category in the
+list below. In each case the first line gives the name of the command,
+followed by the key(s) to which it is normally assigned. The second
+and following lines give a brief description of the command.
+
+
+ccLeft         <Left>, <CtrlS>
+Scroll window left 1 column.
+
+ccRight        <Right>, <CtrlD>
+Scroll window right 1 column.
+
+ccHome         <Home>, <CtrlQ><S>
+Scroll window to column 1.
+
+ccEnd          <End>, <CtrlQ><D>
+Scroll window to rightmost column, so that the end of each row is
+displayed.
+
+ccUp           <Up>, <CtrlE>, <CtrlW>
+Scroll window up one item.
+
+ccDown         <Down>, <CtrlX>, <CtrlZ>
+Scroll window down one item.
+
+ccPageUp       <PgUp>, <CtrlR>
+Scroll window up one page.
+
+ccPageDn       <PgDn>, <CtrlC>
+Scroll window down one page.
+
+ccFirstRec     <CtrlPgUp>, <CtrlQ><R>
+Scroll to first record in file.
+
+ccLastRec      <CtrlPgDn>, <CtrlQ><C>
+Scroll to last record in file.
+
+ccPlus         <+>
+Rebuild and redisplay the current page.
+
+ccSelect       <Enter>, <CtrlM>
+Select the currently highlighted item.
+
+ccQuit         <CtrlBreak>, <Esc>, <ClickRight>
+Quit browsing.
+
+ccHelp         <F1>, <ClickBoth>
+Help. If a user-written help routine has been established by calling
+FBrowserCommands.SetHelpProc, pressing <F1> will call that routine;
+otherwise this command does nothing. If there is a help procedure, the
+FBrowser will pass it the following three parameters: ucFBrowser,
+@Self, and the value designated as the window's help index (see
+CommandWindow.SetHelpIndex), which defaults to 0.
+
+ccMouseSel     <ClickLeft>
+Move the highlight bar to the position indicated by the mouse, if
+possible. If the highlight bar is already over the indicated item, or
+if the fbSelectOnClick option is on, it will be selected immediately,
+just as it would if <Enter> were pressed. This command may also be
+used to scroll the display by clicking on a scroll bar.
+
+
+------- Declarations ------------------------------------------------
+
+
+Constants
+
+    BadFBrowserOptions : LongInt =
+      fbChangedItems+fbLockPending+fbForceRedraw+fbIsNet+fbInProcess;
+
+  Options that exist for internal use, and may not be altered by
+  calling fbOptionsOn or fbOptionsOff.
+
+    ccFirstRec  = ccTopOfFile; {Move cursor to first record}
+    ccLastRec   = ccEndOfFile; {Move cursor to last record}
+    ccPlus      = ccToggle;    {Rebuild and redraw current page}
+    ccTask0     = 180;         {user-defined task commands}
+    ...
+    ccTask19    = 199;
+
+  Command codes unique to FBROWSE. (See the section on Commands,
+  above.)
+
+    DefFBrowserOptions : LongInt =
+      {$IFDEF UseDrag} fbSelectOnClick+ {$ENDIF}
+      fbMousePage+fbDrawActive+fbAutoScale+fbUseReadLock;
+
+  The default options for an FBrowser or VBrowser.
+
+    DefRetriesOnLock : Integer = 50;
+
+  Default number of times to retry following a lock error.
+
+    ecWinTooSmall     = 06000; {init error--window/max rows too small}
+    ecNoIndex         = 06001; {init error--fileblock is not indexed}
+    ecIsamError       = 06002; {fatal Isam error--IsamError has actual
+                                code}
+    ecNoKeysFound     = 06003; {no keys found in requested range}
+    ecRecordGone      = 06004; {tried to select record that no longer
+                                exists}
+    ecRecordLocked    = 06005; {tried to select record and lock error
+                                occurred}
+    ecFileBlockLocked = 06006; {non-fatal error due to locked
+                                fileblock}
+
+  Codes for errors reported only by FBrowser-based objects.
+
+    emIsamError    : string[40] =
+       'Fatal error accessing data or index file';
+    emNoKeysFound  : string[35] =
+       'No records found in specified range';
+    emRecordGone   : string[32] =
+       'Selected record no longer exists';
+    emRecordLocked : string[40] =
+       'Lock error while reading selected record';
+    emFileBlockLocked : string[14] =
+       'File is locked';
+
+  The default error messages corresponding to the ecIsamError,
+  ecNoKeysFound, ecRecordGone, ecRecordLocked, and ecFileBlockLocked
+  errors, respectively.
+
+    fbScrollByPage   = $00000001; {scroll by page on Up/Down?}
+    fbMousePage      = $00000002; {clicking on scroll bar scrolls by
+                                   page}
+    fbDrawActive     = $00000004; {Draw and Process leave sel item
+                                   visible}
+    fbUseReadLock    = $00000008; {use read locks while building
+                                   pages?}
+    fbAutoScale      = $00000010; {scale scroll bar based on low/high
+                                   keys?}
+    fbForceUpdate    = $00000020; {force the screen to be updated}
+    fbFlushKbd       = $00000040; {flush keyboard buffer at
+                                   boundaries}
+    fbBellOnFlush    = $00000080; {ring bell when flushing?}
+    fbBuildOnKey     = $00000100; {build item function needs only the
+                                   key}
+    fbCenterCurrent  = $00000200; {center new record in
+                                   SetCurrentRecord}
+    fbProcessZero    = $00000400; {allow Process of zero records}
+    fbSelectOnClick  = $00000800; {implicit Enter on first mouse click}
+
+    fbChangedItems   = $04000000; {internal flags}
+    fbFakingOneRec   = $08000000;
+    fbLockPending    = $10000000;
+    fbForceRedraw    = $20000000;
+    fbIsNet          = $40000000;
+    fbInProcess      = $80000000;
+
+  These are the options that affect the behavior of an FBrowser.
+  fbScrollByPage affects the vertical scrolling behavior of an
+  FBrowser when the cursor is moved (using <Up> or <Down>) to an item
+  not currently on screen. If the option is off, the window will be
+  scrolled only enough to display the new item. If it is on, the
+  window will be scrolled one full page. fbMousePage determines what
+  happens when the user clicks on the up and down arrows of a scroll
+  bar. If the option is off, the highlight will be moved up or down by
+  a single item; if it is on, the highlight will be moved up or down
+  one full page.
+
+  If the fbDrawActive option is on, the current item will be
+  highlighted at all times; if it is off, the item will be highlighted
+  only while the Process method is active. If the fbUseReadLock option
+  is on, the fileblock in use will be read-locked while building pages
+  and scrolling. The fbAutoScale option affects the behavior of
+  vertical scroll bars in cases where a low and high key have been
+  specified with SetKeyRange. If it is on, the scroll bar's scale is
+  based on the positions within the current index of the first and
+  last record within the range. If it is off, the scale is based on
+  the total number of records in the current index. The fbForceUpdate
+  option must be set any time that you call either Draw or Process
+  after adding, deleting, or modifying a record in the data file being
+  browsed.
+
+  The fbFlushKbd and fbBellOnFlush options are intended primarily for
+  use in multi-user applications, to avoid the common problem that
+  occurs when the user holds down one of the cursor keys too long.
+  When the end of the database is reached, the browser will appear to
+  hang because it's spending all of its time processing commands that
+  don't affect the display. The fbFlushKbd option simply tells
+  FBrowser to try to avoid this problem by flushing the keyboard
+  buffer when a cursor command fails to scroll the display. The
+  fbBellOnFlush option tells it to "ring the bell" each time a
+  keystroke is flushed from the keyboard buffer.
+
+  The fbBuildOnKey option tells the browser that the build item
+  routine can do its job given only an index key, and doesn't need the
+  actual record. The fbCenterCurrent option affects the behavior of
+  the SetCurrentRecord. If the option is on, and the record in
+  question isn't currently on screen, then SetCurrentRecord will try
+  to display it in the center of the browse window. If the option is
+  off, the record will be displayed at either the top or the bottom of
+  the window, depending on its relationship to the previously current
+  record.
+
+  The fbProcessZero option may be used to avoid the ecNoKeysFound
+  error in cases where there are 1) no records in the database, 2) no
+  records within the current key range, or 3) no records that match
+  the current filtering criteria. If this option is selected and one
+  of these conditions occurs, Process will display an empty browse
+  window and ignore most commands. Exit commands such as ccSelect will
+  behave normally, with the exception that the current record will not
+  be loaded automatically when ccSelect is executed. When using this
+  option, it is the programmer's responsibility to deal with the
+  possibility that one of these conditions might occur. You can test
+  for this situation either by calling fbOptionsAreOn(fbFakingOneRec)
+  (see below) or by calling GetCurrentKeyAndRef and checking for a
+  current record number of 0. The latter technique is used in FBDEMO,
+  which specifies the fbProcessZero option.
+
+  The fbSelectOnClick option is analogous to the pkSelectOnClick
+  option for OPRO pick lists: if this option is on, clicking on any
+  record just once will select the record immediately; if it is off,
+  clicking on a record will select it only if it is the current
+  record, otherwise it will be made the current record. By default,
+  this option is on if UseDrag is defined in OPDEFINE.INC, and off if
+  it isn't.
+
+  The remaining options--fbChangedItems, fbFakingOneRec,
+  fbLockPending, fbForceRedraw, fbIsNet, and fbInProcess--are intended
+  strictly for internal use, although there may be cases where you
+  might need to check the status of the fbFakingOneRec option using
+  fbOptionsAreOn. This flag is set in cases where the fbProcessZero
+  option has been selected and one of the three conditions described
+  above exists.
+
+    FBrowserKeyMax = 200;
+    FBrowserKeyID  : string[13] = 'fbrowser keys';
+    FBrowserKeySet : array[0..FBrowserKeyMax] of Byte = (...);
+    FBrowserCfgEnd : Byte = 0;
+
+  FBrowserKeyId is an ID string used to mark the beginning of the
+  configuration data area for FBROWSE; FBrowserCfgEnd marks the end of
+  the data area. In between them is FBrowserKeySet, the command table
+  used by FBrowserCommands. FBrowserKeyMax is the last valid index
+  into the table.
+
+    otFBrowser         = 999;
+    veFBrowser         = 0;
+    otVBrowser         = 998;
+    veVBrowser         = 0;
+    ptFBrowserCommands = 999;
+    ptNullFilterFunc   = 998;
+    ptNullRefreshFunc  = 997;
+
+  Object type, version, and pointer type codes used internally when
+  storing an FBrowser in a stream.
+
+    ucFBrowser         = 99;
+
+  FBROWSE's unit code, which is passed to the help routine (if any)
+  when the ccHelp command is issued.
+
+Types
+
+    BuildItemProc =
+      procedure (Row : Byte; var DatS; Len : Word; RecNum : LongInt;
+                 Key : IsamKeyStr; var S : string; FBP : FBrowserPtr);
+
+  A user-written routine that builds the string(s) corresponding to a
+  given item (record). See the entry for SetBuildItemProc for more
+  information.
+
+    FBrowserPtr = ^FBrowser;
+    FBrowser =
+      object(CommandWindow)
+        ...
+      end;
+
+  A window-based object used for browsing through datafiles containing
+  fixed-length records in indexed order.
+
+    FilterFunc =
+      function (RecNum : LongInt; Key : IsamKeyStr;
+                FBP : FBrowserPtr) : Boolean;
+
+  A user-written routine that is called to determine whether or not a
+  given record should be displayed.
+
+    RefreshFunc = function (FBP : FBrowserPtr) : Boolean;
+
+  A user-written routine that is called just before asking for the
+  next command.
+
+    SpecialTaskProc =
+      procedure (RecNum : LongInt; Key : IsamKeyStr;
+                 FBP : FBrowserPtr);
+
+  A user-written routine that is called when one of the special task
+  commands (ccTask0..ccTask19) is issued. A pre-move procedure is also
+  of this type.
+
+    UpdateProc = procedure (FBP : FBrowserPtr);
+
+  A user-written routine that is called each time the browser's window
+  is redrawn or scrolled.
+
+Variables
+
+    {$IFDEF UseDrag}
+    FBrowserCommands : DragProcessor;
+    {$ELSE}
+    FBrowserCommands : CommandProcessor;
+    {$ENDIF}
+
+  The default CommandProcessor for an FBrowser. UseDrag is a
+  conditional define in OPDEFINE.INC (OPRO version 1.03 or higher).
+
+
+------- FBrowser ----------------------------------------------------
+
+
+This section describes each of the documented methods implemented in
+the FBrowser object. Note that in many cases the "See Also" section of
+an entry makes reference to a method implemented by one of FBrowser's
+parents, such as CommandWindow.Done. Documentation for these methods
+may be found in the Object Professional manual.
+
+
+Declaration
+  procedure BuildOneRow(Row : Byte; var DatS; Len : Word;
+                        RecNum : LongInt; Key : IsamKeyStr;
+                        var S : string); virtual;
+Purpose
+  Convert specified row of specified item to a string.
+Description
+  You may override this virtual method in lieu of calling
+  SetBuildItemProc. This method is called by BuildOneItem once for
+  each row in the item, and (by default) it in turn calls the
+  BuildItem routine specified in the call to SetBuildItemProc.
+See Also
+  BuildOneItem  SetBuildItemProc
+
+
+Declaration
+  procedure BuildOneItem(Item : Byte; Locked : Boolean); virtual;
+Purpose
+  Convert specified item to a string.
+Description
+  You may override this virtual method in lieu of calling
+  SetBuildItemProc.
+
+  If Locked is True, the record corresponding to Item does not need to
+  be read. BuildOneItem should skip that step and behave as it would
+  if an attempt to read the record had failed due to a lock error.
+See Also
+  BuildOneRow  SetBuildItemProc
+
+
+Declaration
+  procedure CharHook; virtual;
+Purpose
+  Called each time a regular character is entered by the user.
+Description
+  This method, which is called each time that a regular character is
+  entered by the user (i.e., the ccChar command is generated), does
+  nothing by default. It exists only to provide a hook that allows
+  derived object types to provide incremental searching capabilities
+  of the type found in PickLists.
+
+  The keys to implementing this kind of functionality are the
+  GetCurrentKeyAndRef and SetCurrentRecord methods.
+  GetCurrentKeyAndRef returns the key and reference number for the
+  currently selected item, which together provide a starting point for
+  a search operation. Once the search engine has found the record to
+  be highlighted, SetCurrentRecord may be called to move the highlight
+  bar.
+See Also
+  GetCurrentKeyAndRef  SetCurrentRecord
+
+
+Declaration
+  procedure CursorLeft; virtual;
+Purpose
+  Called to process the ccLeft command.
+Description
+  This method provides a hook that allows derived object types to
+  scroll the display horizontally in variably-sized increments when
+  the ccLeft command is issued. It thus allows you, for example, to
+  alter the behavior of the browser so that ccLeft scrolls the display
+  left by one field rather than a fixed number of columns (usually
+  one). Such a method would look something like this in outline:
+
+    procedure MyEntryScreen.CursorLeft;
+    var
+      NewColumn : Word;
+    begin
+      {calculate value for NewColumn based on GetCurrentCol}
+      fbScrollHoriz(NewColumn-GetCurrentCol);
+    end;
+
+  fbScrollHoriz is a method that scrolls the display horizontally in
+  either direction (negative values scroll the display to the left,
+  positive values scroll it to the right).
+See Also
+  CursorRight  GetCurrentCol
+
+
+Declaration
+  procedure CursorRight; virtual;
+Purpose
+  Called to process the ccRight command.
+Description
+  This method provides a hook that allows derived object types to
+  scroll the display horizontally in variably-sized increments when
+  the ccRight command is issued. It thus allows you, for example, to
+  alter the behavior of the browser so that ccRight scrolls the
+  display right by one field rather than by a fixed number of columns
+  (usually one). Such a method would look something like this in
+  outline:
+
+    procedure MyEntryScreen.CursorRight;
+    var
+      NewColumn : Word;
+    begin
+      {calculate value for NewColumn based on GetCurrentCol}
+      fbScrollHoriz(NewColumn-GetCurrentCol);
+    end;
+
+  fbScrollHoriz is a method that scrolls the display horizontally in
+  either direction (negative values scroll the display to the left,
+  positive values scroll it to the right).
+See Also
+  CursorLeft  GetCurrentCol
+
+
+Declaration
+  destructor Done; virtual;
+Purpose
+  Deallocate item records.
+Description
+  This destructor disposes of all memory allocated for item records
+  and then calls the parent's destructor to deallocate memory used for
+  window buffers, shadows, etc.
+See Also
+  CommandWindow.Done  Init  InitCustom
+
+
+Declaration
+  procedure DrawItem(Item : Byte; Highlight : Boolean); virtual;
+Purpose
+  Draw the specified (relative) Item of the browse window.
+Description
+  This method should not be called directly. It is documented only
+  because it will sometimes be desirable to override it. For example,
+  if you wanted to display different sections of a given item in
+  different video attributes, you could do so by overriding this
+  method. The best way to approach the task would be to make a copy of
+  the source code for FBrowser.DrawItem and modify it to do what you
+  want.
+
+
+Declaration
+  function fbOptionsAreOn(OptionFlags : LongInt) : Boolean;
+Purpose
+  Return True if all specified options are on.
+Description
+  This method returns True if all of the specified options are
+  currently selected.
+Example
+    if FB.fbOptionsAreOn(fbScrollByPage) then
+      FB.fbOptionsOff(fbScrollByPage)
+    else
+      FB.fbOptionsOn(fbScrollByPage);
+
+  Toggle the scroll-by-page option.
+See Also
+  fbOptionsOn  fbOptionsOff
+
+
+Declaration
+  procedure fbOptionsOff(OptionFlags : LongInt);
+Purpose
+  Deactivate multiple options.
+Description
+  This method deactivates the specified option(s), excluding those
+  designated as BadFBrowserOptions (see the Constants section, above).
+See Also
+  fbOptionsAreOn  fbOptionsOn
+
+
+Declaration
+  procedure fbOptionsOn(OptionFlags : LongInt);
+Purpose
+  Activate multiple options.
+Description
+  This method activates the specified option(s), excluding those
+  designated as BadFBrowserOptions (see the Constants section, above).
+See Also
+  fbOptionsAreOn  fbOptionsOff
+
+
+Declaration
+  function GetCurrentCol : Word;
+Purpose
+  Get column currently displayed at left edge of window.
+Description
+  Returns the number of the column currently displayed at the left
+  edge of the window. This information is generally useful only in
+  user-written screen update routines. Note that, if the window does
+  not scroll horizontally, GetCurrentCol will always return 1.
+Example
+  See the UpdateScreen routine in FBDMAIN.PAS.
+See Also
+  GetCurrentItem  GetFirstCol  SetScreenUpdateProc
+
+
+Declaration
+  function GetFirstCol : Word;
+Purpose
+  Get first column of data to be loaded into memory.
+Description
+  This function should be called by build item routines in cases where
+  the maximum number of columns per row is greater than 255. It
+  indicates the first column of data that should be returned. See the
+  section on "Rows Longer than 255 Characters," above, for details.
+See Also
+  GetCurrentCol  SetBuildItemProc
+
+
+Declaration
+  function GetCurrentItem : Byte;
+Purpose
+  Get number of currently highlighted item.
+Description
+  Returns a number indicating which item in the window is currently
+  highlighted. The item displayed at the top of the window is item 1,
+  the item below it is item 2, and so on.
+See Also
+  GetCurrentCol  GetItemString
+
+
+Declaration
+  procedure GetCurrentKeyAndRef(var Key : IsamKeyStr; var Ref : LongInt);
+Purpose
+  Retrieve current key and reference number.
+Description
+  Returns the key and reference number for the currently highlighted
+  item.
+See Also
+  GetCurrentRecord
+
+
+Declaration
+  procedure GetCurrentRecord(var DatS; var DatLen : Word);
+Purpose
+  Retrieve current record.
+Description
+  Reads the current record into the variable passed as the DatS
+  parameter. DatLen is the length of the record read in, information
+  that is important only for variable-length Fileblocks.
+
+  IMPORTANT: Be sure to check IsamOK after calling this method to
+  determine whether or not the record was read successfully.
+Example
+  See FBDMAIN.PAS.
+See Also
+  GetCurrentKeyAndRef  GetRecord  SetCurrentRecord
+
+
+Declaration
+  function GetFileBlockPtr : IsamFileBlockPtr;
+Purpose
+  Get pointer to associated fileblock.
+Description
+  Returns a pointer to the fileblock being browsed, the same pointer
+  that was passed to the Init constructor.
+See Also
+  InitCustom  SetFileBlockPtr
+
+
+Declaration
+  function GetItemString(Item, Row : Byte) : string; virtual;
+Purpose
+  Get string corresponding to specified Row of specified Item.
+Description
+  This function may be used to access the string(s) displayed by the
+  browser for a given item.
+Example
+    FB.GetItemString(FB.GetCurrentItem, 1)
+
+  Returns string corresponding to row 1 of the currently selected
+  item.
+See Also
+  GetCurrentItem
+
+
+Declaration
+  function GetKeyNumber : Integer;
+Purpose
+  Get current index key number.
+Description
+  This function indicates which set of index keys is being used to
+  determine the order in which records are displayed.
+Example
+    if FB.GetKeyNumber = 1 then
+      FB.SetKeyNumber(2)
+    else
+      FB.SetKeyNumber(1);
+
+  Toggle between key numbers 1 and 2.
+See Also
+  SetKeyNumber
+
+
+Declaration
+  procedure GetRecord(Ref : LongInt; var DatS;
+                      var Len : Word); virtual;
+Purpose
+  Low-level routine to read a specific record.
+Description
+  This method is intended primarily for internal use, but you may use
+  it if you wish (see the ValidatePerson routine--a filter
+  function--in FBDMAIN.PAS). It is documented primarily because it
+  will sometimes be desirable to override it. The VBrowser object
+  overrides it, for example, in order to provide support for
+  variable-length records. You may wish to override it in order to
+  implement a record caching scheme, for example.
+
+  Note that GetRecord does not retry if the attempt to read the record
+  fails due to a lock error.
+See Also
+  GetCurrentRecord
+
+
+Declaration
+  constructor Init(X1, Y1, X2, Y2 : Byte;
+                   IFBPtr : IsamFileBlockPtr;
+                   KeyNum : Integer;
+                   var DatS;
+                   MaxRows, RowsPerItem : Byte;
+                   MaxCols : Word);
+Purpose
+  Initialize an FBrowser with default window options.
+Description
+  This constructor instantiates an FBrowser using the default window
+  options (DefWindowOptions) and the default color set
+  (DefaultColorSet). See InitCustom for further details.
+Example
+  See the FBSIMPLE example program, above.
+See Also
+  InitCustom
+
+
+Declaration
+  constructor InitCustom(X1, Y1, X2, Y2 : Byte;
+                         var Colors : ColorSet;
+                         Options : LongInt;
+                         IFBPtr : IsamFileBlockPtr;
+                         KeyNum : Integer;
+                         var DatS;
+                         MaxRows, RowsPerItem : Byte;
+                         MaxCols : Word);
+Purpose
+  Initialize an FBrowser with custom window options.
+Description
+  InitCustom instantiates an FBrowser using the specified window
+  Options and Colors. X1, Y1, X2, and Y2 are the coordinates for the
+  interior of the window, where the contents of the data file are
+  displayed.
+
+  The IFBPtr parameter must be a pointer to an open fileblock. Note
+  that InitCustom has no means of determining whether or not this
+  requirement has been met, so no error will be generated if it isn't.
+
+  KeyNum indicates which set of index keys to use for ordering the
+  records to be displayed. Note that the fileblock must have at least
+  one set of keys. If it doesn't, InitCustom will fail with InitStatus
+  set to epFatal+ecNoIndex.
+
+  DatS should name a record variable of the type stored in the
+  fileblock. Normally it should be a global variable (stored in the
+  data segment) or a variable allocated on the heap, but it may be a
+  local variable (stored on the stack) if the FBrowser object is used
+  only within the scope of the same procedure.
+
+  MaxRows specifies the maximum number of rows to be displayed in the
+  browse window. In most cases, MaxRows should be equal to the height
+  of the window (Y2-Y1+1), and if that's what you want you can simply
+  pass 0. If the window is resizeable, however, you may want to
+  specify a larger value. RowsPerItem indicates how many rows of
+  information are required to display a given item; normally this will
+  be 1. The maximum number of items that can be displayed at one time
+  may be calculated as MaxRows div RowsPerItem. MaxCols specifies the
+  maximum number of columns to be displayed on a given row. If you
+  pass 0, InitCustom will set the maximum columns equal to the width
+  of the window. Note that the text in the window will not scroll
+  horizontally if MaxCols is less than or equal to the width.
+
+  InitCustom will try to allocate a variably-sized array containing
+  information about the items it is displaying; the actual size and
+  contents of the array depend on the values passed for MaxRows,
+  RowsPerItem, and MaxCols. InitCustom will fail if it is unable to
+  allocate this array. It will also fail if RowsPerItem is greater
+  than either Self.Height or MaxRows (InitStatus =
+  epFatal+ecWinTooSmall). The most likely cause of failure is
+  insufficient memory. The precise cause may be determined by
+  examining InitStatus.
+
+  Two sets of attributes in the specified ColorSet have special
+  relevance for window objects of type FBrowser. TextColor/TextMono
+  determine the attribute used for unselected items, and
+  SelItemColor/SelItemMono determine the attribute used for selected
+  items. After the object has been instantiated, these attributes may
+  be changed by calling the SetNormAttr and SetSelectAttr methods,
+  respectively.
+
+  Note that the browser will remain in a semi-uninitialized state
+  until Draw or Process is called. That is, you should not call any of
+  the following methods in the interim: GetCurrentItem,
+  GetCurrentKeyAndRef, GetCurrentRecord, or GetItemString. Doing so is
+  considered a fundamental programming error, and no error will be
+  generated if you commit it.
+Example
+    if not InitCustom(2, 2, ScreenWidth-1, ScreenHeight-1,
+                      DefaultColorSet, DefWindowOptions or wBordered,
+                      MyIFBPtr, 1, MyRecordBuffer,
+                      0, 1, 0) then begin
+      WriteLn('Failed to init FBrowser. Status = ', InitStatus);
+      Halt;
+    end;
+
+  Instantiates a bordered, full-screen file browser with the default
+  color set. MyIFBPtr is a fileblock that has already been opened.
+  MyRecordBuffer is a record variable of the size and type stored in
+  the fileblock. The values for MaxRows and MaxCols will be calculated
+  based on the height and width of the window, respectively.
+See Also
+  CommandWindow.InitCustom  Init
+
+
+Declaration
+  function IsFilteringEnabled : Boolean; virtual;
+Purpose
+  Return True if filtering is enabled.
+Description
+  This function returns True if record filtering has been "enabled" by
+  using SetFilterFunc to specify a filter function other than
+  NullFilterFunc.
+Example
+    if FB.IsFilteringEnabled
+      FB.SetFilterFunc(NullFilterFunc)
+    else
+      FB.SetFilterFunc(MyFilterFunc);
+
+  Toggle record filtering.
+See Also
+  NullFilterFunc  RecordFilter  SetFilterFunc
+
+
+Declaration
+  constructor Load(var S : IdStream);
+Purpose
+  Load a file browser from a stream.
+Description
+  S is a properly initialized stream object (a stream file opened for
+  reading, for example). Note that S can be any descendant of the
+  IdStream type, which includes DosIdStream, BufIdStream, and
+  MemIdStream. Load reads the next sequence of bytes from the stream
+  S. These bytes must have been written by a previous call to
+  FBrowser.Store.
+
+  The stream registration procedure for an FBrowser is FBrowserStream.
+  The stream registration procedure for a VBrowser is VBrowserStream.
+
+  For additional information, see the discussion of Streams in the
+  Miscellaneous Issues section, above.
+Example
+  See the InitBrowser routine in FBDMAIN.PAS.
+See Also
+  Store
+
+
+Declaration
+  function NeedRefresh : Boolean; virtual;
+Purpose
+  Do we need to refresh the display?
+Description
+  You may override this virtual method in lieu of calling
+  SetRefreshFunc. NeedRefresh is called by FBrowser's ProcessSelf
+  method just after it calls the PreMove method. If NeedRefresh
+  returns True, the ccPlus command is executed; otherwise,
+  GetNextCommand is called to get the next command from the user.
+See Also
+  SetRefreshFunc
+
+
+Declaration
+  procedure PreMove; virtual;
+Purpose
+  Called just prior to getting each keyboard command.
+Description
+  You may override this virtual method in lieu of calling
+  SetPreMoveProc. PreMove is called by FBrowser's ProcessSelf method
+  just before it calls NeedRefresh.
+See Also
+  SetPreMoveProc
+
+
+Declaration
+  procedure ProcessSelf; virtual;
+Purpose
+  Process browse commands.
+Description
+  The FBrowser's ProcessSelf method follows the general model
+  described in the Object Professional manual under
+  CommandWindow.Process.
+See Also
+  CommandWindow.Process
+
+
+Declaration
+  function RecordFilter(RecNum : LongInt; Key : IsamKeyStr) : Boolean; virtual;
+Purpose
+  Return True if this record should be displayed.
+Description
+  You may override this virtual method in lieu of calling
+  SetFilterFunc. Note that, if you did so, you should also override
+  the IsFilteringEnabled method.
+See Also
+  SetFilterFunc
+
+
+Declaration
+  procedure ScreenUpdate; virtual;
+Purpose
+  Called on each screen update; when current item/column changes.
+Description
+  You may override this virtual method in lieu of calling
+  SetScreenUpdateProc.
+See Also
+  SetScreenUpdateProc
+
+
+Declaration
+  procedure SetBuildItemProc(BIF : BuildItemProc);
+Purpose
+  Set procedure to build an item.
+Description
+  This is used to specify a user-supplied procedure that will take a
+  record read in from the data file and return the formatted string to
+  be displayed in the window.
+
+  VERY IMPORTANT: When you use an FBrowser object, you MUST either
+  call this method or override the BuildOneItem method.
+
+  A build item procedure must be of the following form:
+
+    {$F+}
+    procedure BuildItem(Row : Byte; var DatS; Len : Word;
+                        RecNum : LongInt; Key : IsamKeyStr;
+                        var S : string; FBP : FBrowserPtr);
+    begin
+      S := ????;
+    end;
+
+  The Row parameter is meaningful only if each item occupies more than
+  one row; if so, Row indicates which row (1..n) of the item needs to
+  be built. DatS is the record to be converted to a string. Len is its
+  length. RecNum is its reference number. Key is the corresponding key
+  in the index file. S is the string to be displayed. And FBP is the
+  address of the FBrowser making the call.
+
+  If the maximum number of columns per row is greater than 255,
+  GetFirstCol should be called to determine which columns of data are
+  needed. See the section on "Rows Longer than 255 Characters," above,
+  for details.
+
+  IMPORTANT: If the RecNum parameter is -1, the record in question
+  could not be read due to a file or record lock. In this case, the
+  DatS and Len parameters should be ignored, and the string returned
+  should give the user some indication that the record couldn't be
+  read. (See the BuildRow routine in FBDMAIN.PAS for an example.)
+
+  Note: If your build item procedure needs only the information in the
+  Key parameter in order to build the row, you can improve performance
+  markedly by setting the fbBuildOnKey option.
+Example
+  See the BuildRow routine in FBDMAIN.PAS.
+See Also
+  BuildOneItem  BuildOneRow  GetFirstCol
+
+
+Declaration
+  procedure SetFileBlockPtr(IFBPtr : IsamFileBlockPtr);
+Purpose
+  Set pointer to associated fileblock (after rebuild).
+Description
+  This method should be called in cases where the fileblock being
+  browsed is rebuilt while browsing. In such a case, there is no
+  guarantee that the file block pointer passed to FBrowser's
+  constructor will still be valid after the rebuild operation is
+  complete and the file block is reopened. See the RebuildData routine
+  in FBDMAIN.PAS for an example of such a routine.
+See Also
+  GetFileBlockPtr  InitCustom
+
+
+Declaration
+  procedure SetCurrentRecord(Key : IsamKeyStr; Ref : LongInt);
+Purpose
+  Set the current record.
+Description
+  This method allows you to move the highlight bar from one record to
+  another. Normally Key and Ref should identify a record that is known
+  to exist, but it may also be used to move the highlight to an
+  approximate location (see the first example below). Note that, if
+  the browser is the current window, the screen will be updated
+  immediately.
+
+  If it isn't current, the change will not take effect until Draw or
+  Process is called, and the browser will be in a semi-uninitialized
+  state until then. That is, you should not call any of the following
+  methods in the interim: GetCurrentItem, GetCurrentKeyAndRef,
+  GetCurrentRecord, or GetItemString. Doing so is considered a
+  fundamental programming error, and no error will be generated if you
+  commit it.
+
+  See the discussion of the fbCenterCurrent option, above, for
+  additional information concerning SetCurrentRecord.
+Examples
+    SetCurrentRecord('', 1);
+
+  Move highlight to the first record in the file. This is the default
+  situation, when an FBrowser is instantiated.
+
+    SetCurrentRecord(MyKey, MyRef);
+
+  Move highlight to the record with a key of MyKey and a reference
+  number of MyRef.
+See Also
+  CharHook  GetCurrentRecord
+
+
+Declaration
+  procedure SetFilterFunc(FF : FilterFunc);
+Purpose
+  Set record filtering function.
+Description
+  This method allows you to specify a function that can selectively
+  filter out records that you don't want displayed. For example, if
+  you wanted to display in alphabetical order the names of all people
+  in the database who lived in a particular state, and the database
+  was indexed by name, you could simply write a filter function that
+  read in the record under consideration and returned True if the
+  state was a match.
+
+  A filter function must be of the following form:
+
+    {$F+}
+    function MyFilter(RecNum : LongInt; Key : IsamKeyStr;
+                      FBP : FBrowserPtr) : Boolean;
+    begin
+    end;
+
+  RecNum is the reference number for the currently selected item. Key
+  is the corresponding index key. FBP is the address of the FBrowser
+  making the call. The function should return True to display the
+  record, or False to skip it.
+
+  Note: Be forewarned that filtering a database in this "brute force"
+  fashion can degrade the browser's performance markedly, particularly
+  when the database is large. Where possible, filtering should instead
+  be performed by specifying a range of index keys or by building a
+  temporary index.
+Example
+  See the ValidatePerson function in FBDMAIN.PAS.
+See Also
+  IsFilteringEnabled  NullFilterFunc  RecordFilter  SetKeyRange
+
+
+Declaration
+  {$IFDEF UseScrollBars}
+  procedure SetHorizScrollBarDelta(Delta : Byte);
+Purpose
+  Set columns to jump when scrolling horizontally (via a scroll bar).
+Description
+  This method is similar to SetHorizScrollDelta. It may be used to
+  specify the number of columns that the display is scrolled when the
+  mouse is clicked on the left or right arrows of a horizontal scroll
+  bar.
+See Also
+  SetHorizScrollDelta
+
+
+Declaration
+  procedure SetHorizScrollDelta(Delta : Byte);
+Purpose
+  Set columns to jump when scrolling horizontally.
+Description
+  This method allows you to specify how many columns the display
+  should "jump" when the window has to be scrolled horizontally (when
+  <Left> or <Right> is pressed). The default setting is 1. Note that
+  if Delta is greater than Self.Width (i.e., the width of the interior
+  portion of the window), the display will be scrolled Self.Width
+  columns at a time.
+See Also
+  SetHorizScrollBarDelta  SetVertScrollDelta
+
+
+Declaration
+  procedure SetKeyNumber(KeyNum : Integer);
+Purpose
+  Switch index keys.
+Description
+  This method allows you to switch index keys after the browser has
+  been initialized. It should not be called while Process is active
+  (from within a special task procedure, for example); if it is,
+  SetKeyNumber will do nothing. Note that SetKeyNumber also calls
+  SetKeyRange to cancel the current range settings.
+See Also
+  GetKeyNumber  SetKeyRange
+
+
+Declaration
+  procedure SetKeyRange(LowKey, HighKey : IsamKeyStr);
+Purpose
+  Set subrange of valid keys.
+Description
+  This method allows you to specify a range of records to be
+  displayed, based on index keys. Note that it does nothing if called
+  while Process is active (e.g., if called from a special task
+  procedure).
+Example
+    FB.SetKeyRange('A'#0, 'A'#255);
+
+  Display only those records whose keys start with 'A'.
+See Also
+  SetKeyNumber
+
+
+Declaration
+  procedure SetNormAttr(Color, Mono : Byte);
+Purpose
+  Set attribute for unselected items.
+Description
+  This method allows you to set the attribute used to display
+  unselected items.
+See Also
+  SetSelectAttr
+
+
+Declaration
+  procedure SetPreMoveProc(PMP : SpecialTaskProc);
+Purpose
+  Set user-defined procedure to call before each command.
+Description
+  This method allows you to specify a procedure that is to be called
+  just before the Process method asks the browser's CommandProcessor
+  for the next command. This hook may be used, for example, to display
+  additional information about the currently selected item, or to
+  update a second browser whose fileblock is related to the first.
+
+  A pre-move procedure must be of the following form:
+
+    {$F+}
+    procedure MyPreMove(RecNum : LongInt; Key : IsamKeyStr;
+                        FBP : FBrowserPtr);
+    begin
+    end;
+
+  RecNum is the reference number for the currently selected item. Key
+  is the corresponding index key. FBP is the address of the FBrowser
+  making the call.
+See Also
+  PreMove
+
+
+Declaration
+  procedure SetRefreshFunc(RF : RefreshFunc);
+Purpose
+  Set routine called to determine if screen refresh is needed.
+Description
+  This method allows you to specify a function that can request a
+  complete screen update. This facility is useful only in multi-user
+  applications, where other workstations can alter the contents of the
+  database, potentially affecting the accuracy of the data displayed
+  on the current workstation. Normally changes made by other
+  workstations are reflected only when the user issues a command (such
+  as <PgUp>) that causes the browser to build a new page of data. The
+  refresh function hook makes it possible for the browser's display to
+  be updated more or less continuously on an as-needed basis.
+
+  The FBROWSE unit contains two ready-made refresh functions that you
+  may activate if you wish, RefreshAtEachCommand and
+  RefreshPeriodically, both of which rely on the PageStackValid
+  function in the FILER unit (or the BTOtherWSChangedKey function in
+  FILER 5.2). Alternative refresh functions might be written using,
+  for example, IPX services or Novell's semaphore services. The latter
+  approach is demonstrated in FBDMAIN.PAS, which uses the routines in
+  NETSEMA.PAS and OOPSEMA.PAS when the program is compiled for use
+  under Novell. (To see how the semaphore services were used in
+  FBDEMO, load FBDMAIN.PAS into an editor and search for the string
+  '{$IFDEF Novell}'.)
+
+  A refresh function must be of the following form:
+
+    {$F+}
+    function MyRefreshFunc(FBP : FBrowserPtr) : Boolean;
+    begin
+    end;
+
+  FBP is the address of the FBrowser making the call. The function
+  should return True if the display needs to be rebuilt and redrawn
+  ("refreshed").
+Example
+    SetRefreshFunc(RefreshPeriodically);
+    RefreshPeriod := 18*3;
+
+  Enable the RefreshPeriodically function and set the interval between
+  checks to 3 seconds.
+See Also
+  NeedRefresh NullRefreshFunc RefreshAtEachCommand RefreshPeriodically
+
+
+Declaration
+  procedure SetRetries(Retries : Integer);
+Purpose
+  Set number of times to retry on I/O operations.
+Description
+  This method allows you to specify the number of times that the
+  browser should retry an I/O operation in the event of a lock error.
+  The default setting is 50 (DefRetriesOnLock).
+
+
+Declaration
+  procedure SetScreenUpdateProc(SUP : UpdateProc);
+Purpose
+  Set user-defined procedure to call on each screen update.
+Description
+  This method allows you to specify a routine that is to be called
+  each time that the browser's window is redrawn or scrolled. It is
+  especially useful in cases where the window has a row of column
+  headers that need to scroll horizontally in unison with the text in
+  the window proper. (See the UpdateScreen routine in FBDMAIN.PAS for
+  an example of such a case.)
+
+  A screen update procedure must be of the following form:
+
+    {$F+}
+    procedure MyScreenUpdate(FBP : FBrowserPtr);
+    begin
+    end;
+
+  FBP is the address of the FBrowser making the call.
+Example
+  See the UpdateScreen routine in FBDMAIN.PAS.
+See Also
+  ScreenUpdate
+
+
+Declaration
+  procedure SetSelectAttr(Color, Mono : Byte);
+Purpose
+  Set attribute for selected items.
+Description
+  This method allows you to set the attribute used to highlight the
+  currently selected item.
+See Also
+  SetNormAttr
+
+
+Declaration
+  procedure SetSpecialTaskProc(STP : SpecialTaskProc);
+Purpose
+  Set user-defined special task hook.
+Description
+  This method allows you to specify a routine that is to be called
+  whenever a command in the range ccTask0..ccTask19 is issued. The
+  hook thus provides a convenient means of adding user-defined
+  commands that can be executed without exiting from Process. It is
+  especially useful for implementing commands that simply toggle
+  configuration options on or off.
+
+  Note that a special task procedure may force another command (ccUp,
+  ccHome, etc.) to be executed by calling the SetLastCommand method.
+  If no other command needs to be executed, the special task procedure
+  should call SetLastCommand with a parameter of ccNone.
+
+  A special task procedure must be of the following form:
+
+    {$F+}
+    procedure MySpecialTask(RecNum : LongInt; Key : IsamKeyStr;
+                            FBP : FBrowserPtr);
+    begin
+      { FBP^.SetLastCommand(ccNone); }
+    end;
+
+  RecNum is the reference number for the currently selected item. Key
+  is the corresponding index key. FBP is the address of the FBrowser
+  making the call.
+See Also
+  SpecialTask
+
+
+Declaration
+  procedure SetVertScrollDelta(Delta : Byte);
+Purpose
+  Set rows (items) to jump when scrolling vertically.
+Description
+  This method allows you to specify how many items the display should
+  "jump" when the window has to be scrolled vertically (when <Up> or
+  <Down> is pressed). The default setting is 1. Note that if Delta is
+  greater than NI, where NI is the number of items in the window, the
+  display will be scrolled NI items at a time, just as it would be if
+  the fbScrollByPage option were set.
+See Also
+  SetHorizScrollDelta
+
+
+Declaration
+  procedure SpecialTask; virtual;
+Purpose
+  Special task hook.
+Description
+  You may override this virtual method in lieu of calling
+  SetSpecialTaskProc.
+See Also
+  SetSpecialTaskProc
+
+
+Declaration
+  procedure Store(var S : IdStream);
+Purpose
+  Store a file browser in a stream.
+Description
+  S is a properly initialized stream object (a stream file opened for
+  writing, usually). Note that S can be any descendant of the IdStream
+  type, which includes DosIdStream, BufIdStream, and MemIdStream
+  (although you typically wouldn't write to a MemIdStream).
+
+  Store writes an image of the FBrowser's data to the stream S. (See
+  the discussion of Streams in the Miscellaneous Issues section,
+  above.)
+
+  The stream registration procedure for an FBrowser is FBrowserStream.
+  The stream registration procedure for a VBrowser is VBrowserStream.
+Example
+  See the InitBrowser routine in FBDMAIN.PAS.
+See Also
+  Load
+
+
+------- VBrowser -----------------------------------------------------------
+
+
+The FBrowser object works only with Fileblocks containing fixed-length
+records. In order to browse a file containing variable-length records,
+you must use the VBrowser object instead:
+
+Types
+
+  VBrowserPtr = ^VBrowser;
+  VBrowser =
+    object(FBrowser)
+    end;
+
+  A window-based object used for browsing through datafiles containing
+  variable-length records in indexed order.
+
+
+Declaration
+  procedure GetRecord(Ref : LongInt; var Len : Word); virtual;
+Purpose
+  Low-level routine to read a specific record.
+Description
+  VBrowser overrides this method in order to reroute the read request
+  to the appropriate routine in the VREC unit.
+See Also
+  FBrowser.GetRecord
+
+
+------- Procedures and Functions -------------------------------------------
+
+
+FBROWSE also provides the following procedures, functions, and
+variables:
+
+
+Variables
+
+    RefreshPeriod : Word = 18*5;
+
+  This typed constant tells the RefreshPeriodically function how often
+  to check to see if the display needs to be refreshed. The value is
+  in clock ticks (roughly 18/second), so the default setting requests
+  that checks be made every five seconds.
+
+
+Declaration
+  function NullFilterFunc(RecNum : LongInt; Key : IsamKeyStr;
+                          FBP : FBrowserPtr) : Boolean;
+Purpose
+  Do-nothing record filtering function.
+Description
+  The default record filtering function. It always returns True,
+  indicating that the record in question should be displayed.
+See Also
+  FBrowser.SetFilterFunc
+
+
+Declaration
+  function NullRefreshFunc(FBP : FBrowserPtr) : Boolean;
+Purpose
+  Do-nothing refresh function.
+Description
+  The default refresh function. It always returns False, indicating
+  that the display does not need to be refreshed.
+See Also
+  FBrowser.SetRefreshFunc
+
+
+Declaration
+  function RefreshAtEachCommand(FBP : FBrowserPtr) : Boolean;
+Purpose
+  Check for need to refresh before each command if no keystrokes
+  pending.
+Description
+  This refresh function checks to see if a keystroke is waiting to be
+  processed and, if not, it calls the PageStackValid function in the
+  FILER unit. If PageStackValid is called and it returns StateInvalid,
+  RefreshAtEachCommand returns True, otherwise False. (For FILER 5.2,
+  this refresh function calls BTOtherWSChangedKey, which returns True
+  if another workstation changed the specified index.)
+
+  Important: The technique used by RefreshAtEachCommand is not
+  guaranteed to detect changes to existing records made by other
+  workstations, only additions and deletions. It will detect changes
+  only if the change alters the set of index keys currently used by
+  the browser (see GetKeyNumber).
+See Also
+  FBrowser.SetRefreshFunc
+
+
+Declaration
+  function RefreshPeriodically(FBP : FBrowserPtr) : Boolean;
+Purpose
+  Check for need to refresh every RefreshPeriod clock ticks.
+Description
+  This refresh function sits in a loop waiting for a key to be
+  pressed. Every RefreshPeriod clock ticks (= 5 seconds by default),
+  it calls the PageStackValid (or BTOtherWSChangedKey in B-Tree Filer
+  5.2) function in the FILER unit. If PageStackValid returns
+  StateInvalid, RefreshPeriodically exits immediately with a function
+  result of True. Otherwise it continues looping until a key is
+  pressed, in which case it returns False.
+
+  Important: The technique used by RefreshPeriodically is not
+  guaranteed to detect changes to existing records made by other
+  workstations, only additions and deletions. It will detect changes
+  only if the change alters the set of index keys currently used by
+  the browser (see GetKeyNumber).
+See Also
+  FBrowser.SetRefreshFunc  RefreshPeriod

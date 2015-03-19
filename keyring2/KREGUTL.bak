@@ -1,0 +1,519 @@
+{***************************************************************************
+* Filename: ~modname~
+* Version:  ~version~
+* Date:     ~date~ @ ~time~
+* Group:    ~group~
+* Release:  ~release~
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* Version   Date     Time    Programmer   Description
+* ~log~
+*
+*
+* ~notes~
+* Description
+* -----------
+* Registration functions
+*
+* ~notesend~
+* ~nokeywords~
+*
+****************************************************************************
+
+}
+UNIT KREGUTL;
+
+INTERFACE
+USES
+    OpDate,
+    {$IFDEF VirtualPascal}
+    USE32,
+    {$ENDIF}
+    VARDEC;
+
+FUNCTION RegisterProduct(MyRegCode : STRING) : BOOLEAN;
+FUNCTION TestRegCode : BOOLEAN;
+FUNCTION TestFeatureBits(BitsToTest : LONGINT) : TRegQuery;
+FUNCTION TestMaxLicense(CurrRev : LONGINT) : TRegQuery;
+FUNCTION ShowRegistration : ANSISTRING;
+FUNCTION StartupInit : BOOLEAN;
+PROCEDURE StrobeINI;
+FUNCTION GetPWXExpireSeconds : LONGINT;
+FUNCTION GetPWXLifetimeDays : LONGINT;
+FUNCTION CalcPWXLifetimeLeft(PWXIncept : DateTimeRec) : LONGINT;
+FUNCTION TestStrobe : BOOLEAN;
+FUNCTION GetExeExpirationDate : OpDate.Date;
+FUNCTION CryptSquawk(Challenge : STRING) : LONGINT;
+FUNCTION DecryptRES(PW : STRING; VAR RR : TRegisterRec) : BOOLEAN;
+    {--------------}
+
+CONST
+    {Product expires in }
+
+    SESTRS100      = '?mÌÔ7'#39'‡9Ö¥ì?˘\∫∫NŒ';
+    SESTRN100      = 50626;
+    SESTRP100      = 20427;
+
+    {days: }
+
+    SESTRS101      = 'Jé';
+    SESTRN101      = 54411;
+    SESTRP101      = 41995;
+
+    {Sorry!  This product has expired.  Please contact IDK, Inc.}
+    SESTRS102      = '6YD”]“º'#40'e8nõ'#13' -â¯Ë'#9'u_p&ÍΩ!Úr‹õÜ„kCœ ÁsŒ¡ˆbxæxáäπÙ˜~';
+    SESTRN102      = 18263;
+    SESTRP102      = 15730;
+
+    {Demo Mode}
+    SESTRS103      = 'ó#+mt_'#9'\';
+    SESTRN103      = 54590;
+    SESTRP103      = 32080;
+
+    {Invalid registration code}
+
+    SESTRS104      = '‚©ø¸ñOG'#8'È∆rAvöi€î˘£Å';
+    SESTRN104      = 59104;
+    SESTRP104      = 18181;
+
+    {Demo mode}
+
+    SESTRS105      = 'Kó"®ÍåwÖ';
+    SESTRN105      = 49809;
+    SESTRP105      = 44559;
+
+    {This database expires in }
+
+    SESTRS106      = '™nÙ<kƒ—u'#26'˛\Îïü†@˘œ.hà¡ı3›';
+    SESTRN106      = 40223;
+    SESTRP106      = 42447;
+
+    { days.}
+
+    SESTRS107      = 'y>∏åÌ';
+    SESTRN107      = 51678;
+    SESTRP107      = 12798;
+
+    {2678400}
+    SESTRS300      = '“Å® …Ç·';
+    SESTRN300      = 54304;
+    SESTRP300      = 60142;
+
+    {21600}
+    SESTRS301      = '$ìR ';
+    SESTRN301      = 64366;
+    SESTRP301      = 38363;
+
+    {<= }
+    SESTRS302 = '9Ct';
+    SESTRN302 = 28244;
+    SESTRP302 = 19534;
+
+    {.x}
+    SESTRS303 = 'ó¿';
+    SESTRN303 = 12404;
+    SESTRP303 = 19333;
+
+    PRIVATEKEY     = $FE07A13;
+
+    {----------------}
+
+IMPLEMENTATION
+USES
+    BlowFish,
+    DGLIB,
+    IniMgr,
+    OpString,
+    Os2Base,
+    OS2DEF,
+    STRCRC,
+    UREXX,
+    UTTIMDAT;
+
+    {this is bogus}
+    {$IFDEF DLL}
+    PROCEDURE CryptInit(Password : STRING); EXTERNAL 'krypton' Name 'CryptInit';
+    {$ENDIF}
+    {--------------}
+
+    PROCEDURE DumpRR(Name : STRING; VAR RR; S : WORD);
+    VAR
+        I              : WORD;
+        RA             : ARRAY[1..500] OF SmallWORD ABSOLUTE RR;
+        T              : TEXT;
+    BEGIN
+        CreateOrAppendTxt('junk.tmp', T);
+        WRITELN(T, Name);
+        FOR I := 1 TO (S DIV 2) DO
+            WRITELN(T, HexW(RA[I]));
+        WRITELN(T, '---------');
+        CLOSE(T);
+    END;
+
+    {--------------}
+
+    PROCEDURE DumpRRchar(Name : STRING; VAR RR; S : WORD);
+    VAR
+        I              : WORD;
+        RA             : ARRAY[1..1000] OF CHAR ABSOLUTE RR;
+        T              : TEXT;
+    BEGIN
+        CreateOrAppendTxt('junk.tmp', T);
+        WRITELN(T, Name);
+        FOR I := 1 TO S DO
+            WRITE(T, RA[I]);
+        WRITELN(T, '---------');
+        CLOSE(T);
+    END;
+
+    {--------------}
+
+    {load and decrypt the RES data in my DLL}
+    FUNCTION DecryptRES(PW : STRING; VAR RR : TRegisterRec) : BOOLEAN;
+    VAR
+        Rc             : APIret;
+        Module         : HModule;
+        PTR            : POINTER;
+        N              : LONGINT;
+        CR             : TRegisterRec;
+        RCRec          : TRCRec;
+        P              : PArray;
+        S              : SBox;
+        FailedModule   : ARRAY[0..259] OF CHAR;
+    BEGIN
+        Result := FALSE;
+        FILLCHAR(RR, SIZEOF(RR), #0);
+        N := 666;
+        {$IFNDEF DLL}
+        Module := NULLHANDLE;
+        {$ELSE}
+        Rc := DosLoadModule(FailedModule, SIZEOF(FailedModule), 'kregistr.dll', Module);
+        if Rc <> 0 then
+            if Rc <> 87 then
+                exit;
+        {$ENDIF}
+        Rc := DosGetResource(Module, RT_RCDATA, N, PTR);
+
+        IF (Rc <> 0) OR (PTR = NIL) THEN
+            EXIT;
+        RCRec := TRCRec(PTR^);
+        Rc := DosFreeResource(PTR);
+        {$IFDEF DLL}
+        if module <> $FFFF then
+            DosFreeModule(Module);
+        {$ENDIF}
+
+        InitBlowFish(PW, P, S, RCRec.Hdr);
+        DecryptCBC(RCRec.RR, SIZEOF(RCRec.RR), P, S);
+        Logit('junk.tmp', 'decryptres 1 maxrev= '+long2str(RCRec.RR.maxrev));
+
+        RCRec.RR.RegCode := DecodeStrg(RCRec.RR.RegCode, RCRec.Hdr.PubKey, PRIVATEKEY);
+        RR := RCRec.RR;
+        Logit('junk.tmp', 'decryptres 2 maxrev= '+long2str(RR.maxrev));
+        Result := TRUE;
+    END;
+
+    {----------------}
+
+    FUNCTION GetPWXLifetimeDays : LONGINT;
+    VAR
+        RR             : TRegisterRec;
+        RTCSetback     : BOOLEAN;
+        IR             : TINIRec;
+        N              : LONGINT;
+        DTR            : DateTimeRec;
+    BEGIN
+        GetPWXLifetimeDays := 0;
+        IF NOT ReadOS2INI(IR) THEN
+            EXIT;
+        DTRNow(DTR);
+        RTCSetback := (DateTimeDiffSecsSigned(IR.LastUsed, DTR) < 0);
+
+        IF NOT DecryptRES(IR.RegCode, RR) THEN
+            EXIT;
+
+        IF (RR.FeatureBits AND PAIDFEATUREBIT) = 0 THEN
+            IF RTCSetback THEN    {someone set the rtc back}
+                EXIT;
+
+        IF RR.RegCode <> IR.RegCode THEN
+            EXIT;
+        DTRNow(IR.LastStrobe);
+        IF NOT WriteOS2INI(IR) THEN
+            EXIT;
+        Result := RR.DemoPWXLifetime;
+    END;
+
+    {----------------}
+
+    FUNCTION CalcPWXLifetimeLeft(PWXIncept : DateTimeRec) : LONGINT;
+    VAR
+        DTR            : DateTimeRec;
+    BEGIN
+        DTRNow(DTR);
+        Result := GetPWXLifetimeDays - ElapsedDays(PWXIncept, DTR);
+        IF Result < 0 THEN
+            Result := 0;
+    END;
+
+    {----------------}
+
+    FUNCTION StartupInit : BOOLEAN;
+    VAR
+        IR             : TINIRec;
+    BEGIN
+        IF NOT ReadOS2INI(IR) THEN BEGIN
+            IR.RegCode := DecodeStrg(SESTRS103, SESTRN103, SESTRP103); {demo mode}
+        END;
+        DTRNow(IR.LastUsed);
+
+        Result := WriteOS2INI(IR);
+        {$IFDEF DLL}
+        IF Result <> TRUE THEN
+            CryptInit('NoSrednA');
+        {$ENDIF}
+    END;
+
+    {----------------}
+
+    PROCEDURE IncStrobe(VAR IR : TINIRec);
+    BEGIN
+        {$IFDEF DLL}
+        IF IR.LastUsed.D = 0 THEN
+            CryptInit(DecodeStrg(SESTRS103, SESTRN103, SESTRP103)); {demo mode}
+        {$ENDIF}
+        DTRNow(IR.LastStrobe);
+    END;
+
+    {----------------}
+
+    {stamp OS2.INI with partial registration information}
+    FUNCTION RegisterProduct(MyRegCode : STRING) : BOOLEAN;
+    VAR
+        IR             : TINIRec;
+    BEGIN
+        WITH IR DO BEGIN
+            InstallDate := Today;
+            RegCode := MyRegCode;
+            DTRNow(LastStrobe);
+            DTRNow(LastUsed);
+            DropDead := Today + $EFFF;
+        END;
+        Result := WriteOS2INI(IR);
+        {$IFDEF DLL}
+        IF Result <> TRUE THEN
+            CryptInit('NoSrednA'); {bogus call}
+        {$ENDIF}
+    END;
+
+    {----------------}
+
+    FUNCTION TestFeatureBits(BitsToTest : LONGINT) : TRegQuery;
+    VAR
+        RTCSetback     : BOOLEAN;
+        RR             : TRegisterRec;
+        DTR            : DateTimeRec;
+        IR             : TINIRec;
+    BEGIN
+        Result := EBAD;
+        IF NOT ReadOS2INI(IR) THEN
+            EXIT;
+        DTRNow(DTR);
+        RTCSetback := (DateTimeDiffSecsSigned(IR.LastUsed, DTR) < 0);
+        IF NOT DecryptRES(IR.RegCode, RR) THEN
+            EXIT;
+        IF (RR.FeatureBits AND PAIDFEATUREBIT) = 0 THEN
+            IF RTCSetback THEN    {someone set the rtc back}
+                EXIT;
+        IF RR.RegCode <> IR.RegCode THEN
+            EXIT;
+        DTRNow(IR.LastStrobe);
+        IF NOT WriteOS2INI(IR) THEN
+            EXIT;
+        Result := EFALSE;
+        IF (RR.FeatureBits AND BitsToTest) = BitsToTest THEN
+            Result := ETRUE;
+    END;
+
+    {----------------}
+
+    FUNCTION TestMaxLicense(CurrRev : LONGINT) : TRegQuery;
+    VAR
+        RTCSetback     : BOOLEAN;
+        T : LONGINT;
+        RR             : TRegisterRec;
+        DTR            : DateTimeRec;
+        IR             : TINIRec;
+    BEGIN
+        Result := EBAD;
+        IF NOT ReadOS2INI(IR) THEN
+            EXIT;
+        IF NOT DecryptRES(IR.RegCode, RR) THEN
+            EXIT;
+        DTRNow(IR.LastStrobe);
+        IF NOT WriteOS2INI(IR) THEN
+            EXIT;
+        logit('junk.tmp', 'featurebits: $'+hexl(rr.featurebits));
+        T := ((RR.FeatureBits shr 6) AND $0000003F);
+        logit('junk.tmp', 'shiftfeaturebits: $'+hexl(T));
+        if T >= CurrRev then
+            Result := ETRUE
+        else
+            Result := EFALSE;
+    END;
+
+    {----------------}
+
+    FUNCTION GetExeExpirationDate : OpDate.Date;
+    VAR
+        RR             : TRegisterRec;
+        DTR            : DateTimeRec;
+        IR             : TINIRec;
+        N              : LONGINT;
+        RTCSetback     : BOOLEAN;
+    BEGIN
+        Result := BADDate;
+        IF NOT ReadOS2INI(IR) THEN
+            EXIT;
+        DTRNow(DTR);
+        RTCSetback := (DateTimeDiffSecsSigned(IR.LastUsed, DTR) < 0);
+        IF NOT DecryptRES(IR.RegCode, RR) THEN
+            EXIT;
+        IF (RR.FeatureBits AND PAIDFEATUREBIT) = 0 THEN
+            IF RTCSetback THEN    {someone set the rtc back}
+                EXIT;
+
+        IF RR.RegCode <> IR.RegCode THEN
+            EXIT;
+        DTRNow(IR.LastStrobe);
+        IF NOT WriteOS2INI(IR) THEN
+            EXIT;
+        Result := RR.DropDead;
+    END;
+
+    {----------------}
+
+
+    FUNCTION GetPWXExpireSeconds : LONGINT;
+    VAR
+        RR             : TRegisterRec;
+        DTR            : DateTimeRec;
+        I              : LONGINT;
+        RTCSetback     : BOOLEAN;
+        IR             : TINIRec;
+    BEGIN
+        Str2Long(DecodeStrg(SESTRS300, SESTRN300, SESTRP300) {2678400} , Result); {31 days}
+        IF NOT ReadOS2INI(IR) THEN
+            EXIT;
+        DTRNow(DTR);
+        RTCSetback := (DateTimeDiffSecsSigned(IR.LastUsed, DTR) < 0);
+        IF NOT DecryptRES(IR.RegCode, RR) THEN
+            EXIT;
+        IF (RR.FeatureBits AND PAIDFEATUREBIT) = 0 THEN
+            IF RTCSetback THEN    {someone set the rtc back}
+                EXIT;
+        IF RR.RegCode <> IR.RegCode THEN
+            EXIT;
+        Result := RR.DemoPWXLifetime SHL 2;
+
+        Str2Long(DecodeStrg(SESTRS301, SESTRN301, SESTRP301) {21600} , I);
+        Result := Result * I;
+
+        DTRNow(IR.LastStrobe);
+        IF NOT WriteOS2INI(IR) THEN
+            EXIT;
+    END;
+
+    {----------------}
+
+    FUNCTION TestStrobe : BOOLEAN;
+    VAR
+        IR             : TINIRec;
+        DTR            : DateTimeRec;
+    BEGIN
+        IF NOT ReadOS2INI(IR) THEN
+            EXIT;
+        DTRNow(DTR);
+        Result := DateTimeDiffSecs(IR.LastStrobe, DTR) < 90;
+    END;
+
+    {----------------}
+
+    FUNCTION ShowRegistration : ANSISTRING;
+    VAR
+        IR             : TINIRec;
+        RR             : TRegisterRec;
+    BEGIN
+        Result := '0';            {fail in vxRexx - missing reg code in ini}
+        IF NOT ReadOS2INI(IR) THEN
+            EXIT;
+        DecryptRES(IR.RegCode, RR);
+
+        IF RR.RegCode <> IR.RegCode THEN BEGIN
+            FILLCHAR(RR, SIZEOF(RR), #0);
+            RR.Limits := DecodeStrg(SESTRS104, SESTRN104, SESTRP104); {demo mode}
+        END;
+
+        Logit('junk.tmp', 'shoregistration maxrev= '+long2str(rr.maxrev));
+        Result := RR.FirstName + ' ' + RR.LastName + FieldSep +
+                  RR.CompanyName + FieldSep +
+                  RR.Addr1 + FieldSep +
+                  RR.Addr2 + FieldSep +
+                  RR.City + ', ' + RR.State + FieldSep +
+                  RR.Zip + ' ' + RR.Country + FieldSep +
+                  RR.Email + FieldSep +
+                  RR.RegCode + FieldSep +
+                  RR.Limits + FieldSep +
+                  DecodeStrg(SESTRS302, SESTRN302, SESTRP302) +
+                  Long2Str(RR.MaxRev) +
+                  DecodeStrg(SESTRS303, SESTRN303, SESTRP303);
+    END;
+
+    {----------------}
+
+    FUNCTION TestRegCode : BOOLEAN;
+    VAR
+        IR             : TINIRec;
+        RR             : TRegisterRec;
+    BEGIN
+        Result := FALSE;          {fail in vxRexx - missing reg code in ini}
+        IF NOT ReadOS2INI(IR) THEN BEGIN
+            EXIT;
+        END;
+        DecryptRES(IR.RegCode, RR);
+
+        Result := (RR.RegCode = IR.RegCode);
+    END;
+
+    {----------------}
+
+    PROCEDURE StrobeINI;
+    VAR
+        DTR            : DateTimeRec;
+        IR             : TINIRec;
+        RTCSetback     : BOOLEAN;
+    BEGIN
+        IF NOT ReadOS2INI(IR) THEN
+            EXIT;
+        IncStrobe(IR);
+        WriteOS2INI(IR);
+    END;
+
+    {----------------}
+
+    FUNCTION CryptSquawk(Challenge : STRING) : LONGINT;
+    BEGIN
+        Result := CalcPasswordCRC(Challenge) XOR CalcPasswordCRC(DateToStdString(Today));
+    END;
+
+    {----------------}
+
+END.
+
+    {----------------}
+    {----------------}
+
+

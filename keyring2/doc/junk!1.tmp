@@ -1,0 +1,140 @@
+
+ Datentr„ger, Laufwerk D, hat den Namen OS2_ALT1.
+ Datentr„gernummer ist A7D9:F815
+
+ Verzeichnis von D:\kr2
+
+ 5.10.00  21.58      <DIR>           0  .
+ 5.10.00  21.58      <DIR>           0  ..
+18.08.01   0.07      <DIR>        1524  bkp
+17.08.01  23.25      <DIR>         355  bkp2
+17.08.01  23.26      45015          34  dgcbryui.wpi
+17.08.01  23.26      46204          34  egxyczaj.wpi
+17.08.01  23.26      12980         166  ENGLISH.MSG
+17.08.01  23.33      10396           0  ENGLISH.MSX
+17.08.01  23.26      13356         166  HSILGNE.MSG
+17.08.01  23.26       7972         164  INTRO.MID
+23.08.01  21.19          0           0  junk.tmp
+17.08.01  23.37     619543         291  KEYRING2.EXE
+17.08.01  23.26    1859376         162  KR2.INF
+23.08.01  21.14       1225           0  KR2.INI
+24.07.01  20.21      26737           0  KREGISTR.DLL
+17.08.01  23.26     718903         164  KRINI.DLL
+ 6.03.01  14.48      16319           0  KRYPTON.DLL
+17.08.01  23.26      24426         167  LANGUAGE.MSG
+17.08.01  23.25      11843          34  Meine1PW.PWX
+17.08.01  23.25      20475          34  Meine2PW.PWX
+17.08.01  23.34      20475           0  MeineNeuPW.PWX
+22.08.01  21.49      15691           0  mit2.pw1
+22.08.01  21.43      12747           0  mit2.pw2
+22.08.01  22.30      16187           0  mit2.pwx
+17.08.01  23.26      14887         164  NL_NL.MSG
+17.08.01  23.26      12312         165  POLSKI.MSG
+17.08.01  23.25      11843          29  prw.PWX
+20.08.01  23.11      14787           0  PW.PWX
+18.08.01   0.04        838           0  readme.reg
+17.08.01  23.26      10595         166  SPANISH.MSG
+17.08.01  23.26      49616         161  STARTUP.WAV
+17.08.01  23.26     467138         162  TWILITZN.WAV
+17.08.01  23.26      28392         164  VLMSG.DLL
+17.08.01  23.26      44293         165  VNLANG.DLL
+17.08.01  23.26     133120         167  VREXTRAS.DLL
+17.08.01  23.26     146432         166  VRPRINT.DLL
+17.08.01  23.26     140910         160  WAKEUP.WAV
+        37 Datei(en)    4575033 Byte belegt
+
+ Verzeichnis von D:\kr2\bkp
+
+14.08.01  22.41      <DIR>           0  .
+14.08.01  22.41      <DIR>           0  ..
+ 7.03.00  10.05      12814           0  ENGLISH.MSG
+ 5.10.00  22.00      10230           0  ENGLISH.MSX
+22.01.00  11.11        754           0  FILE_ID.DIZ
+21.01.00  18.41      13340           0  hsilgne.msg
+30.03.94  10.20       7130           0  IDK.ICO
+ 6.01.96  13.30       4026           0  IDKO.ICO
+ 1.12.99  19.13       2448           0  INFO.ICO
+16.11.96  16.12       3344           0  INFO1.ICO
+16.11.96  16.13       3344           0  INFO1_O.ICO
+23.07.01  23.38     553896         283  KEYRING2.EXE
+30.06.99  15.28       3968           0  KR2.ICO
+ 5.03.00  14.42    1731887           0  kr2.inf
+16.08.01   1.10       2992           0  KR2.INI
+15.02.00  19.20        194           0  KR2.msg
+17.08.01  23.52      25411         167  KREGISTR.DLL
+ 7.03.00  21.34     632569           0  KRINI.DLL
+20.05.00  15.59      16331           0  krypton.dll
+ 4.03.00   1.09      24426           0  LANGUAGE.MSG
+22.01.00  11.15       3136           0  LANGUAGE.TXT
+14.08.01  20.33          0           0  MeinePW.PWX
+22.01.00  11.12       6472           0  ORDER.FRM
+13.06.96  14.56      54388           0  PLASTER.BMP
+ 5.03.00  12.59      12294           0  POLSKI.MSG
+ 8.12.00  23.56      11843           0  prw.PW1
+22.01.00  11.31        222           0  PURCHASE.APP
+ 1.08.97   0.00       2856           0  PURCHASE.DOC
+ 1.08.97   0.00      89608         261  PURCHASE.EXE
+23.02.00  14.01       9621           0  readme.now
+28.09.00  18.18        793           0  readme.reg
+22.01.00  11.01       2014           0  REGISTER.FRM
+22.01.00  11.21       2943           0  REGISTER.TXT
+17.01.00  15.13      10595           0  spanish.msg
+16.11.99  17.59      28392           0  VLMSG.DLL
+14.07.99  14.28     133120           0  VREXTRAS.DLL
+        36 Datei(en)    3417401 Byte belegt
+
+ Verzeichnis von D:\kr2\bkp2
+
+17.08.01  23.25      <DIR>           0  .
+17.08.01  23.25      <DIR>           0  ..
+17.08.01  23.25      13882          31  DUTCH.MSG
+17.08.01  23.25      11299          31  DUTCH.MSX
+17.08.01  23.25      12814          33  ENGLISH.MSG
+17.08.01  23.25      10230          33  ENGLISH.MSX
+17.08.01  23.25        754          33  FILE_ID.DIZ
+17.08.01  23.25      13340          33  HSILGNE.MSG
+17.08.01  23.25       7130          29  IDK.ICO
+17.08.01  23.25       4026          30  IDKO.ICO
+17.08.01  23.25       2448          30  INFO.ICO
+17.08.01  23.25       3344          31  INFO1.ICO
+17.08.01  23.25       3344          33  INFO1_O.ICO
+17.08.01  23.25       7972          31  INTRO.MID
+17.08.01  23.34         52           0  keyring2.err
+17.08.01  23.25     553896         313  KEYRING2.EXE
+17.08.01  23.25       3968          29  KR2.ICO
+17.08.01  23.25    1731887          29  KR2.INF
+17.08.01  23.34       3019          29  KR2.INI
+17.08.01  23.25        194          29  KR2.msg
+17.08.01  23.25      25411          34  KREGISTR.DLL
+17.08.01  23.25     632569          31  KRINI.DLL
+17.08.01  23.25      16331          33  KRYPTON.DLL
+17.08.01  23.25      24426          34  LANGUAGE.MSG
+17.08.01  23.25       3136          34  LANGUAGE.TXT
+17.08.01  23.25      11843          34  Meine1PW.PWX
+17.08.01  23.25      20475          34  Meine2PW.PWX
+17.08.01  23.25          0          33  MeinePW.PWX
+17.08.01  23.25       6472          31  ORDER.FRM
+17.08.01  23.25      54388          33  PLASTER.BMP
+17.08.01  23.25      12294          32  POLSKI.MSG
+17.08.01  23.25      11843          29  prw.PW1
+17.08.01  23.25      11843          29  prw.PWX
+17.08.01  23.25        222          34  PURCHASE.APP
+17.08.01  23.25       2856          34  PURCHASE.DOC
+17.08.01  23.25      89608         291  PURCHASE.EXE
+17.08.01  23.25       9621          32  readme.now
+17.08.01  23.25        793          32  readme.reg
+17.08.01  23.25       2014          34  REGISTER.FRM
+17.08.01  23.25       2943          34  REGISTER.TXT
+17.08.01  23.25      10595          33  spanish.msg
+17.08.01  23.25      49616          33  STARTUP.WAV
+17.08.01  23.25     467138          34  TWILITZN.WAV
+17.08.01  23.25      28392          31  VLMSG.DLL
+17.08.01  23.25      44293          32  VNLANG.DLL
+17.08.01  23.25     133120          34  VREXTRAS.DLL
+17.08.01  23.25     146432          33  VRPRINT.DLL
+17.08.01  23.25     140910          32  WAKEUP.WAV
+        48 Datei(en)    4343183 Byte belegt
+
+Gesamtanzahl der Dateien:
+       121 Datei(en)   12335617 Byte belegt
+                   1016296448 Byte frei

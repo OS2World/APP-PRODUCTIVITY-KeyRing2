@@ -1,0 +1,66 @@
+(**************************************************************)
+(*       B-Tree Isam Rebuild Utility Ver 5.51                 *)
+(*   Copyright (C) 1988-1991 Dipl.Math. Ralf Nagel            *)
+(*   Copyright (C) 1991-1994 ENZ EDV-Beratung GmbH            *)
+(*                All rights reserved                         *)
+(*   Modified and used under license by TurboPower Software   *)
+(**************************************************************)
+
+(***Moved to REBUILD.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$F-,V-,B-,S-,I-,R-}
+  {$IFDEF CanAllowOverlays}
+    {$O+,F+}
+  {$ENDIF}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+
+
+Unit Rebuild;                                                     {!!.50mod}
+ ***)
+
+Interface
+
+Uses
+  Filer,     {!!.TP}
+  Restruct,
+  Reindex;
+
+  Procedure RebuildFileBlock ( FBlName      : IsamFileBlockName;
+                               DatSLen      : LongInt;
+                               NumberOfKeys : Word;
+                               IID          : IsamIndDescr;
+                               FuncBuildKey : Pointer );
+    {-Rebuilds a fixed record length fileblocks data and index structure}
+
+
+Implementation
+
+  Procedure RebuildFileBlock ( FBlName      : IsamFileBlockName;
+                               DatSLen      : LongInt;
+                               NumberOfKeys : Word;
+                               IID          : IsamIndDescr;
+                               FuncBuildKey : Pointer );
+
+  Var
+    Dummy : Boolean;
+
+  Begin
+    RestructFileBlock ( FBlName, DatSLen, DatSLen, False, 0,
+        ChangeDatSNoChange, BTNoCharConvert, Nil );
+    If Not IsamOK Then Exit;
+    If NumberOfKeys > 0 Then Begin
+      ReIndexFileBlock ( FBlName, NumberOfKeys, IID, False,
+          Reindex.FuncBuildKey (FuncBuildKey), True, Dummy,
+          BTNoCharConvert, Nil );
+    End;
+  End;
+
+(***Moved to REBUILD.PAS***  !!.TP
+{$IFDEF InitAllUnits}
+Begin
+{$ENDIF}
+End.
+ ***)

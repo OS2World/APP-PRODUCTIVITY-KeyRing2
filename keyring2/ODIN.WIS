@@ -1,0 +1,480 @@
+<WARPIN>
+VERSION=0.9.6
+OS=OS2_3x
+<HEAD>
+<PCK INDEX=1
+     PACKAGEID="Odin\Odin\Odin Core Files\0\0\5"
+     TARGET="C:\ODIN" BASE
+     TITLE="Odin Daily Build (26 Feb 2001)"
+     SELECT NODESELECT
+     >Installation of Odin Daily Build .</PCK>
+
+<PCK INDEX=2
+     PACKAGEID="Odin\Odin\Odin System Files\0\0\5"
+     TARGET="C:\ODIN\SYSTEM32"
+     FIXED SELECT NODESELECT
+     TITLE="Odin Daily Build System Files (26 Feb 2001)"
+     EXECUTE="odininst.exe"
+     CONFIGSYS="LIBPATH=$(1)\SYSTEM32 | ADDRIGHT"
+     CONFIGSYS="SET PATH=$(1)\SYSTEM32 | ADDRIGHT"
+     >Installation of Odin System files .</PCK>
+
+<PCK INDEX=3
+     PACKAGEID="Odin\Odin\Add Win32k.sys to Config.sys\0\0\5"
+     TARGET="C:\ODIN\SYSTEM32"
+     FIXED
+     TITLE="Add Win32k.sys to Config.sys"
+     CONFIGSYS="DEVICE=$(1)\SYSTEM32\Win32k.sys -pe:pe -Dllfixes:D | UNIQUE(WIN32K.SYS) ADDTOP"
+     >Add Win32k.sys to Config.sys.</PCK>
+
+<PCK INDEX=4
+     PACKAGEID="Odin\Odin\Odin .sym files\0\0\5"
+     TARGET="C:\ODIN\SYSTEM32"
+     FIXED
+     TITLE="Odin Daily Build .sym Files (26 Feb 2001)"
+     >Installation of Odin .sym files.</PCK>
+
+</HEAD>
+<BODY>
+<PAGE INDEX=1 TYPE=TEXT>
+<NEXTBUTTON TARGET=2>~Next</NEXTBUTTON>
+<TEXT>
+Project Odin Information
+========================
+
+Odin is a free Open Source project with the goal to eventually
+provide a fully working Win32 (Win 95/98/NT/2000) runtime environment, 
+making it possible to run your favorite Windows programs under OS/2, 
+as if they were native OS/2 programs. The second goal of Odin is to
+provide the full Win32 application programming interface (API) so
+that it is possible to build OS/2 programs using Windows source
+code. This is also refered to as Odin32 whereas Odin is the name
+of the Win32 binary emulator.
+
+Odin is available thanks to the work of the following people:
+
+     Christoph Bratschi
+     Oliver Braun
+     Edgar Buerkle
+     Yuri Dario
+     Przemyslaw Dobrowolski
+     Daniela Engert
+     Peter Fitzsimmons
+     Adrian Gschwend
+     Jeroen van den Horn
+     Patrick Haller
+     Achim Hasenmueller
+     Kevin Langman
+     Bart van Leeuwen
+     Sander van Leeuwen
+     Felix Maschek
+     Chris McKillop
+     Nenad Milenkovic
+     Markus Montkowski
+     Michal Necasek
+     Ondrej Necasek
+     Knut Stange Osmundsen
+     Vitali E. Pelenyov
+     Rene Pronk
+     David Raison
+     Kai Sommerfeld
+     Carsten Tenbrink
+     Vit Timchishin
+     Joel Troster
+     Jens Wiessner
+     Chris Wohlgemuth
+     Vince Vielhaber
+     All the WINE people
+
+</TEXT>
+</PAGE>
+<PAGE INDEX=2 TYPE=README>
+<NEXTBUTTON TARGET=3>~I agree</NEXTBUTTON>
+<TEXT>
+By pressing the "I agree" button, you agree to all terms and conditions to the below licence agreement.
+</TEXT>
+<README>
+Project Odin Software License
+
+You may, without charge, royalty, or other payment, copy and
+distribute copies of this work and derivative works of this work
+in source or binary form provided that:
+(1) you appropriately publish on each copy an appropriate
+copyright notice; (2) faithfully reproduce all prior copyright
+included in the original work; and (3) agree to indemnify and
+hold all prior authors, copyright holders and licensors of the
+work harmless from and against all damages arising from use of
+or the inability to use the work.
+
+You may distribute binaries and sources of derivative works of
+the work provided that: (1) all modifications to the original
+source code are publically available; (2) all modifications are
+released under this license; (3) all copyrights of the original
+work are included; (4) the modifications are a direct advantage
+for the functionality and completeness of the product or improve
+interoperability of the product with another product and do not
+interfere with the goal of an open source and free emulation
+product.
+
+You may NOT use the work as base of another work that is
+not released under this license agreement meaning that you
+especially are not allowed to develop any other product which
+is based on the sources and/or binaries of the work.
+
+However, you are encouraged to use the work for porting your
+free or commercial applications. You can ship software
+converted using the work as long as the original copyright
+for the work is mentioned and you do not charge for
+using any part of the work. You may also ship the work in
+binaries and sources for use with your applications as long
+as you do not violate the distribution regulations of this license.
+
+These license terms can be amended by a custom license
+agreement between a third party and the administration
+team. Such a custom license might only limit the above terms
+if the changes cause a direct advantage for the functionality
+or completeness of the product and do not interfere with the
+goal of an open-source and free emulation product.
+
+Parts of the work may be governed by a license other than
+this one, if the source directory of the part contains a
+license file called "LICENSE.TXT" of its own. If a different
+license exists, it supercedes this license. Removing the
+the part specific license will automatically put back the
+part under the terms of this license. Only the Odin management
+team is allowed to put parts of the work under a different
+license and remove the part specific licenses. The purpose
+of using different licenses is solely for allowing code
+sharing of certain parts of the work with other projects that
+have incompatible licenses. These parts should either have
+this license in a version that makes it compatible with the
+license of the second project, or the license of the second
+project as long as it conforms to the goals of an open source
+and free emulation software.
+
+Warranty
+
+EXCEPT AS OTHERWISE RESTRICTED BY LAW, THIS WORK IS PROVIDED
+WITHOUT ANY EXPRESSED OR IMPLIED WARRANTIES OF ANY KIND, INCLUDING
+BUT NOT LIMITED TO, ANY IMPLIED WARRANTIES OF FITNESS FOR A
+PARTICULAR PURPOSE, MERCHANTABILITY OR TITLE.  EXCEPT AS
+OTHERWISE PROVIDED BY LAW, NO AUTHOR, COPYRIGHT HOLDER OR
+LICENSOR SHALL BE LIABLE TO YOU FOR DAMAGES OF ANY KIND, EVEN IF
+THEY HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+</README>
+</PAGE>
+<PAGE INDEX=3 TYPE=README>
+<NEXTBUTTON TARGET=4>~Next</NEXTBUTTON>
+<TEXT>
+List of changes and bugfixes for this Odin daily build (26 Feb 2001)
+</TEXT>
+<README>
+/* $Id: ChangeLog,v 1.1289 2001/02/25 16:05:05 sandervl Exp $ */
+
+ 2001-02-25: Sander van Leeuwen <sandervl@xs4all.nl>
+    - KERNEL32: o Check executable too when searching for imported modules
+                  (directly imported by PE dlls)
+
+ 2001-02-24: Sander van Leeuwen <sandervl@xs4all.nl>
+    - KERNEL32: o Set fExitProcess flag in WinExe destructor to prevent reloading
+                  dlls after loading of exe failed.
+
+ 2001-02-23: Sander van Leeuwen <sandervl@xs4all.nl>
+    - GDI32:    o Removed old workaround for SetDIBitsToDevice. Incorrect for
+                  new implementation of this function with StretchDIBits.
+                  (fixes bitmaps in Minesweeper)
+    - USER32:   o WM_SETCURSOR change; don't check WS_EX_NOPARENTNOTIFY style
+                  when sending this message to the parent of a child window.
+                o Redraw entire window when switching between minimized, maximized
+                  and restored windows state.
+                o Added missing cursor to MDI client class
+                  (cursor now changes when moving cursor from mdi child to
+                   client window)
+    - USER32, include\win\drive.h:
+                o DRIVE_GetDosCwd bugfix
+                  (fixes crash in Cool Edit old-style file open dialog)
+
+ 2000-02-22: knut st. osmundsen <knut.stange.osmundsen@mynd.no>
+    - Win32k:   o Support for the 14062e kernels.
+                o Removed the CALLTAB segment.
+                o Hooked dh_SendEvent and RASRST for taskmanager hot-key support.
+                o Enabled callgate on SMP kernel.
+
+ 2001-02-22: Sander van Leeuwen <sandervl@xs4all.nl>
+    - KERNEL32: o Changed error string when detecting version mismatch.
+    - USER32:   o Fixed incorrect index checking for class and window words.
+                o Allow misaligned access to window words/longs
+                  (fixes crash in Quicken 99)
+                o More minimize changes/fixes for MDI windows.
+                o Update region fix in NotifyFrameChanged method
+
+ 2001-02-21: Sander van Leeuwen <sandervl@xs4all.nl>
+    - USER32:   o Changes for minimizing windows. Not done yet.
+                o Added CreateFakeWindowEx.
+                  Turns native OS/2 window into window recognized by Odin (with
+                  only very limited functionality)
+                  Useful for creating an Odin window with an OS/2 window as
+                  parent.
+
+ 2000-02-21: Michal Necasek <michalnec@volny.cz>
+    - USER32:   o Translate WM_BUTTONxMOTIONSTART/END to WM_MOUSEMOVE
+                  Applications don't expect WM_NULL when fetching mouse
+                  messages from the queue.
+                  (fixes mouse jumping in Unreal)
+
+ 2000-02-20: knut st. osmundsen <knut.stange.osmundsen@mynd.no>
+    - Win32k:   o Moved calltabs to the code segments. Clears the
+                  WriteProtect(WP) flag in CR0 to be able to do this. The flags
+                  is of course restored when the calltabs are written.
+                o Completed callgate code. Though is not activated for SMP
+                  kernels yet as I haven't tested that yet.
+                  The callgate works just as any other callgate in OS2, it
+                  calls kernel routines for entry and exit housekeeping.
+                o Updated the win32k library and header to accomodate this.
+                  All IOCtl structures are changed.
+                  So, Install the new the new Odin32 and reboot before using
+                  it so the new win32k.sys is installed.
+
+ 2001-02-20: Sander van Leeuwen <sandervl@xs4all.nl>
+    - USER32:   o Fix for position of system menu in (mdi) child windows
+                o Use WinScrollWindow to scroll children again and manually
+                  notify children that they have moved. (PM only does this
+                  for windows with CS_MOVENOTIFY class)
+                  (much smoother scroll in Opera)
+                o Use WinGetMaxPosition to determine default maximized position
+                  of toplevel window before sending WM_GETMINMAXINFO
+                  (maximized Odin windows no longer obscure WarpCenter)
+                o Activation fixes for MDI windows
+
+ 2000-02-19: Oliver Braun <Oliver.Braun@hamburg.de>
+    - KERNEL32: o OSLibDosAllocMem fix (better checks for errors + return
+                  4kb aligned memory if 64kb alignment fails)
+                  (fixes StarOffice 5.2 install)
+
+ 2000-02-19: knut st. osmundsen <knut.stange.osmundsen@mynd.no>
+    - KERNEL32: o Use DosAllocMemEx to 64KB align memory (OSLibDosAllocMem)
+                  when available.
+    - Win32k:   o Prepared API code for both callgate and IOCtl invokation.
+                  This caused changes in IOCtl parameter structures.
+                  Callgate code is completed but not used yet because
+                  it isn't tested yet.
+
+ 2001-02-19: Sander van Leeuwen <sandervl@xs4all.nl>
+    - COMDLG32: o Commented out Norse ChooseFont dialog (incomplete translation)
+                  Use the English version instead.
+    - USER32:   o Corrected invalidating nonclient parts of a window after a resize.
+                  (fixes resizing of mdi windows in mdi sample)
+
+ 2000-02-18: knut st. osmundsen <knut.stange.osmundsen@mynd.no>
+    - Win32k:   o Finished implementation of DosAllocMemEx.
+                  DosAllocMemEx is equal to DosAllocMem but takes some extra
+                  OBJ_ flags (defined in win32k.h).
+                  TODO: "Grow arena" problem when allocating memory at a
+                  specific location. I'll fix this ASAP and add a fix for the
+                  loader too (which has the same problems with loading EXEs
+                  without fixup above 64MB).
+
+ 2001-02-18: Sander van Leeuwen <sandervl@xs4all.nl>
+    - USER32:   o Restore window origin in SetWindowPos for parent window with
+                  CS_OWNDC style.
+                  Do the same thing in WM_VRNENABLED message handler.
+                  (fixes paint offset problems in Opera windows)
+                o Bug in yesterday's ScrollWindowEx fix
+                  (fixes smooth scrolling of child windows in Opera html window)
+                o Detect DestroyWindow call during CreateWindowEx and delay
+                  deleting the window/dialog object.
+                  (fixes crash in Opera when going to fullscreen mode)
+
+ 2000-02-17: knut st. osmundsen <knut.stange.osmundsen@mynd.no>
+    - Win32kCC: o Rewrote to notebook. (fixes size problem)
+                o Added memoryinfo page which is refreshed every second.
+
+ 2000-02-17: Yuri Dario <mc6530@mclink.it>
+    - INCLUDE:  o Header changes for compiling Opera
+
+ 2001-02-17: Sander van Leeuwen <sandervl@xs4all.nl>
+    - USER32:   o Store active status in custom window word. QWS_FLAGS appears
+                  to be modified by PM somewhere.
+                  (fixes WM_ACTIVATE loop in Opera when maximizing or restoring
+                   the mdi window)
+                o Don't include RDW_NOERASE flag in InvalidateRect/Rgn
+                  (fixes background erase for mdi client window in Opera)
+                o IsChild only checked the direct parent of a window. Must
+                  check all parents (parents of parents etc)
+                  (fixes TAB handling in Opera dialogs)
+                o Ported latest GetNextDlgTabItem from Wine
+                  (fixes TAB handling in Opera dialogs)
+                o WM_ADJUSTWINDOWPOS bugfix (if app changes size/position)
+                  OSLibMapWINDOWPOStoSWP can add flags, but we must not let
+                  it remove flags.
+                  (fixes resizing of Opera MDI windows)
+                o ScrollWindow(Ex) bugfixes
+                  Must scroll child windows manually
+                  (fixes scrolling of Opera html MDI windows)
+                o Combobox fix from Wine (CBCalcPlacement)
+                  (fixes combobox controls in Opera html MDI windows)
+                  (TODO: sync rest with latest Wine control code)
+
+ 2001-02-15: Sander van Leeuwen <sandervl@xs4all.nl>
+    - COMDLG32: o Ignore OFN_FILEMUSTEXIST flag in GetSaveFileNameA/W
+                  (NT4 seems to ignore it too and it fixes the save dialog
+                   in ElstarFormular 2000)
+
+ 2001-02-14: knut stange osmundsen <knut.stange.osmundsen@mynd.no>
+    - Win32k.lib:
+                o Corrected build breaker: log.h should not be included.
+                  log.h was removed from the CINLCUDES two days ago.
+
+ 2001-02-14: Sander van Leeuwen <sandervl@xs4all.nl>
+    - KERNEL32: o Allocate TLS index of module before loading the dll it needs
+                  (some apps assume their executable index is always zero)
+                  (fixes crash in BrMSX)
+                o Must use EXC_CallHandler to call RtlUnwind handler
+                  (fixes crash during RaiseException in BrMSX)
+    - OPENGL\GLU:
+                o Removed initterm.cpp. Use dllentry.obj instead
+    - INCLUDE\misc.h:
+                o Print file and function name before executing an int 3. (DebugInt3)
+    - *\initterm.cpp:
+                o Wrong calling convention for CRT_Init/Term, ctordtorInit/Term
+                o VAC 3.6.5 ctordtorInit/Term takes one parameter
+    - USER32:   o Delay SetFocus when called during processing of WM_SETFOCUS
+                  message (not allowed by PM).
+                  (fixes keyboard focus in ElstarFormular 2000)
+
+ 2000-02-13: Michal Necasek <michalnec@volny.cz>
+    - USER32:   o Wrong unicode<->ascii translation for some listbox & combobox
+                  messages. Must check if the control style includes LB/CB_HASSTRINGS.
+                  (CB_FINDSTRING, CB_FINDSTRINGEXACT, CB_SELECTSTRING,
+                   LB_FINDSTRING, LB_FINDSTRINGEXACT, LB_SELECTSTRING)
+
+ 2001-02-12: knut st. osmundsen <knut.stange.osmundsen@mynd.no>
+    - Win32k.lib:
+                o Removed /src/win32k/include from the CFLAGS.
+
+ 2001-02-11: knut st. osmundsen <knut.stange.osmundsen@mynd.no>
+    - Win32k:   o Added symbols for the 14062D kernels.
+                o Added a query API for getting memory information.
+                o Added force preload option - should be very useful when
+                  debugging Ring 3 apps with ICAT. (Option -F)
+
+ 2001-02-11: Sander van Leeuwen <sandervl@xs4all.nl>
+    - ODINCRT:  o Completed runtime dll for VAC 3.6.5
+    - WINMM, GLU, CRTDLL, KERNEL32:
+                o Compile fixes for VAC 3.6.5
+    - RASAPI32: o Can't use LXLITE as it crashes on this binary
+    - KERNEL32: o Check handle in LocalLock and return NULL if invalid
+                  (some apps use LocalLock to get access to GDI objects; doesn't
+                   work in Odin (TODO))
+
+ 2001-02-10: Sander van Leeuwen <sandervl@xs4all.nl>
+    - USER32:   o Check if window has been destroyed before accessing
+                  this pointer again in SendInternalMessage.
+                  (fixes heap corruption in MS Visual C++ 4.2 install)
+                  TODO: Needs a permanent and correct solution as this
+                        can happen in several other places.
+                        Also a potential problem in user32 controls (InfoPtr).
+                o Set last error to ERROR_INVALID_INDEX for invalid class word
+                  index.
+
+ 2001-02-09: Sander van Leeuwen <sandervl@xs4all.nl>
+    - COMCTL32: o Register controls in LibMain, not in DLL_InitTerm
+    - KERNEL32: o Re-register dll if DosFreeModule failed with ERROR_INVALID_ACCESS
+                  Dll refuses to unload if it has an active exitlist handler
+                  or depends on a dll that registered an exitlist handler.
+                  In this case the handle remains valid and the entrypoint of
+                  the dll is NOT called for DLL_PROCESS_DETACH. The next time
+                  DosLoadModule is called, the entrypoint (and RegisterLXDll)
+                  isn't called (DLL_PROCESS_ATTACH).
+                  WORKAROUND: Re-register the dll so future functions that
+                              use this dll calls don't fail.
+                  (fixes crash in shell32 in TextPad 4)
+                o shared & code heap umalloc changed (now more meaningful debug
+                  messages in case of heap corruption)
+    - USER32:   o WM_MINIMIZE/WS_MAXIMIZE support added to CreateWindow
+                  (fixes size of main InstallShield window for Microsoft Visual
+                   C++ 4.2)
+                o Fixed FS corruption in DIALOG_DlgDirList (c library function calls)
+
+ 2001-02-08: Sander van Leeuwen <sandervl@xs4all.nl>
+    - KERNEL32: o Standard in/out/error handle fix. Disable change during
+                  console init.
+                  (fixes output of console applications; input doesn't work well yet)
+    - USER32:   o Dialog control fix. Creating them with CreateWindowExW does not
+                  work since our standard user32 controls are still ASCII.
+                  (fixes missing icon control in Acrobat Distiller window)
+
+ 2001-02-08: Michal Necasek <michalnec@volny.cz>
+    - KERNEL32: o RtlUnwind bugfix
+
+ 2001-02-04: Sander van Leeuwen <sandervl@xs4all.nl>
+    - USER32:   o Wrong error set in GetDlgItem. Must be ERROR_CONTROL_ID_NOT_FOUND.
+                  (verified in NT4, SP6)
+
+ 2001-02-03: Sander van Leeuwen <sandervl@xs4all.nl>
+    - USER32:   o Get/SetWindowLongA/W, Get/SetWindowWord: must set
+                  last error to ERROR_INVALID_WINDOW_HANDLE if window not found.
+                  (verified in NT4, SP6)
+                  Must also return ERROR_INVALID_INDEX if index is out of range.
+                  (used to return ERROR_INVALID_PARAMETER) (verified in NT4, SP6)
+                o Temporary hack to force focus to newly created window
+                  (if no Odin window has focus after sending WM_ACTIVATE, set
+                   focus to window that received the activate message)
+                  (fixes wrong keyboard focus in RealPlayer 8)
+
+ 2001-02-02: Sander van Leeuwen <sandervl@xs4all.nl>
+    - USER32:   o DrawEdge bugfixes (signed/unsigned char mismatches)
+                  (fixes lines in properties dialog of RealPlayer 8)
+                o Fixed incorrect rounding in dialog control size calculation
+                  (fixes wrong height of some dialog controls (rp8 pref. dialog lines))
+                o Don't unregister class if there are still windows that use it.
+
+ 2001-02-02: knut st. osmundsen <knut.stange.osmundsen@mynd.no>
+    - Win32k:   o Added option for the All-In-One-Object fix to be able
+                  to debug PE executables thru the ICAT. Works with pe2lx
+                  and win32k.sys.
+                  -1<+|-|[*]>
+                    +: Applied when needed.                 (checked)
+                    -: Never applied (use this to debug).   (not checked)
+                    *: Allways applied. (default)           (gray)
+                  It's also added to Win32kCC as a three state checkbutton.
+
+                  WARNING! This option should only be used for debugging
+                  and will cause your system to crash if used with based
+                  images!
+    - tools\Common:
+                o Minor changes in the fileformat classes to use kFile.
+
+ 2001-02-01: Sander van Leeuwen <sandervl@xs4all.nl>
+    - GDI32:    o LineDDA fix (wrong calling convention)
+                  (fixes crash in Solitaire)
+    - USER32:   o clientHeight bugfix. Check hwnd instead of pHps->hwnd.
+                  (pHps can be NULL)
+                  (fixes crash in Solitaire)
+    - INSTALL:  o Include ChangeLog-2001 in daily build
+    - COMDLG32: o Merged some changes from Wine (extra notification in
+                  FileOpenDlgProc95 & OFN_NOCHANGEDIR support (also added
+                  to Unicode version of file open dialog))
+                o Removed workaround for Acrobat Reader file open dialog
+</README>
+</PAGE>
+<PAGE INDEX=4 TYPE=CONTAINER>
+<NEXTBUTTON TARGET=5>~Next</NEXTBUTTON>
+<TEXT>
+Please select the packages which are to be installed. You may change the target paths for the packages.
+</TEXT>
+</PAGE>
+<PAGE INDEX=5 TYPE=CONFIGURE>
+<NEXTBUTTON TARGET=6>~Next</NEXTBUTTON>
+<TEXT>
+Please select additional configuration that WarpIN should perform after installing this archive.
+</TEXT>
+</PAGE>
+<PAGE INDEX=6 TYPE=TEXT>
+<NEXTBUTTON TARGET=0>I~nstall</NEXTBUTTON>
+<TEXT>
+Press "Install" to begin installing Odin.</TEXT>
+</PAGE>
+</BODY>
+</WARPIN>
+

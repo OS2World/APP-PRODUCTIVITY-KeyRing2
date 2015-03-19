@@ -1,0 +1,84 @@
+(**************************************************************)
+(*      B-Tree Isam Record Converting Ver 5.51                *)
+(*      C-BTree Isam Ver 3.5 Pascal Interface                 *)
+(*   Copyright (C) 1988-1991 Dipl.Math. Ralf Nagel            *)
+(*   Copyright (C) 1991-1994 ENZ EDV-Beratung GmbH            *)
+(*                All rights reserved                         *)
+(*   Modified and used under license by TurboPower Software   *)
+(**************************************************************)
+
+(***Moved to FIXTOVAR.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$F-,V-,B-,S-,I-,R-,X+,A-,N+}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+
+
+Unit FixToVar;
+ ***)
+
+Interface
+
+Uses
+  Filer,     {!!.TP}
+  ReXCHook,
+  Strings;
+
+  Procedure FixToVarFileBlock ( FBlName      : IsamFileBlockName;
+                                DatSLenFix   : LongInt;
+                                DatSLenVar   : LongInt;
+                                NumberOfKeys : Word;
+                                IID          : IsamIndDescr;
+                                FuncBuildKey : Pointer );
+  {-Builds a variable record length fileblock out of a fixed}
+
+
+Implementation
+
+  Const
+    DLLName = 'CBTLWDS';
+
+  Function BDFixToVarFileBlock (     IPDPtr         : Pointer;
+                                     FBlName        : PChar;
+                                     DatSLenFix,
+                                     DatSLenVar     : LongInt;
+                                     NumberOfKeys   : Word;
+                                 Var IID            : IsamIndDescr;
+                                     BuildKeyFPtr,
+                                     ReXUserFPtr,
+                                     HookPtr        : Pointer ) : LongInt;
+      Far; External DLLName Index 2048;  {Name 'BDFIXTOVARFILEBLOCK';}
+
+
+  Procedure FixToVarFileBlock ( FBlName      : IsamFileBlockName;
+                                DatSLenFix   : LongInt;
+                                DatSLenVar   : LongInt;
+                                NumberOfKeys : Word;
+                                IID          : IsamIndDescr;
+                                FuncBuildKey : Pointer );
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+    HookArr  : Array [0..1] Of Pointer;
+    TempPtr  : Pointer;
+
+  Begin
+    StrPCopy ( FNameBuf, FBlName );
+    HookArr [0] := FuncBuildKey;
+    HookArr [1] := IsamReXUserProcPtr;
+    If IsamReXUserProcPtr = Nil Then Begin
+      TempPtr := Nil;
+    End Else Begin
+      TempPtr := CHReXUserProcInst;
+    End;
+    IsamOK := BDFixToVarFileBlock ( @___ValidSign, FNameBuf, DatSLenFix,
+        DatSLenVar, NumberOfKeys, IID, CHBuildKeyUserProcInst, TempPtr,
+        @HookArr ) = 0;
+  End;
+
+
+(***Moved to FIXTOVAR.PAS***  !!.TP
+End.
+ ***)

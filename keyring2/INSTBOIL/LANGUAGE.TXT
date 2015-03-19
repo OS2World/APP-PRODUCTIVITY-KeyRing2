@@ -1,0 +1,74 @@
+KeyRing/2 is easy to translate into most languages.  Lets start with
+ENGLISH.MSG.
+
+ENGLISH.MSG is a list of most of the English phrases used by
+KeyRing/2 on screens, error messages and menus.  Each phrase has an index 
+number like so:
+
+000021 'Problem adding file to master list: '
+000022 'Scanning '
+000023 ' Registration Information '
+000024 'Sorting'
+000025 'Pruning'
+
+Translation of each phrase is as easy as overwriting the English
+phrase with the same message in your native language:
+
+000021 'foo bar blabba stuff: '
+000022 'blabba foo '
+000023 ' BlabbaBlabba FoooooBlaba '
+000024 'BlabbaStuff'
+000025 'FooStuff'
+
+Not that my translation into "pseudo-caveman" left in formatting
+charaters - spaces at ends of lines and colon (:) characters.  Many
+of the phrases found in ENGLISH.MSG are concatenated with other
+phrases, and spaces may be important.  Experiment!
+
+Use E.EXE or equivalent as the editor for this file.  Word processors
+will probably NOT work unless you really know what you are doing. 
+You can use "high ASCII" characters if need be.  Don't delete the
+single quotes at each end of the line.  You don't need to "double up"
+single quotes inside the two end quotes:
+
+    Correct:  000099 'This is Kevin's good example'
+  Incorrect:  000099 'This is Kevin''s bad example'
+
+Each line should end with a standard DOS CR/LF sequence.  Trailing
+spaces after the end quote and before the CR/LF are ignored.  Don't use TAB 
+characters.  Don't use some UNIX or Mac editor that uses only CR or
+LF or some other weird permutation of end-of-line characters.
+
+Some of the Phrases that have an ampersand (&) in them are menu items 
+or entry screen fields with a "hotkey".  The letter to the right of 
+the '&' is the hotkey for that item.  You can move the & to a letter more
+appropriate for your language, or remove it if you like.  If you
+remove it, there will be no hotkey for that field or menu item.
+
+Example:
+
+000125 '&First Path To Search:'  -> 'F' is the hotkey for this field
+000126 '&Second Path To Search:' -> 'S' is the hotkey for this field
+
+The best way to translate the screen messages is to make "screen
+dumps" of each of the screens you want to translate.  Find the
+corresponding message in the ENGLISH.MSG file, and try to translate
+it into a phrase in your language that will fit on the screen.
+
+Note that some phrases are used in more than one place! 
+
+So, how do you compile the new phrases into the ENGLISH.MSX binary
+format?  Easy - just put the modified ENGLISH.MSG file into your
+ERACER2.EXE subdirectory and run KeyRing/2.  It will automatically
+compile the phrases if the MSG is newer thant the MSX.  You can
+delete the MSG after compilation, but I don't recommend this.
+
+Don't forget to send me a copy of translated MSG files so I can make
+them available to other speakers of your language.  No nasty words
+please - I will verify your translation accuracy with other
+independent sources prior to bundling them in future versions.  
+
+I will be happy to give you credit in the About Box, if you provide me
+with a good translation.
+
+

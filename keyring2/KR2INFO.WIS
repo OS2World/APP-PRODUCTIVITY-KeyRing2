@@ -1,0 +1,126 @@
+
+<!-- This is a sample WarpIn installation profile. -->
+
+<WARPIN>
+
+<!-- Every .WPI archive contains one or more packages. -->
+
+<HEAD>
+<PCK INDEX=1
+     PACKAGEID="IDK Inc.\Keyring/2\Documentation\1\0"
+     TARGET="C:\KR2"
+     TITLE="KeyRing/2 Documentation"
+     SELECT
+     >This package contains the KeyRing/2 INF file.</PCK>
+</HEAD>
+
+<!-- Here come the different pages. They are linked by
+     the <NEXTBUTTON> tags, which must have a target.
+     Each page must have a TYPE= attribute, which tells
+     WarpIn what will be visible on that page. -->
+
+<BODY>
+
+<PAGE INDEX=1 TYPE=TEXT>
+<NEXTBUTTON TARGET=2>~Next</NEXTBUTTON>
+<TEXT>
+
+
+Thank you for choosing KeyRing/2!
+
+
+
+Please install this documentation file in the same directory as your current KEYRING2.EXE.
+
+
+
+
+
+Select "Next" to continue.
+
+Select "Cancel" to abort installation.</TEXT>
+</PAGE>
+
+
+<!-- The TYPE_README will show a README text in a multi-line entry field. -->
+
+<PAGE INDEX=2 TYPE=README>
+<NEXTBUTTON TARGET=3>~I agree</NEXTBUTTON>
+<TEXT>
+By pressing the "I agree" button, you agree to all terms and conditions to the below licence agreement.
+</TEXT>
+<README>
+ Software License
+
+ KeyRing/2 is shareware. This means:
+
+ 1. All copyrights to KeyRing/2 are exclusively owned by the author - IDK, Inc.
+
+ 2. Anyone may use this software for a test period of 30 days. Following this test period of 30 days or less, if you wish to
+ continue to use KeyRing/2, you MUST register.
+
+ 3. Once registered, the user is granted a non-exclusive license to use KeyRing/2 on one computer (i.e. a single CPU), for any
+ legal purpose, at a time. The registered KeyRing/2 software may not be rented or leased, but may be permanently transferred,
+ if the person receiving it agrees to terms of this license. If the software is an update, the transfer must include the update and
+ all previous versions.
+
+ 4. The KeyRing/2 unregistered shareware version may be freely distributed, provided the distribution package is not modified. No
+ person or company may charge a fee for the distribution of KeyRing/2 without written permission from the copyright holder.
+
+ 5. To register you must complete the registration form and send it, with registration fee, to one of the authorized registration
+ sites.
+
+ 6. KeyRing/2 IS DISTRIBUTED "AS IS". NO WARRANTY OF ANY KIND IS EXPRESSED OR IMPLIED. YOU USE IT AT YOUR OWN RISK.
+ THE AUTHOR WILL NOT BE LIABLE FOR DATA LOSS, DAMAGES, LOSS OF PROFITS OR ANY OTHER KIND OF LOSS WHILE USING OR
+ MISUSING THIS SOFTWARE.  Your exclusive remedy and IDK's entire liability will be, at IDK's option, to refund the
+ actual amount paid for the Software.
+
+ 7. You may not reverse engineer, decompile, disassemble,or translate the Software.
+
+ 8. There are NO additional license fees, apart from the cost of registration.
+
+
+
+</README>
+</PAGE>
+
+<!-- The TYPE=CONTAINER will list the packages which can be installed. -->
+
+<PAGE INDEX=3 TYPE=CONTAINER>
+<NEXTBUTTON TARGET=4>~Next</NEXTBUTTON>
+<TEXT>
+Please select the packages which are to be installed. You may change the target paths for the packages.
+</TEXT>
+</PAGE>
+
+
+<!-- The TYPE=CONFIGURE will allow the user to set the CONFIG.SYS and
+     WPS classes/objects stuff. -->
+
+<PAGE INDEX=4 TYPE=CONFIGURE>
+<NEXTBUTTON TARGET=5>~Next</NEXTBUTTON>
+<TEXT>
+
+Please select additional configuration that WarpIN should perform after installing this archive.
+
+</TEXT>
+</PAGE>
+
+<!-- Here's another TYPE=TEXT page before we install.
+     The special target "0" indicates that after this page we
+     should start installation.
+     Note that the TYPE=INSTALL page (which we had in Alpha #3)
+     is no longer supported. -->
+
+<PAGE INDEX=5 TYPE=TEXT>
+<NEXTBUTTON TARGET=0>I~nstall</NEXTBUTTON>
+<TEXT>
+
+
+
+Press "Install" to begin installing this archive.</TEXT>
+</PAGE>
+</BODY>
+</WARPIN>
+
+

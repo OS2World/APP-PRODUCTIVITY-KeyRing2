@@ -1,0 +1,691 @@
+;
+;-------------------------------------------------------------------
+!TOPIC 2659 OPBROW
+
+The OPBROW unit implements an Object Professional compatibility layer over
+the abstract browser objects in 0951LOWBROWS, etc. The 2665ISBrowser object implemented by
+OPBROW is still an abstract object; at least one method, 2671BuildRow, must be overridden
+in an object you derive from ISBrowser. Several other virtual methods,
+including 2686PreCompletePage, 2685PostCompletePage, 2688ProcessPreCommand,
+2687ProcessPostCommand, 2684PerformFilter, 2698ShowErrorOccured (sic), and 2672CharHandler,
+can be overridden to customize the behavior of the browser.
+
+See the demonstration program OPISDEMO for examples of how to use this
+class.
+
+ISBrowser supports vertical and horizontal scroll bars using the standard
+Object Professional methodology. It also supports the OPDRAG module when
+UseDrag is defined in OPDEFINE.H.
+
+!NOWRAP
+  2660Declarations               2669AdjustWindow
+  2670BuildBrowScreenRow         2671BuildRow
+  2672CharHandler                2673Done
+  2674GetCurrentDatRef           2675GetCurrentKeyNr
+  2676GetCurrentKeyStr           2677GetCurrentRec
+  2678GetThisRec                 2679Init
+  2680InitCustom                 2681lwOptionsAreOn
+  2682lwOptionsOff               2683lwOptionsOn
+  2684PerformFilter              2685PostCompletePage
+  2686PreCompletePage            2687ProcessPostCommand
+  2688ProcessPreCommand          2689ProcessSelf
+  2690SetAndUpdateBrowserScreen  2691SetDimAttr
+  2692SetHeaderFooter            2693SetHeaderFooterAttr
+  2694SetHighLightAttr           2695SetKeyNr
+  2696SetLowHighKey              2697SetUpdateInterval
+  2698ShowErrorOccured           2699UpdateBrowserScreen
+!NOWRAP
+;
+;-------------------------------------------------------------------
+!TOPIC 2660 Declarations,OPBROW
+!NOINDEX
+
+The 2659OPBROW unit declares the following constants, types and variables:
+
+!NOWRAP
+  2661Command Table,OPBROW  2662ucOPBrowse
+  2663lwXxxx options        2664LowWinBrowser
+  2665ISBrowser             2666OpBrCommands
+  2667DefOPBrOptions        2668BadOPBrOptions
+!WRAP
+;
+;-------------------------------------------------------------------
+!TOPIC 2661 Command Table,OPBROW
+!NOINDEX
+!NOWRAP
+;!TABLE
+const
+  OpBrKeyMax = 220;                        {Last available slot in key set}
+  OpBrKeyID : string[12] = "opbrow keys";  {ID string for install programs}
+  OpBrKeySet : Array[0..OpBrKeyMax] =      {Default key assignments}
+    (...);
+  OPBrCfgEnd : byte = 0;
+!WRAP
+
+OpBrKeyID is an ID string used to mark the beginning of the configuration
+data area for 2659OPBROW; OpBrCfgEnd marks the end of the configuration data
+area. In between them is OpBrKeySet, the command table used by
+2666OpBrCommands. OpBrKeyMax is the last valid index into the table. These
+identifiers are declared in the source file OPBROW.ICD.
+;
+;-------------------------------------------------------------------
+!TOPIC 2662 ucOPBrowse
+!NOINDEX
+const
+  ucOPBrowse = 99;
+
+The 2659OPBROW unit code, which is passed to a help routine when the ccHelp
+command is triggered.
+;
+;-------------------------------------------------------------------
+!TOPIC 2663 lwXxxx options
+!NOINDEX
+!NOWRAP
+;!TABLE
+const
+  lwSelectOnClick  = $0001;
+  lwSuppressUpdate = $0002;
+!WRAP
+
+Options that affect the behavior of the browser. If lwSelectOnClick is on,
+the browser is exited with the command ccSelect when the mouse is clicked
+on the current record. If lwSuppressUpdate is off, the browser screen is
+updated periodically.
+
+See also: 2697SetUpdateInterval
+;
+;-------------------------------------------------------------------
+!TOPIC 2664 LowWinBrowser,OPBROW
+!NOINDEX
+type
+  LowWinBrowserPtr = ^LowWinBrowser;
+  LowWinBrowser = object(BRHBrowser)
+    Owner : ISBrowserPtr;
+    ...
+  end;
+
+The 2665ISBrowser object is declared in the 2659OPBROW unit and instantiates an
+instance of a LowWinBrowser, which performs all file access and keeps most of the
+browsing data structures up to date. A pointer to a LowWinBrowser is stored in the
+PBrowser field of ISBrowser. Owner points back to the ISBrowser instance that owns
+the LowWinBrowser.
+;
+;-------------------------------------------------------------------
+!TOPIC 2665 ISBrowser
+!NOINDEX
+type
+  ISBrowserPtr = ^ISBrowser;
+  ISBrowser = object(CommandWindow)
+    PBrowser :LowWinBrowserPtr;
+    ...
+  end;
+
+You create a descendant of an ISBrowser object to display a browser using
+the Object Professional window system. ISBrowser is used like any other
+CommandWindow. PBrowser points to a 2664LowWinBrowser, which handles the
+platform-independent work of the browser. The methods of the ISBrowser are
+described later in this section. ISBrowser also inherits all methods of
+the Object Professional CommandWindow object.
+;
+;-------------------------------------------------------------------
+!TOPIC 2666 OpBrCommands
+!NOINDEX
+var
+  {$IFDEF UseDrag}
+  OpBrCommands : DragProcessor;
+  {$ELSE}
+  OpBrCommands : CommandProcessor;
+  {$ENDIF}
+
+The default command processor for an 2665ISBrowser object. This variable is
+initialized in the unit's initialization block. See OPBROW.ICD for details
+of the key assignments.
+;
+;-------------------------------------------------------------------
+!TOPIC 2667 DefOPBrOptions
+!NOINDEX
+const
+  DefOPBrOptions : Word = lwSelectOnClick;
+
+The default options for a browser.
+
+See also:  2663lwXxxx
+;
+;-------------------------------------------------------------------
+!TOPIC 2668 BadOPBrOptions
+!NOINDEX
+const
+  BadOPBrOptions : Word = 0;
+
+Options used internally by a browser. The 2683lwOptionsOn and 2682lwOptionsOff
+methods will not change these bits of the browser options. (There are
+currently no such bits.)
+
+See also:  2663lwXxxx
+;
+;-------------------------------------------------------------------
+!TOPIC 2669 AdjustWindow,ISBrowser
+!NOINDEX
+procedure ISBrowser.AdjustWindow(X1, Y1, X2, Y2 : Word); virtual;
+
+Adjust the size of a browser window.
+
+This procedure calls the inherited CommandWindow.AdjustWindow, then
+rebuilds the browser data structures and updates the screen.
+;
+;-------------------------------------------------------------------
+!TOPIC 2670 BuildBrowScreenRow,ISBrowser
+!NOINDEX
+function ISBrowser.BuildBrowScreenRow(var RR : RowRec) : Integer;
+
+Build a RowRec for the record currently in the record buffer.
+
+This function is provided primarily for use in filter routines. The filter
+method, 2684PerformFilter, should execute the following sequence. First, it
+should call 2678GetThisRec to load the record being tested into the record
+buffer. Then it should decide whether to filter or display the record. If
+it decides to display the record, it should call BuildBrowScreenRow, which
+ultimately calls 2671BuildRow to build the display string for the record.
+Calling BuildBrowScreenRow in PerformFilter avoids having to construct the
+RowRec a second time later. BuildBrowScreenRow returns an error class,
+which should also be returned by PerformFilter.
+;
+;-------------------------------------------------------------------
+!TOPIC 2671 BuildRow,ISBrowser
+!NOINDEX
+function ISBrowser.BuildRow(var RR : RowRec) : Integer; virtual;
+
+Build the display string for the current row.
+
+You must override this method in an object derived from 2665ISBrowser. When
+BuildRow is called, the record buffer (supplied by you when you construct
+the object) contains the current record (or the portion of it specified by
+VarRecMaxReadLen for variable length records). The function must
+initialize the RR.Row field with the string to be displayed for this
+record. The Status field of RR is already initialized when BuildRow is
+called. If Status equals zero, the record buffer is properly initialized.
+The Status field can contain other values. When Status is non-zero, the
+record buffer is not initialized. BuildRow should construct an appropriate
+string to indicate the lock or error condition. The IKS and Ref fields
+of RR are always initialized when BuildRow is called. BuildRow should
+return zero if it is successful. Otherwise it should return a B-Tree
+Filer error class.
+
+See also:  2670BuildBrowScreenRow
+;
+;-------------------------------------------------------------------
+!TOPIC 2672 CharHandler,ISBrowser
+!NOINDEX
+procedure ISBrowser.CharHandler; virtual;
+
+Called for each ASCII character entered while 2665ISBrowser.Process is active.
+
+The supplied implementation of this method does nothing. Override it to
+provide different behavior. You could keep an incremental match string and
+use the 2690SetAndUpdateBrowserScreen method to reposition the highlight bar
+on a matching record.
+
+The last character entered is available via the GetLastKey method that
+ISBrowser inherits from the Object Professional CommandWindow object.
+;
+;-------------------------------------------------------------------
+!TOPIC 2673 Done,ISBrowser
+!NOINDEX
+destructor ISBrowser.Done; virtual;
+
+Dispose of the browser.
+
+This destructor deallocates all data structures used by the browser, then
+calls the inherited CommandWindow.Done. The associated fileblock is not
+closed.
+
+See also:  2679Init
+;
+;-------------------------------------------------------------------
+!TOPIC 2674 GetCurrentDatRef,ISBrowser
+!NOINDEX
+function ISBrowser.GetCurrentDatRef : LongInt;
+
+Return the record number of the highlighted record.
+
+This method simply returns the data reference number of the highlighted
+record.
+;
+;-------------------------------------------------------------------
+!TOPIC 2675 GetCurrentKeyNr,ISBrowser
+!NOINDEX
+function ISBrowser.GetCurrentKeyNr : Word;
+
+Return the number of the browsing index.
+
+This method simply returns the number of the index being used for
+browsing. (Also available in the KeyNr field of the abstract browser.)
+;
+;-------------------------------------------------------------------
+!TOPIC 2676 GetCurrentKeyStr,ISBrowser
+!NOINDEX
+function ISBrowser.GetCurrentKeyStr : String;
+
+Return the key string for the highlighted record.
+
+This method simply returns the key string associated with the browsing
+index of the highlighted record.
+;
+;-------------------------------------------------------------------
+!TOPIC 2677 GetCurrentRec,ISBrowser
+!NOINDEX
+function ISBrowser.GetCurrentRec(var Match : Boolean) : Integer;
+
+Read the highlighted record into the record buffer.
+
+This method is typically called after the Process method of 2665ISBrowser
+returns. It reloads the record that was highlighted by the user into the
+buffer provided when the browser was initialized.
+
+The boolean variable Match is set to True if the string generated from the
+newly read record equals the string currently displayed. If the strings
+are not equal, Match is set to False. This gives a simple check to find
+out whether the record was changed by another workstation.
+
+An error class is returned as the function result. Any non-zero value
+indicates that the record could not be read.
+
+See also:  2678GetThisRec
+;
+;-------------------------------------------------------------------
+!TOPIC 2678 GetThisRec,ISBrowser
+!NOINDEX
+function ISBrowser.GetThisRec(var RR : RowRec) : Integer;
+
+Read the specified record into the record buffer.
+
+RR contains fields named IKS and Ref which describe the key string and
+reference number of a record. GetThisRec is usually called within a
+2684PerformFilter method in order to get complete record data for making a
+filter decision. The function result is the error class obtained when
+reading the record.
+;
+;-------------------------------------------------------------------
+!TOPIC 2679 Init,ISBrowser
+!NOINDEX
+constructor ISBrowser.Init(X1, Y1, X2, Y2 : Byte;
+                 AFileBlockPtr : IsamFileBlockPtr;
+                 ANumberOfEltsPerRow : Word;
+                 ANumberOfRows : Word;
+                 AKeyNr : Word;
+                 ALKey, AHKey : GenKeyStr;
+                 AHeader, AFooter : BRLRowEltString;
+                 var ADatS; AIsVarRec : Boolean);
+
+Initialize a browser window.
+
+This constructor instantiates a browser window using the default window
+options (DefWindowOptions), the default color set (DefaultColorSet), and
+the default browser options (2667DefOPBrOptions).
+
+See also:  2680InitCustom
+;
+;-------------------------------------------------------------------
+!TOPIC 2680 InitCustom,ISBrowser
+!NOINDEX
+constructor ISBrowser.InitCustom(X1, Y1, X2, Y2 : Byte;
+                       var Colors : ColorSet;
+                       AFileBlockPtr : IsamFileBlockPtr;
+                       ANumberOfEltsPerRow : Word;
+                       ANumberOfRows : Word;
+                       AKeyNr : Word;
+                       ALKey, AHKey : GenKeyStr;
+                       AHeader, AFooter : BRLRowEltString;
+                       var ADatS;
+                       AIsVarRec : Boolean;
+                       WinOptions : LongInt);
+
+Initialize a browser window with custom options.
+
+InitCustom first calls CommandWindow.InitCustom, passing it the size
+indicated by X1, Y1, X2, Y2, the colors indicated by Colors, and the
+window options WinOptions.
+
+InitCustom allocates a dynamic instance of type 2664LowWinBrowser and stores
+its address in the field PBrowser.
+
+AFileBlockPtr is the address of an IsamFileBlock, already opened.
+ANumberOfEltsPerRow is currently ignored. At some point it will specify
+the number of screen lines displayed for each browsed record. Currently
+the number of screen lines per record is always 1.
+
+ANumberOfRows specifies the maximum number of record elements buffered by
+the browser. The number of rows displayed by the browser window must
+always be less than or equal to ANumberOfRows.
+
+AKeyNr is the fileblock index number used for selecting and ordering the
+records displayed by the browser. AKeyNr can be 0, in which case an index
+is not used, the records are just taken in reference number sequence from
+the data file.
+
+ALKey and AHKey determine the lowest and highest keys displayed in the
+browser window. All records that begin with AHKey will be displayed. For
+example, if AHKey = 'bird', the browser displays records having the key
+'bird song'. Pass ALKey as a blank string and AHKey as a string of $FF
+characters to display all records in the fileblock.
+
+AHeader and AFooter contain the header and footer lines displayed in the
+browser window. Specify an empty string to leave out either line. AHeader
+and AFooter are limited to one line each.
+
+ADatS must point to a buffer large enough to hold the largest record in
+the fileblock. The browser reads each record into this buffer as needed.
+The 2678GetThisRec and 2677GetCurrentRec methods also read a record into this
+buffer.
+
+AIsVarRec must be True for browsing a variable length record fileblock,
+False otherwise.
+
+Calling this constructor does not cause the browser to access the
+fileblock or build any display pages. This occurs only when Draw, Process,
+or 2690SetAndUpdateBrowserScreen is called.
+
+See also:  2673Done  2679Init
+;
+;-------------------------------------------------------------------
+!TOPIC 2681 lwOptionsAreOn,ISBrowser
+!NOINDEX
+function ISBrowser.lwOptionsAreOn(OptionFlags : Word) : Boolean;
+
+Return True if all specified options are on.
+
+This function returns True if the specified browser options are currently
+selected.
+
+See also:  2682lwOptionsOff  2683lwOptionsOn  2663lwXxxx
+;
+;-------------------------------------------------------------------
+!TOPIC 2682 lwOptionsOff,ISBrowser
+!NOINDEX
+procedure ISBrowser.lwOptionsOff(OptionFlags : Word);
+
+Turn options off.
+
+This procedure deactivates the specified browser option(s).
+
+See also:  2681lwOptionsAreOn  2683lwOptionsOn  2663lwXxxx
+;
+;-------------------------------------------------------------------
+!TOPIC 2683 lwOptionsOn,ISBrowser
+!NOINDEX
+procedure ISBrowser.lwOptionsOn(OptionFlags : Word);
+
+Turn options on.
+
+This procedure activates the specified browser option(s).
+
+See also:  2681lwOptionsAreOn  2682lwOptionsOff  2663lwXxxx
+;
+;-------------------------------------------------------------------
+!TOPIC 2684 PerformFilter,ISBrowser
+!NOINDEX
+function ISBrowser.PerformFilter(var RR : RowRec;
+                        var UseIt : Boolean) : Integer;
+                                                   virtual;
+
+Determine whether to display a given record.
+
+The default implementation of this method accepts all records. You must
+override it to provide different behavior.
+
+On entry to this function, the IKS and Ref fields of the RR parameter are
+already initialized. If possible, the filter routine should determine
+whether to accept the given record by using just the values of these
+members. If the filter routine needs the complete data record to decide
+whether to accept the record, it should call the method 2678GetThisRec
+(passing it RR) to load the specified record into the record buffer.
+To accept the record for display, PerformFilter should set UseIt to True;
+to filter the record, it should set UseIt to False. PerformFilter should
+return a function result of 0 to indicate success; otherwise it should
+return an error class.
+
+If the record is accepted for display, PerformFilter can immediately build
+the row to be displayed by calling 2670BuildBrowScreenRow. This prevents the
+browser from having to read the data record a second time.
+;
+;-------------------------------------------------------------------
+!TOPIC 2685 PostCompletePage,ISBrowser
+!NOINDEX
+function ISBrowser.PostCompletePage : Integer; virtual;
+
+Execute an operation after constructing each browser page.
+
+By default this method does nothing. Override it to perform a custom
+action.
+
+This method is called after constructing the browser page. See
+2686PreCompletePage for more information.
+
+PostCompletePage can signal an error by returning a non-zero function
+result. This causes the browser to call the virtual method
+2698ShowErrorOccured with the given result.
+;
+;-------------------------------------------------------------------
+!TOPIC 2686 PreCompletePage,ISBrowser
+!NOINDEX
+function ISBrowser.PreCompletePage : Integer; virtual;
+
+Execute an operation before constructing each browser page.
+
+By default this method does nothing. Override it to perform a custom
+action.
+
+A browser page consists of an array of information with one element for
+each row displayed within the browser window. Each element is of type
+RowRec. Whenever a browser command is executed, the browser must rebuild
+the page of elements to display. The page is constructed in two steps.
+In the first step, the IKS and Ref fields of each element are filled in
+by scanning the browse index and calling the 2684PerformFilter method. In
+the second step, the 2671BuildRow method is called for each of the elements
+to construct a display string for each one.
+
+PreCompletePage is called after the first step is complete.
+
+2685PostCompletePage is called after the second step is complete.
+
+PreCompletePage can signal an error by returning a non-zero function
+result. This causes the browser to call the virtual method
+2698ShowErrorOccured with the given result. In this case, the second step is
+not executed.
+;
+;-------------------------------------------------------------------
+!TOPIC 2687 ProcessPostCommand,ISBrowser
+!NOINDEX
+procedure ISBrowser.ProcessPostCommand; virtual;
+
+Execute an operation after reading the keyboard.
+
+By default this method does nothing. Override it to perform a custom
+action. This method is called after 2665ISBrowser.Process reads the keyboard
+or obtains a mouse event.
+
+You could call 2677GetCurrentRec within ProcessPostCommand to load the
+highlighted record into the record buffer. You could then display the
+current record in a separate window, in more detail than the browser
+screen shows for all the records.
+
+See also:  2688ProcessPreCommand
+;
+;-------------------------------------------------------------------
+!TOPIC 2688 ProcessPreCommand,ISBrowser
+!NOINDEX
+procedure ISBrowser.ProcessPreCommand; virtual;
+
+Execute an operation before reading the keyboard.
+
+By default this method does nothing. Override it to perform a custom
+action. This method is called before 2665ISBrowser.Process reads the keyboard
+or obtains a mouse event. It is the counterpart to 2687ProcessPostCommand.
+;
+;-------------------------------------------------------------------
+!TOPIC 2689 ProcessSelf,ISBrowser
+!NOINDEX
+procedure ISBrowser.ProcessSelf; virtual;
+
+Process browser commands.
+
+This method follows the general model for CommandWindow.ProcessSelf with
+the following additions and exceptions.
+
+It calls a number of virtual methods. 2671BuildRow must be overridden. Several
+other virtual methods, including 2686PreCompletePage, 2685PostCompletePage,
+2688ProcessPreCommand, 2687ProcessPostCommand, 2684PerformFilter, 2698ShowErrorOccured
+(sic), and 2672CharHandler, can be overridden to customize the behavior of the
+browser.
+;
+;-------------------------------------------------------------------
+!TOPIC 2690 SetAndUpdateBrowserScreen,ISBrowser
+!NOINDEX
+procedure ISBrowser.SetAndUpdateBrowserScreen(NewKeyStr : GenKeyStr;
+                                    NewRef : LongInt);
+
+Move the highlight bar to the specified record.
+
+NewKeyStr and NewRef specify the key string and reference number of a
+record to highlight. A new browser page is built and the screen is updated
+immediately if the browser window is current.
+
+You can use this routine after a search is performed on the fileblock, or
+after a new record is added, to position the highlight on a new record.
+
+See also:  2672CharHandler  2699UpdateBrowserScreen
+;
+;-------------------------------------------------------------------
+!TOPIC 2691 SetDimAttr,ISBrowser
+!NOINDEX
+procedure ISBrowser.SetDimAttr(Color, Mono : Byte);
+
+Set the color for unselected browser lines.
+
+By default, unselected browser lines are displayed in the attribute given
+by the TextColor or TextMono field of the ColorSet passed to the
+initializing function. Use this method to change the colors. SetDimAttr
+does not affect the display until the next time the browser window is
+drawn.
+
+See also:  2694SetHighLightAttr
+;
+;-------------------------------------------------------------------
+!TOPIC 2692 SetHeaderFooter,ISBrowser
+!NOINDEX
+procedure ISBrowser.SetHeaderFooter(AHeader, AFooter : BRLRowEltString);
+
+Change the header and footer lines.
+
+Use this method to change the header and footer specified when the browser
+window was constructed. Specify an empty string to disable the header or
+footer.
+
+Calling this method causes the browser page to be rebuilt. If the browser
+window is current, the screen is updated immediately.
+
+See also:  2680InitCustom
+;
+;-------------------------------------------------------------------
+!TOPIC 2693 SetHeaderFooterAttr,ISBrowser
+!NOINDEX
+procedure ISBrowser.SetHeaderFooterAttr(Color, Mono : Byte);
+
+Set the color for the header and footer lines.
+
+By default, the header and footer are displayed in the attribute specified
+by the HeaderColor or HeaderMono field of the ColorSet passed to the
+browser's constructor. Use this method to change the colors.
+SetHeaderFooterAttr does not affect the display until the next time the
+browser window is drawn.
+
+See also:  2680InitCustom
+;
+;-------------------------------------------------------------------
+!TOPIC 2694 SetHighLightAttr,ISBrowser
+!NOINDEX
+procedure ISBrowser.SetHighLightAttr(Color, Mono : Byte);
+
+Set the color for the selected browser line.
+
+By default, the selected browser line is displayed in the attribute
+specified by the HighlightColor or HighlightMono field of the ColorSet
+passed to the browser's constructor. Use this method to change the colors.
+SetHighLightAttr does not affect the display until the next time the
+browser window is drawn.
+
+See also:  2691SetDimAttr
+;
+;-------------------------------------------------------------------
+!TOPIC 2695 SetKeyNr,ISBrowser
+!NOINDEX
+procedure ISBrowser.SetKeyNr(Value : Word);
+
+Set the index number used by the browser.
+
+Value should range between 0 and the largest index number of the fileblock
+being browsed. SetKeyNr simply stores the new index number in a field of
+the browser. You must then specify a new current record and update the
+screen by calling 2690SetAndUpdateBrowserScreen.
+
+Index 0 is defined to be the arrival sequence of the records in the data
+file (i.e., the reference number sequence).
+;
+;-------------------------------------------------------------------
+!TOPIC 2696 SetLowHighKey,ISBrowser
+!NOINDEX
+procedure ISBrowser.SetLowHighKey(ALowKey, AHighKey : GenKeyStr);
+
+Set new key limits for the browser.
+
+ALowKey and AHighKey specify the new low and high key limits. See
+2680InitCustom for more information.
+
+SetLowHighKey simply stores the new key limits in fields of the browser.
+You must update the browser screen by calling 2699UpdateBrowserScreen or
+2690SetAndUpdateBrowserScreen (if the current record is outside of the new key
+range).
+;
+;-------------------------------------------------------------------
+!TOPIC 2697 SetUpdateInterval,ISBrowser
+!NOINDEX
+procedure ISBrowser.SetUpdateInterval(IV : Word);
+
+Set the update interval in milliseconds.
+
+If the browser is used on a network fileblock, the lwSuppressUpdate option
+is not enabled, and a non-zero update interval is specified, the browser
+automatically refreshes the display after the specified interval. As a
+result, the browser screen automatically accounts for changes to the
+fileblock made by other workstations.
+
+The default update interval is zero milliseconds, so you must call
+SetUpdateInterval to activate this feature. Do not specify an interval
+less than 1000 milliseconds or network thrashing will occur.
+
+See also:  2663lwXxxx
+;
+;-------------------------------------------------------------------
+!TOPIC 2698 ShowErrorOccured,ISBrowser
+!NOINDEX
+procedure ISBrowser.ShowErrorOccured(AClass : Integer); virtual;
+
+Execute an operation when a browser error occurs.
+
+By default this method does nothing. Override it to perform a custom
+action.
+
+This method is called whenever an error is detected within the browser.
+The parameter AClass is the B-Tree Filer error class.
+;
+;-------------------------------------------------------------------
+!TOPIC 2699 UpdateBrowserScreen,ISBrowser
+!NOINDEX
+procedure ISBrowser.UpdateBrowserScreen;
+
+Rebuild and redraw the browser screen.
+
+Call this method when the fileblock is changed in a way that affects the
+browser screen. For example, if you delete a record, call
+UpdateBrowserScreen to account for it. If you want to move the highlight
+to a different record, call 2690SetAndUpdateBrowserScreen instead.

@@ -1,0 +1,311 @@
+(**************************************************************)
+(*       B-Tree Isam Variable Records Ver 5.51                *)
+(*     C-BTree Isam DLL Ver 3.5 Pascal Interface              *)
+(*   Copyright (C) 1987-1991 Dipl.Math. Ralf Nagel            *)
+(*   Copyright (C) 1991-1994 ENZ EDV-Beratung GmbH            *)
+(*                All rights reserved                         *)
+(*   Modified and used under license by TurboPower Software   *)
+(**************************************************************)
+
+(***Moved to VREC.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$F-,V-,B-,S-,I-,R-,A-,N+}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+
+
+Unit IsamVRec;
+ ***)
+
+InterFace
+
+Uses
+  Filer;     {!!.TP}
+
+Const
+  MaxVariableRecLength = $FFF0;
+{--Internal use only}                                               {!!.50}
+  MaxVariableRecLengthM1 = MaxVariableRecLength - 1;                {!!.50}
+
+{--Internal use only}                                               {!!.50}
+Type                                                                {!!.50}
+  IsamVRecBuf  = Array [0..MaxVariableRecLengthM1] Of Byte;         {!!.50}
+  PIsamVRecBuf = ^IsamVRecBuf;                                      {!!.50}
+
+{--Internal use only}                                               {!!.50}
+Var
+  IsamVRecBufSize : Word Absolute _IsamVRecBufSize;                 {!!.50}
+  IVRBPtr         : PIsamVRecBuf Absolute _IVRBPtr;
+
+
+  Function BTCreateVariableRecBuffer ( IFBPtr : IsamFileBlockPtr )
+                                                                 : Boolean;
+    {-Create a variable record buffer for the fileblock with the greatest
+      data record length of all variable record fileblocks}
+
+  Procedure BTReleaseVariableRecBuffer;
+    {-Release the variable record buffer}
+
+  Function BTSetVariableRecBuffer ( Size : Word ) : Boolean;
+    {-Create a variable record buffer with Size bytes as an alternative to
+      CreateVariableRecBuffer}
+
+  Procedure BTAddVariableRec (     IFBPtr : IsamFileBlockPtr;
+                               Var RefNr  : LongInt;
+                               Var Source;
+                                   Len    : Word);
+    {-Adds a record with variable length}
+
+  Procedure BTDeleteVariableRec ( IFBPtr : IsamFileBlockPtr;
+                                  RefNr  : LongInt );
+    {-Deletes a record with variable length}
+
+  Procedure BTPutVariableRec (     IFBPtr : IsamFileBlockPtr;
+                                   RefNr  : LongInt;
+                               Var Source;
+                                   Len    : Word );
+    {-Puts a record with variable length to its old place}
+
+  Procedure BTGetVariableRecPart (     IFBPtr : IsamFileBlockPtr;
+                                       RefNr  : LongInt;
+                                   Var Dest;
+                                   Var Len    : Word );
+    {-Reads at maximum Len bytes of a variable record}
+
+  Procedure BTGetVariableRec (     IFBPtr : IsamFileBlockPtr;
+                                   RefNr  : LongInt;
+                               Var Dest;
+                               Var Len    : Word );
+    {-Reads a variable record and returns the read number of bytes in Len}
+
+  Procedure BTGetVRecPartReadOnly (     IFBPtr : IsamFileBlockPtr;
+                                        RefNr  : LongInt;
+                                    Var Dest;
+                                    Var Len    : Word );
+    {-Reads a variable record and returns the read number of bytes in Len;
+      needs either a record lock or another lock, else will do a readlock}
+
+  Procedure BTGetVRecReadOnly (     IFBPtr : IsamFileBlockPtr;
+                                    RefNr  : LongInt;
+                                Var Dest;
+                                Var Len    : Word );
+    {-Reads at maximum Len bytes of a variable record;
+      needs either a record lock or another lock, else will do a readlock}
+
+  Procedure BTGetVariableRecLength (     IFBPtr : IsamFileBlockPtr;
+                                         RefNr  : LongInt;
+                                     Var Len    : Word );
+    {-Gets the length of a variable record and returns it in Len}
+
+  Function BTAdjustVariableRecBuffer ( Size : Word ) : Boolean;     {!!.50}
+    {-Increases the variable record buffer if necessary}
+
+
+Implementation
+
+  Const
+    DLLName = 'CBTLWDS';
+
+
+  Function BDCreateVariableRecBuffer (     IPDPtr    : Pointer;
+                                           IFBPtr    : IsamFileBlockPtr;
+                                       Var Allocated : Boolean ) : LongInt;
+      Far; External DLLName Index 1280;  {Name 'BDCREATEVARIABLERECBUFFER';}
+
+  Function BDReleaseVariableRecBuffer ( IPDPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 1281; {Name 'BDRELEASEVARIABLERECBUFFER';}
+
+  Function BDSetVariableRecBuffer (     IPDPtr    : Pointer;
+                                        Size      : Word;
+                                    Var Allocated : Boolean ) : LongInt;
+      Far; External DLLName Index 1282;  {Name 'BDSETVARIABLERECBUFFER';}
+
+  Function BDAddVariableRec (     IPDPtr    : Pointer;
+                                  IFBPtr    : IsamFileBlockPtr;
+                              Var RefNr     : LongInt;
+                                  SourcePtr : Pointer;
+                                  Len       : Word ) : LongInt;
+      Far; External DLLName Index 1284;  {Name 'BDADDVARIABLEREC';}
+
+  Function BDDeleteVariableRec ( IPDPtr : Pointer;
+                                 IFBPtr : IsamFileBlockPtr;
+                                 RefNr  : LongInt ) : LongInt;
+      Far; External DLLName Index 1285;  {Name 'BDDELETEVARIABLEREC';}
+
+  Function BDPutVariableRec ( IPDPtr    : Pointer;
+                              IFBPtr    : IsamFileBlockPtr;
+                              RefNr     : LongInt;
+                              SourcePtr : Pointer;
+                              Len       : Word ) : LongInt;
+      Far; External DLLName Index 1286;  {Name 'BDPUTVARIABLEREC';}
+
+  Function BDGetVariableRecPart (     IPDPtr  : Pointer;
+                                      IFBPtr  : IsamFileBlockPtr;
+                                      RefNr   : LongInt;
+                                      DestPtr : Pointer;
+                                  Var Len     : Word ) : LongInt;
+      Far; External DLLName Index 1287;  {Name 'BDGETVARIABLERECPART';}
+
+  Function BDGetVariableRec (     IPDPtr  : Pointer;
+                                  IFBPtr  : IsamFileBlockPtr;
+                                  RefNr   : LongInt;
+                                  DestPtr : Pointer;
+                              Var Len     : Word ) : LongInt;
+      Far; External DLLName Index 1288;  {Name 'BDGETVARIABLEREC';}
+
+  Function BDGetVRecPartReadOnly (     IPDPtr  : Pointer;
+                                       IFBPtr  : IsamFileBlockPtr;
+                                       RefNr   : LongInt;
+                                       DestPtr : Pointer;
+                                   Var Len     : Word ) : LongInt;
+      Far; External DLLName Index 1289;  {Name 'BDGETVRECPARTREADONLY';}
+
+  Function BDGetVRecReadOnly (     IPDPtr  : Pointer;
+                                   IFBPtr  : IsamFileBlockPtr;
+                                   RefNr   : LongInt;
+                                   DestPtr : Pointer;
+                               Var Len     : Word ) : LongInt;
+      Far; External DLLName Index 1290;  {Name 'BDGETVRECREADONLY';}
+
+  Function BDGetVariableRecLength (     IPDPtr  : Pointer;
+                                        IFBPtr  : IsamFileBlockPtr;
+                                        RefNr   : LongInt;
+                                    Var Len     : Word ) : LongInt;
+      Far; External DLLName Index 1291;  {Name 'BDGETVARIABLERECLENGTH';}
+
+  Function BDAdjustVariableRecBuffer (     IPDPtr    : Pointer;
+                                           Size      : Word
+                                      {Var Allocated : Boolean} ) : LongInt;
+  {!!!Comment to remove for ver. 3.51}
+      Far; External DLLName Index 1283;  {Name 'BDADJUSTVARIABLERECBUFFER';}
+
+
+
+  Function BTCreateVariableRecBuffer ( IFBPtr : IsamFileBlockPtr )
+                                                                 : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDCreateVariableRecBuffer ( @___ValidSign, IFBPtr,
+        FuncRes ) = 0;
+    BTCreateVariableRecBuffer := FuncRes;
+  End;
+
+
+  Procedure BTReleaseVariableRecBuffer;
+
+  Begin
+    IsamOk := BDReleaseVariableRecBuffer ( @___ValidSign ) = 0;
+  End;
+
+
+  Function BTSetVariableRecBuffer ( Size : Word ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDSetVariableRecBuffer ( @___ValidSign, Size, FuncRes )
+        = 0;
+    BTSetVariableRecBuffer := FuncRes;
+  End;
+
+
+  Procedure BTAddVariableRec (     IFBPtr : IsamFileBlockPtr;
+                               Var RefNr  : LongInt;
+                               Var Source;
+                                   Len    : Word);
+
+  Begin
+    IsamOk := BDAddVariableRec ( @___ValidSign, IFBPtr, RefNr, @Source,
+        Len ) = 0;
+  End;
+
+
+  Procedure BTDeleteVariableRec ( IFBPtr : IsamFileBlockPtr;
+                                  RefNr  : LongInt );
+
+  Begin
+    IsamOk := BDDeleteVariableRec ( @___ValidSign, IFBPtr, RefNr ) = 0;
+  End;
+
+
+  Procedure BTPutVariableRec (     IFBPtr : IsamFileBlockPtr;
+                                   RefNr  : LongInt;
+                               Var Source;
+                                   Len    : Word );
+
+  Begin
+    IsamOk := BDPutVariableRec ( @___ValidSign, IFBPtr, RefNr, @Source,
+        Len ) = 0;
+  End;
+
+
+  Procedure BTGetVariableRecPart (     IFBPtr : IsamFileBlockPtr;
+                                       RefNr  : LongInt;
+                                   Var Dest;
+                                   Var Len    : Word );
+
+  Begin
+    IsamOk := BDGetVariableRecPart ( @___ValidSign, IFBPtr, RefNr, @Dest,
+        Len ) = 0;
+  End;
+
+
+  Procedure BTGetVariableRec (     IFBPtr : IsamFileBlockPtr;
+                                   RefNr  : LongInt;
+                               Var Dest;
+                               Var Len    : Word );
+
+  Begin
+    IsamOk := BDGetVariableRec ( @___ValidSign, IFBPtr, RefNr, @Dest,
+        Len ) = 0;
+  End;
+
+
+  Procedure BTGetVRecPartReadOnly (     IFBPtr : IsamFileBlockPtr;
+                                        RefNr  : LongInt;
+                                    Var Dest;
+                                    Var Len    : Word );
+
+  Begin
+    IsamOk := BDGetVRecPartReadOnly ( @___ValidSign, IFBPtr, RefNr, @Dest,
+        Len ) = 0;
+  End;
+
+
+  Procedure BTGetVRecReadOnly (     IFBPtr : IsamFileBlockPtr;
+                                    RefNr  : LongInt;
+                                Var Dest;
+                                Var Len    : Word );
+
+  Begin
+    IsamOk := BDGetVRecReadOnly ( @___ValidSign, IFBPtr, RefNr, @Dest,
+        Len ) = 0;
+  End;
+
+
+  Procedure BTGetVariableRecLength (     IFBPtr : IsamFileBlockPtr;
+                                         RefNr  : LongInt;
+                                     Var Len    : Word );
+
+  Begin
+    IsamOk := BDGetVariableRecLength ( @___ValidSign, IFBPtr, RefNr, Len )
+        = 0;
+  End;
+
+
+  Function BTAdjustVariableRecBuffer ( Size : Word ) : Boolean;
+
+  Begin
+    IsamOk := BDAdjustVariableRecBuffer ( @___ValidSign, Size ) = 0;
+    BTAdjustVariableRecBuffer := IsamOk;
+  End;
+
+(***Moved to VREC.PAS***  !!.TP
+End.
+ ***)

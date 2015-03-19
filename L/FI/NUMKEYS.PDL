@@ -1,0 +1,570 @@
+{*********************************************************}
+{*                   NUMKEYS.PAS 5.51                    *}
+{*     Copyright (c) TurboPower Software 1989, 1994.     *}
+{*                 All rights reserved.                  *}
+{*         C-BTree Isam Ver 3.5 Pascal Interface         *}
+{*         Unter Lizenz verwendet und modifiziert        *}
+{*                 ENZ EDV-Beratung GmbH                 *}
+{*********************************************************}
+
+(***Moved to NUMKEYS.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$F-,V-,B-,S-,I-,R-,X+,A-,N+}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+  {$IFDEF UseSymFlex}
+    {$N+}
+  {$ENDIF}
+
+unit NumKeys;
+  {-Routines to convert numeric types to keys usable for sorting or indexing}
+ ***)
+
+interface
+
+type
+  String1  = String[1];
+  String2  = String[2];
+  String4  = String[4];
+  String5  = String[5];
+  String6  = String[6];
+  String7  = String[7];
+  String8  = String[8];
+  String9  = String[9];
+  String10 = String[10];
+
+{---------------- routines for numeric conversions ----------------}
+
+function ShortToKey(S : ShortInt) : String1;
+  {-Convert a shortint to a string}
+
+function KeyToShort(S : String1) : ShortInt;
+  {-Convert a string to a shortint}
+
+function ByteToKey(B : Byte) : String1; {!!.41}
+  {-Convert a byte to a string}
+
+function KeyToByte(S : String1) : Byte; {!!.41}
+  {-Convert a string to a byte}
+
+function IntToKey(I : Integer) : String2;
+  {-Convert an integer to a string}
+
+function KeyToInt(S : String2) : Integer;
+  {-Convert a string to an integer}
+
+function WordToKey(W : Word) : String2;
+  {-Convert a word to a string}
+
+function KeyToWord(S : String2) : Word;
+  {-Convert a string to a word}
+
+function LongToKey(L : LongInt) : String4;
+  {-Convert a longint to a string}
+
+function KeyToLong(S : String4) : LongInt;
+  {-Convert a string to a longint}
+
+function RealToKey(R : Real) : String6;
+  {-Convert a real to a string}
+
+function KeyToReal(S : String6) : Real;
+  {-Convert a string to a real}
+
+function BcdToKey(var B) : String10;
+  {-Convert a BCD real to a string}
+
+procedure KeyToBcd(S : String10; var B);
+  {-Convert a string to a BCD real}
+
+{$IFOPT N+}
+
+{Note:
+ Although the following two routines work with Extendeds, you can also use
+ them with singles, doubles, and comps. You may use any of the following
+ string types to hold the results of ExtToKey without losing any precision:
+
+    Single    : String5 (min) - String10 (max)
+    Double    : String9 (min) - String10 (max)
+    Extended  : String10 (min/max)
+    Comp      : String10 (min/max)
+
+ Slightly shorter strings (one less than the recommended minimum) may be used
+ for singles, doubles, and extendeds if you are willing to sacrifice some
+ precision, however. We strongly recommend that you always use a String10 for
+ comps.
+}
+function ExtToKey(E : Extended) : String10;
+  {-Convert an extended to a string}
+
+function KeyToExt(S : String10) : Extended;
+  {-Convert a string to an extended}
+
+{$ENDIF}
+
+{---------------- routines for packing/unpacking keys ----------------}
+
+function Pack4BitKey(Src : string; Len : Byte) : string;
+  {-Pack the Source string into sequences of 4 bits (max length = Len).
+    The following characters are mapped to 1-15, respectively, all others
+    to 0: '(', ')', '+', '-', '.', '0'..'9'.}
+
+function Pack5BitKeyUC(Src : string; Len : Byte) : string;
+  {-Pack the Source string into sequences of 5 bits (max length = Len).
+    Characters from 'a' to 'z' converted to upper case, then characters from
+    'A' to 'Z' are mapped to 1-26, all others to 0.}
+
+function Pack6BitKeyUC(Src : string; Len : Byte) : string;
+  {-Pack the Source string into sequences of 6 bits (max length = Len).
+    Characters from 'a' to 'z' converted to upper case, then characters from
+    '!' to '_' are mapped to 1-63, all others to 0.}
+
+function Pack6BitKey(Src : string; Len : Byte) : string;
+  {-Pack the Source string into sequences of 6 bits (max length = Len).
+    Characters from '0'-'9' mapped to 1-10, 'A'-'Z' to 11-36, 'a'-'z' to
+    37-62, all others to 0.}
+
+function Unpack4BitKey(Src : string) : string;
+  {-Unpack a key created by Pack4BitKey}
+
+function Unpack5BitKeyUC(Src : string) : string;
+  {-Unpack a key created by Pack5BitKeyUC}
+
+function Unpack6BitKeyUC(Src : string) : string;
+  {-Unpack a key created by Pack6BitKeyUC}
+
+function Unpack6BitKey(Src : string) : string;
+  {-Unpack a key created by Pack6BitKey}
+
+{---------------- miscellaneous routines ----------------}
+
+function DescendingKey(S : string; MaxLen : Byte) : string;
+  {-Invert values in S to allow descending sorts, pad to MaxLen with #$FF}
+
+function CStyleNumKey(S : String) : String; {!!.41}
+  {-Convert Pascal-style numkey S into a C-style numkey, compatible with ASCIIZ}
+
+function PascalStyleNumKey(S : String) : String; {!!.41}
+  {-Convert C-style numkey S into a Pascal-style numkey}
+
+function CStyleDescendingKey(S : string; MaxLen : byte) : string; {!!.41}
+  {-Convert S to a descending key, using C-style algorithm}
+
+  {=========================================================================}
+
+implementation
+
+var
+  ProcPtr : Word;            {!!.22}
+
+  {$L NUMKEYS.OBJ}
+
+  function Pack4BitKey(Src : string; Len : Byte) : string;
+    external;
+  function Pack5BitKeyUC(Src : string; Len : Byte) : string;
+    external;
+  function Pack6BitKeyUC(Src : string; Len : Byte) : string;
+    external;
+  function Pack6BitKey(Src : string; Len : Byte) : string;
+    external;
+
+  function Unpack4BitKey(Src : string) : string;
+    external;
+  function Unpack5BitKeyUC(Src : string) : string;
+    external;
+  function Unpack6BitKeyUC(Src : string) : string;
+    external;
+  function Unpack6BitKey(Src : string) : string;
+    external;
+
+
+  Const
+    DLLName = 'CBTLWDS';
+
+
+  Function BDSCharToKey ( KeyType : Word;
+                          Dest    : Pointer;
+                          C       : ShortInt ) : PChar;
+      Far; External DLLName Index 3072;  {Name 'BDSCHARTOKEY';}
+
+  Function BDKeyToSChar ( KeyType : Word;
+                          Source  : Pointer ) : ShortInt;
+      Far; External DLLName Index 3073;  {Name 'BDKEYTOSCHAR';}
+
+  Function BDUCharToKey ( KeyType : Word;
+                          Dest    : Pointer;
+                          U       : Byte ) : PChar;
+      Far; External DLLName Index 3074;  {Name 'BDUCHARTOKEY';}
+
+  Function BDKeyToUChar ( KeyType : Word;
+                          Source  : Pointer ) : Byte;
+      Far; External DLLName Index 3075;  {Name 'BDKEYTOUCHAR';}
+
+  Function BDShortToKey ( KeyType : Word;
+                          Dest    : Pointer;
+                          S       : Integer ) : PChar;
+      Far; External DLLName Index 3076;  {Name 'BDSHORTTOKEY';}
+
+  Function BDKeyToShort ( KeyType : Word;
+                          Source  : Pointer ) : Integer;
+      Far; External DLLName Index 3077;  {Name 'BDKEYTOSHORT';}
+
+  Function BDUShortToKey ( KeyType : Word;
+                           Dest    : Pointer;
+                           U       : Word ) : PChar;
+      Far; External DLLName Index 3078;  {Name 'BDUSHORTTOKEY';}
+
+  Function BDKeyToUShort ( KeyType : Word;
+                           Source  : Pointer ) : Word;
+      Far; External DLLName Index 3079;  {Name 'BDKEYTOUSHORT';}
+
+  Function BDLongToKey ( KeyType : Word;
+                         Dest    : Pointer;
+                         L       : LongInt ) : PChar;
+      Far; External DLLName Index 3080;  {Name 'BDLONGTOKEY';}
+
+  Function BDKeyToLong ( KeyType : Word;
+                         Source  : Pointer ) : LongInt;
+      Far; External DLLName Index 3081;  {Name 'BDKEYTOLONG';}
+
+  Function BDRealToKey (     KeyType : Word;
+                             Dest    : Pointer;
+                         Var R       : Real ) : PChar;
+      Far; External DLLName Index 3094;  {Name 'BDREALTOKEY';}
+
+  Function BDKeyToReal (     KeyType : Word;
+                         Var R       : Real;
+                             Source  : Pointer ) : Pointer;
+      Far; External DLLName Index 3095;  {Name 'BDKEYTOREAL';}
+
+{$IFOPT N+}
+  Function BDLDblToKey (     KeyType : Word;
+                             Dest    : Pointer;
+                         Var LD      : Extended ) : PChar;
+      Far; External DLLName Index 3090;  {Name 'BDLDBLTOKEY';}
+
+  Function BDKeyToLDbl (     KeyType : Word;
+                         Var LD      : Extended;
+                             Source  : Pointer ) : Pointer;
+      Far; External DLLName Index 3091;  {Name 'BDKEYTOLDBL';}
+{$ENDIF}
+
+  Function BDDescendingKey ( KeyType : Word;
+                             Dest    : Pointer;
+                             Source  : Pointer;
+                             MaxLen  : Word ) : PChar;
+      Far; External DLLName Index 3096;  {Name 'BDDESCENDINGKEY';}
+
+  Function BDCStyleNumKey ( Dest   : Pointer;
+                            Source : Pointer ) : Pointer;
+      Far; External DLLName Index 3097;  {Name 'BDCSTYLENUMKEY';}
+
+  Function BDPascalStyleNumKey ( Dest   : Pointer;
+                                 Source : Pointer ) : Pointer;
+      Far; External DLLName Index 3098;  {Name 'BDPASCALSTYLENUMKEY';}
+
+
+  Const
+    KeyTypeLBString = $0000;
+
+  Function ShortToKey ( S : ShortInt ) : String1;
+
+  Var
+    FuncRes : String1;
+
+  Begin
+    BDSCharToKey ( KeyTypeLBString, @FuncRes, S );
+    ShortToKey := FuncRes;
+  End;
+
+
+  Function KeyToShort ( S : String1 ) : ShortInt;
+
+  Begin
+    KeyToShort := BDKeyToSChar ( KeyTypeLBString, @S );
+  End;
+
+
+  Function ByteToKey ( B : Byte ) : String1;
+
+  Var
+    FuncRes : String1;
+
+  Begin
+    BDUCharToKey ( KeyTypeLBString, @FuncRes, B );
+    ByteToKey := FuncRes;
+  End;
+
+
+  Function KeyToByte ( S : String1 ) : Byte;
+
+  Begin
+    KeyToByte := BDKeyToUChar ( KeyTypeLBString, @S );
+  End;
+
+
+  Function IntToKey ( I : Integer ) : String2;
+
+  Var
+    FuncRes : String2;
+
+  Begin
+    BDShortToKey ( KeyTypeLBString, @FuncRes, I );
+    IntToKey := FuncRes;
+  End;
+
+
+  Function KeyToInt ( S : String2 ) : Integer;
+
+  Begin
+    KeyToInt := BDKeyToShort ( KeyTypeLBString, @S );
+  End;
+
+
+  Function WordToKey ( W : Word ) : String2;
+
+  Var
+    FuncRes : String2;
+
+  Begin
+    BDUShortToKey ( KeyTypeLBString, @FuncRes, W );
+    WordToKey := FuncRes;
+  End;
+
+
+  Function KeyToWord ( S : String2 ) : Word;
+
+  Begin
+    KeyToWord := BDKeyToUShort ( KeyTypeLBString, @S );
+  End;
+
+
+  Function LongToKey ( L : LongInt ) : String4;
+
+  Var
+    FuncRes : String4;
+
+  Begin
+    BDLongToKey ( KeyTypeLBString, @FuncRes, L );
+    LongToKey := FuncRes;
+  End;
+
+
+  Function KeyToLong ( S : String4 ) : LongInt;
+
+  Begin
+    KeyToLong := BDKeyToLong ( KeyTypeLBString, @S );
+  End;
+
+
+  Function RealToKey ( R : Real ) : String6;
+
+  Var
+    FuncRes : String6;
+
+  Begin
+    BDRealToKey ( KeyTypeLBString, @FuncRes, R );
+    RealToKey := FuncRes;
+  End;
+
+
+  Function KeyToReal ( S : String6 ) : Real;
+
+  Var
+    R : Real;
+
+  Begin
+    BDKeyToReal ( KeyTypeLBString, R, @S );
+    KeyToReal := R;
+  End;
+
+
+{$IFOPT N+}
+  {Note:
+   Although the following two routines work with Extendeds, you can also use
+   them with singles, doubles, and comps. You may use any of the following
+   string types to hold the results of ExtToKey without losing any precision:
+
+      Single    : String5 (min) - String10 (max)
+      Double    : String9 (min) - String10 (max)
+      Extended  : String10 (min/max)
+      Comp      : String10 (min/max)
+
+   Slightly shorter strings (one less than the recommended minimum) may be used
+   for singles, doubles, and extendeds if you are willing to sacrifice some
+   precision, however. We strongly recommend that you always use a String10 for
+   comps.
+  }
+
+  Function ExtToKey ( E : Extended) : String10;
+
+  Var
+    FuncRes : String10;
+
+  Begin
+    BDLDblToKey ( KeyTypeLBString, @FuncRes, E );
+    ExtToKey := FuncRes;
+  End;
+
+
+  Function KeyToExt ( S : String10 ) : Extended;
+
+  Var
+    E : Extended;
+
+  Begin
+    BDKeyToLDbl ( KeyTypeLBString, E, @S );
+    KeyToExt := E;
+  End;
+{$ENDIF}
+
+
+  Function DescendingKey ( S : String; MaxLen : Byte ) : String;
+      External;
+
+
+  Function CStyleNumKey ( S : String ) : String;
+
+  Var
+    FuncRes : String;
+
+  Begin
+    BDCStyleNumKey ( @FuncRes, @S );
+    CStyleNumKey := FuncRes;
+  End;
+
+
+  Function PascalStyleNumKey ( S : String ) : String;
+
+  Var
+    FuncRes : String;
+
+  Begin
+    BDPascalStyleNumKey ( @FuncRes, @S );
+    PascalStyleNumKey := FuncRes;
+  End;
+
+
+  Function CStyleDescendingKey ( S : String; MaxLen : Byte) : String;
+
+  Var
+    FuncRes : String;
+
+  Begin
+    BDDescendingKey ( $0100, @FuncRes, @S, MaxLen );
+    CStyleDescendingKey := FuncRes;
+  End;
+
+
+  procedure ReverseBytes(var V; Size : Word);
+    {-Reverse the ordering of bytes from V[1] to V[Size]. Size must be >= 2.}
+  inline(
+    $8C/$DB/                 {mov bx,ds    ;save DS}
+    $59/                     {pop cx       ;CX = Size}
+    $5E/                     {pop si}
+    $1F/                     {pop ds       ;DS:SI => V[1]}
+    $89/$F7/                 {mov di,si    ;DS:DI = V[Size]}
+    $01/$CF/                 {add di,cx}
+    $4F/                     {dec di}
+    $D1/$E9/                 {shr cx,1}
+    {                         again:}
+    $8A/$04/                 {mov al,[si]  ;switch DS:DI}
+    $86/$05/                 {xchg al,[di] ; and DS:DI}
+    $88/$04/                 {mov [si],al}
+    $46/                     {inc si       ;adjust indexes}
+    $4F/                     {dec di}
+    $E2/$F6/                 {loop again}
+    $8E/$DB);                {mov ds,bx    ;restore DS}
+
+  procedure ToggleBits(var V; Size : Word);        {!!.04}
+    {-Toggle the bits from V[1] to V[Size]}        {!!.04}
+  inline(
+    $59/                     {pop cx  ;cx = Size}
+    $5F/                     {pop di}
+    $07/                     {pop es  ;es:di -> V}
+                             {again:}
+    $26/$F6/$15/             {not byte ptr es:[di] ;flip bits}
+    $47/                     {inc di}
+    $E2/$FA);                {loop again}
+
+
+  procedure ZeroPad(var S : String; Len : Word);
+    {-Pad S to length Len with 0's}
+  var
+    SLen  : Byte absolute S;
+  begin
+    if SLen < Len then begin
+      FillChar(S[Succ(SLen)], Len-SLen, 0);
+      SLen := Len;
+    end;
+  end;
+
+
+type
+  nkBCD = array[1..10] of Byte;
+
+  function BcdToKey(var B) : String10;
+    {-Convert a BCD real to a string}
+  const
+    Temp :
+      record case Byte of
+        0 : (Len : Byte; BT : nkBCD);
+        1 : (Str : String10);
+        2 : (XXX, Exp, LSB : Byte);
+      end = (Str : '          ');
+  var
+    BP : nkBCD absolute B;
+  begin
+    {regularize 0 values}
+    if BP[1] and $7F = 0 then
+      FillChar(BP, SizeOf(BP), 0);
+
+    Temp.BT := BP;
+
+    {put the mantissa into MSB->LSB order}
+    ReverseBytes(Temp.LSB, 9);
+
+    {flip the sign bit}
+    Temp.Exp := Temp.Exp xor $80;
+
+    if Temp.Exp and $80 = 0 then begin
+      ToggleBits(Temp.BT, 10);
+      Temp.Exp := Temp.Exp and $7F;
+    end;
+
+    BcdToKey := Temp.Str;
+  end;
+
+  procedure KeyToBcd(S : String10; var B);
+    {-Convert a string to a BCD real}
+  var
+    Temp :
+      record case Byte of
+        0 : (Len : Byte; BT : nkBCD);
+        1 : (XXX, Exp, MSB : Byte);
+      end absolute S;
+    BR : nkBcd absolute B;
+  begin
+    {pad to proper length just in case}
+    ZeroPad(S, 10);
+
+    {flip the sign bit}
+    Temp.Exp := Temp.Exp xor $80;
+
+    if Temp.Exp and $80 <> 0 then begin
+      ToggleBits(Temp.BT, 10);
+      Temp.Exp := Temp.Exp or $80;
+    end;
+
+    {put the mantissa back into LSB->MSB order}
+    ReverseBytes(Temp.MSB, 9);
+
+    BR := Temp.BT;
+  end;
+
+
+(***Moved to NUMKEYS.PAS***  !!.TP
+end.
+ ***)

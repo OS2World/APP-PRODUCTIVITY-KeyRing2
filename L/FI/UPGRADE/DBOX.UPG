@@ -1,0 +1,35 @@
+;Substitution list to upgrade Borland Database Toolbox to B-Tree Filer 5.51
+;
+;Original name     New name, and comment if appropriate
+;
+TaStr64            IsamFileName
+DataFile           IsamFileBlockPtr{**combines data and index**}
+TaKeyStr           IsamKeyStr
+IndexFile          IndexFile{**part of a fileblock**}
+IndexFilePtr       IndexFilePtr{**part of a fileblock**}
+TAStatus           IsamError{**error codes different**}
+OK                 IsamOK
+AddKey             BTAddKey{**new param Key:Integer**}
+AddRec             BTAddRec
+ClearKey           BTClearKey{**new param Key:Integer**}
+CloseFile          BTCloseFileBlock{**combines data and index**}
+CloseIndex         CloseIndex{**part of a fileblock**}
+DeleteKey          BTDeleteKey{**new param Key:Integer**}
+DeleteRec          BTDeleteRec
+EraseFile          BTDeleteFileBlock{**deletes data and index**}
+EraseIndex         EraseIndex{**part of a fileblock**}
+FlushFile          BTFlushFileBlock{**flushes data and index**}
+FlushIndex         FlushIndex{**part of a fileblock**}
+FileLen            BTFileLen
+FindKey            BTFindKey{**new param Key:Integer**}
+GetRec             BTGetRec{**new param ISOLock:Boolean**}
+InitIndex          InitIndex{**does nothing, remove**}
+MakeFile           BTCreateFileBlock{**combines data and index**}
+MakeIndex          MakeIndex{**part of a fileblock**}
+NextKey            BTNextKey{**new param Key:Integer**}
+OpenFile           BTOpenFileBlock{**opens data and index**}
+OpenIndex          OpenIndex{**part of a fileblock**}
+PrevKey            BTPrevKey{**new param Key:Integer**}
+PutRec             BTPutRec{**new param ISOLock:Boolean**}
+SearchKey          BTSearchKey{**new param Key:Integer**}
+UsedRecs           BTUsedRecs

@@ -1,0 +1,755 @@
+/*:VRW
+*/
+VRX   OS/2 v2.14 B3
+BEGIN     Window
+    Visible           "1"
+    Enabled           "1"
+    SystemMenu        "0"
+    Create            "CALL Nagger_Create"
+    MinimizeButton    "0"
+    MaximizeButton    "0"
+    BorderType        "sizeable"
+    WindowMode        "Modal"
+    MoveWithParent    "1"
+    LayoutStyle       "None"
+    HideButton        "0"
+    TitleBar          "1"
+    DBCSConversionBar "1"
+    WindowListTitle   "<default>"
+    Height            "4758"
+    Left              "145"
+    Top               "1036"
+    Width             "5794"
+    EventList         binary lines 0 checksum 0
+    HorizGridSpacing  "60"
+    VertGridSpacing   "60"
+    GridVisible       "1"
+    GridAlign         "1"
+    Close             "CALL Nagger_Close"
+    DoubleClick       ""
+    Destroy           ""
+    Resize            ""
+    Activate          ""
+    Deactivate        ""
+    Caption           "Unregistered Product Nag Screen"
+    Font              "<default>"
+    BackColor         "<default>"
+    PicturePath       ""
+    HelpFile          ""
+    HelpTitle         ""
+    StatusArea        "None"
+    ShowHints         "0"
+    StatusFont        "<default>"
+    WindowIcon        "<default>"
+    Help              "CALL Nagger_Help"
+    Click             ""
+    DragDrop          ""
+    KeyPress          ""
+    ForeColor         "<default>"
+    ContextMenu       ""
+    DragTarget        "All"
+    AllowDrag         "0"
+    DragStart         ""
+    DragIcon          ""
+    DragDiscard       ""
+    DragPrint         ""
+    Name              "Nagger"
+    UserData          binary lines 1 checksum 596
+"4e6167676572"
+    HelpText          ""
+    HelpTag           ""
+    HintText          ""
+    BEGIN         VRGroupBox
+        BorderType        "Lowered"
+        Height            "1698"
+        Left              "60"
+        Top               "2638"
+        Width             "5577"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           ""
+        BackColor         "<default>"
+        ForeColor         "<default>"
+        DoubleClick       ""
+        LayoutStyle       "None"
+        Font              "<default>"
+        Click             ""
+        DragDrop          ""
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "GB_3"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        BEGIN             VRTimer
+            Delay             "1000"
+            Enabled           "1"
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "265"
+            Left              "4758"
+            Top               "662"
+            Width             "759"
+            Visible           "0"
+            EventList         binary lines 0 checksum 0
+            Trigger           "CALL NotebookTabber_Trigger"
+            Autosize          "1"
+            Caption           "Timer"
+            Font              "<default>"
+            ClipSiblings      "0"
+            TabIndex          "4"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "NotebookTabber"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+        END
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "373"
+            Left              "542"
+            Top               "482"
+            Width             "4107"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "0"
+            Caption           ""
+            Font              "8.Helv"
+            ClipSiblings      "0"
+            TabIndex          "8"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "DT_3"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+    END
+    BEGIN         VRGroupBox
+        BorderType        "Lowered"
+        Height            "2481"
+        Left              "60"
+        Top               "72"
+        Width             "5577"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           ""
+        BackColor         "<default>"
+        ForeColor         "<default>"
+        DoubleClick       ""
+        LayoutStyle       "None"
+        Font              "<default>"
+        Click             ""
+        DragDrop          ""
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "GB_1"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        BEGIN             VRDescriptiveText
+            Justification     "Left"
+            VertJustification "Top"
+            WordBreak         "1"
+            Height            "855"
+            Left              "1867"
+            Top               "964"
+            Width             "3626"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Autosize          "0"
+            Caption           "Make it stop!  Make it stop!"
+            Font              "<default>"
+            ClipSiblings      "0"
+            TabIndex          "6"
+            DragDrop          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "DT_2"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            Query             ""
+            QueryColumns      ""
+        END
+        BEGIN             VRGroupBox
+            BorderType        "Captioned"
+            Height            "2301"
+            Left              "120"
+            Top               "60"
+            Width             "1698"
+            Visible           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Caption           ""
+            BackColor         "<default>"
+            ForeColor         "<default>"
+            DoubleClick       ""
+            LayoutStyle       "None"
+            Font              "<default>"
+            Click             ""
+            DragDrop          ""
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "GB_2"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+            BEGIN                 VRPictureBox
+                BorderSize        "10"
+                Border            "1"
+                Height            "1939"
+                Left              "120"
+                Top               "241"
+                Width             "1457"
+                Visible           "1"
+                TabStop           "0"
+                Enabled           "1"
+                EventList         binary lines 0 checksum 0
+                PicturePath       "#156:krini"
+                Autosize          "0"
+                ResizePicture     "1"
+                BorderColor       "<default>"
+                TabGroup          "0"
+                ClipSiblings      "0"
+                TabIndex          "1"
+                Click             ""
+                DragDrop          ""
+                GotFocus          ""
+                LostFocus         ""
+                KeyPress          ""
+                ForeColor         "<default>"
+                BackColor         "<default>"
+                ContextMenu       ""
+                DragTarget        "All"
+                AllowDrag         "0"
+                DragStart         ""
+                DragIcon          ""
+                DragDiscard       ""
+                DragPrint         ""
+                Name              "Pict_1"
+                UserData          binary lines 0 checksum 0
+                HelpText          ""
+                HelpTag           ""
+                HintText          ""
+                Query             ""
+                QueryColumns      ""
+            END
+        END
+    END
+    BEGIN         VRDescriptiveText
+        Justification     "Left"
+        VertJustification "Top"
+        WordBreak         "1"
+        Height            "241"
+        Left              "602"
+        Top               "2770"
+        Width             "4481"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Autosize          "1"
+        Caption           "You can:  Register, and this screen will go away!"
+        Font              "10.Helv"
+        ClipSiblings      "0"
+        TabIndex          "5"
+        DragDrop          ""
+        ForeColor         "<default>"
+        BackColor         "<default>"
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "DT_1"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        Query             ""
+        QueryColumns      ""
+    END
+    BEGIN         VRPushButton
+        Default           "1"
+        Border            "1"
+        NoPointerFocus    "0"
+        Height            "397"
+        Left              "181"
+        Top               "3854"
+        Width             "699"
+        Visible           "1"
+        TabStop           "1"
+        Enabled           "0"
+        EventList         binary lines 0 checksum 0
+        Cancel            "0"
+        BorderColor       "<default>"
+        Autosize          "1"
+        Caption           "5"
+        Font              "<default>"
+        TabGroup          "0"
+        ClipSiblings      "0"
+        TabIndex          "2"
+        Click             "CALL PB_1_Click"
+        DragDrop          ""
+        GotFocus          ""
+        LostFocus         ""
+        KeyPress          ""
+        ForeColor         "<default>"
+        BackColor         "<default>"
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "PB_1"
+        UserData          binary lines 1 checksum 596
+"4e6167676572"
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+    END
+    BEGIN         VRPushButton
+        Default           "0"
+        Border            "1"
+        NoPointerFocus    "0"
+        Height            "289"
+        Left              "1445"
+        Top               "3963"
+        Width             "1698"
+        Visible           "1"
+        TabStop           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Cancel            "1"
+        BorderColor       "<default>"
+        Autosize          "1"
+        Caption           "~How do I Register?"
+        Font              "8.Helv"
+        TabGroup          "0"
+        ClipSiblings      "0"
+        TabIndex          "3"
+        Click             "CALL PB_2_Click"
+        DragDrop          ""
+        GotFocus          ""
+        LostFocus         ""
+        KeyPress          ""
+        ForeColor         "<default>"
+        BackColor         "<default>"
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "PB_2"
+        UserData          binary lines 1 checksum 596
+"4e6167676572"
+        HelpText          ""
+        HelpTag           "2000"
+        HintText          ""
+    END
+    BEGIN         VRPushButton
+        Default           "0"
+        Border            "1"
+        NoPointerFocus    "0"
+        Height            "289"
+        Left              "3915"
+        Top               "3975"
+        Width             "1349"
+        Visible           "1"
+        TabStop           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Cancel            "0"
+        BorderColor       "<default>"
+        Autosize          "1"
+        Caption           "Register ~Now!"
+        Font              "8.Helv"
+        TabGroup          "0"
+        ClipSiblings      "0"
+        TabIndex          "7"
+        Click             "CALL PB_3_Click"
+        DragDrop          ""
+        GotFocus          ""
+        LostFocus         ""
+        KeyPress          ""
+        ForeColor         "<default>"
+        BackColor         "<default>"
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "PB_3"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+    END
+END
+/*:VRX         Main
+*/
+/*  Main
+~nokeywords~
+*/
+Main:
+/*  Process the arguments.
+    Get the parent window.
+*/
+    PARSE SOURCE . Calledas .
+    Parent = ""
+    Argcount = ARG()
+    Argoff = 0
+    IF( Calledas \= "COMMAND" )THEN DO
+        IF Argcount >= 1 THEN DO
+            Parent = ARG(1)
+            Argcount = Argcount - 1
+            Argoff = 1
+        END
+    END
+        ELSE DO
+            CALL Vroptions 'ImplicitNames'
+            CALL Vroptions 'NoEchoQuit'
+        END
+    Initargs.0 = Argcount
+    IF( Argcount > 0 )THEN
+        DO I = 1 TO Argcount
+            Initargs.i = ARG( I + Argoff )
+        END
+    DROP Calledas Argcount Argoff
+
+/*  Load the windows
+*/
+    CALL Vrinit
+    PARSE SOURCE . . Spec
+    _vreprimarywindowpath = ,
+        Vrparsefilename( Spec, "dpn" ) || ".VRW"
+    _vreprimarywindow = ,
+        Vrload( Parent, _vreprimarywindowpath )
+    DROP Parent Spec
+    IF( _vreprimarywindow == "" )THEN DO
+        CALL Vrmessage "", "Cannot load window: " Vrerror(), , " Error! "
+        _vrereturnvalue = 32000
+        SIGNAL _vreleavemain
+    END
+
+/*  Process events
+*/
+    CALL Init
+    SIGNAL ON HALT
+    DO While( \ Vrget( _vreprimarywindow, "Shutdown" ) )
+        _vreevent = Vrevent()
+        INTERPRET _vreevent
+    END
+_vrehalt:
+    _vrereturnvalue = Fini()
+    CALL Vrdestroy _vreprimarywindow
+_vreleavemain:
+    CALL Vrfini
+    EXIT _vrereturnvalue
+
+Vrloadsecondary:
+    __vrlswait = ABBREV( 'WAIT', TRANSLATE(ARG(2)), 1 )
+    IF __vrlswait THEN DO
+        CALL Vrflush
+    END
+    __vrlshwnd = Vrload( Vrwindow(), Vrwindowpath(), ARG(1) )
+    IF __vrlshwnd = '' THEN
+        SIGNAL __vrlsdone
+    IF __vrlswait \= 1 THEN
+        SIGNAL __vrlsdone
+    CALL Vrset __vrlshwnd, 'WindowMode', 'Modal'
+    __vrlstmp = __vrlswindows.0
+    IF( DATATYPE(__vrlstmp) \= 'NUM' ) THEN DO
+        __vrlstmp = 1
+    END
+        ELSE DO
+            __vrlstmp = __vrlstmp + 1
+        END
+    __vrlswindows.__vrlstmp = Vrwindow( __vrlshwnd )
+    __vrlswindows.0 = __vrlstmp
+    DO While( Vrisvalidobject( Vrwindow() ) = 1 )
+        __vrlsevent = Vrevent()
+        INTERPRET __vrlsevent
+    END
+    __vrlstmp = __vrlswindows.0
+    __vrlswindows.0 = __vrlstmp - 1
+    CALL Vrwindow __vrlswindows.__vrlstmp
+    __vrlshwnd = ''
+__vrlsdone:
+RETURN __vrlshwnd
+
+/*:VRX         Fini
+*/
+Fini:
+    Window = Vrwindow()
+    CALL Vrset Window, "Visible", 0
+    DROP Window
+RETURN 0
+
+/*:VRX         Halt
+*/
+Halt:
+    SIGNAL _vrehalt
+RETURN
+
+/*:VRX         INFHelp
+*/
+Infhelp:
+    ADDRESS Cmd 'start view kr2.inf' Vrget(ARG(1), "UserData")
+RETURN
+
+/*:VRX         Init
+*/
+Init:
+    Ok = RXFUNCADD("VLLoadFuncs", "VLMSG", "VLLoadFuncs")/* do not modify or move this line! It must be on line #2 of this function */
+    CALL Vlloadfuncs/* do not modify or move this line! It must be on line #3 of this function */
+
+    Ok = Vrredirectstdio("On", "keyring2.err")
+    Appname = Initargs.1
+    Ininame = Initargs.2
+
+    Langname = Vrgetini( Appname, "LANGUAGE", Ininame )
+    IF Langname = "" THEN DO
+        Langname = "ENGLISH.MSG"
+    END
+    Ok = Vlopenlang(Langname, Langname)   
+    CALL Nagger_langinit
+    if InitArgs.3 = 1 then do 
+        ok = VRSet( "DT_3", "Caption", "If you pay for an upgrade, this message will go away." )
+    end
+    Window = Vrwindow()
+    CALL Vrmethod Window, "CenterWindow"
+    CALL Vrset Window, "Visible", 1
+    CALL Vrmethod Window, "Activate"
+    DROP Window
+    CALL WaitMouse
+RETURN
+
+/*:VRX         Nagger_Close
+*/
+Nagger_close:
+    CALL Quit
+RETURN
+
+/*:VRX         Nagger_Create
+*/
+Nagger_create:
+    Cdval = 10
+    Ok = Vrset( "PB_1", "Caption", Cdval )
+    call normalmouse
+RETURN
+
+/*:VRX         Nagger_Help
+*/
+Nagger_help:
+    CALL Infhelp(Vrinfo("Source"))
+RETURN
+
+
+
+/*:VRX         Nagger_LangException
+*/
+Nagger_LangException: 
+
+return
+
+/*:VRX         Nagger_LangInit
+*/
+Nagger_LangInit:
+
+    /* ------------------------------------------------ */
+    /* Language internationalization code autogenerated */
+    /* by VXNation v1.0, Copyright 1999, IDK, Inc.      */
+    /*          http://www.idk-inc.com                  */
+    /* Autogenerated: 03/06/2000 19:25:48             */
+    /* ------------------------------------------------ */
+    /* Warning! This code gets overwritten by VXNation! */
+    /* Do not make modifications here!                  */
+    /* ------------------------------------------------ */
+
+    /* Unregistered Product Nag Screen */
+    Ok = VRSet("Nagger", "Caption", VLSMsg(205))
+
+    /* Timer */
+    Ok = VRSet("NotebookTabber", "Caption", VLSMsg(66))
+
+    /* Make it stop!  Make it stop! */
+    Ok = VRSet("DT_2", "Caption", VLSMsg(206))
+
+    /* You can:  Register, and this screen will go away! */
+    Ok = VRSet("DT_1", "Caption", VLSMsg(207))
+
+    /* 5 */
+    Ok = VRSet("PB_1", "Caption", VLSMsg(208))
+
+    /* ~How do I Register? */
+    Ok = VRSet("PB_2", "Caption", VLSMsg(209))
+
+    /* Register ~Now! */
+    Ok = VRSet("PB_3", "Caption", VLSMsg(359))
+
+    call Nagger_LangException
+    DROP Ok
+
+RETURN
+
+/*:VRX         NormalMouse
+*/
+Normalmouse:
+    CALL Vrset Vrwindow(), "Pointer", "<default>" /* show "Normal" mouse pointer */
+RETURN
+
+/*:VRX         NotebookTabber_Trigger
+*/
+Notebooktabber_trigger:
+    Cdval = Cdval - 1
+    IF Cdval > 0 THEN do
+        Rc = Vrset( "PB_1", "Caption", Cdval )
+    end
+    ELSE DO
+            Rc = Vrset( "PB_1", "Caption", Vlsmsg(124) /* ~Ok */ )
+            Rc = Vrset( "PB_1", "Enabled", 1 )
+            Rc = Vrset( "NotebookTabber", "Enabled", 0 )
+            call normalmouse
+    END
+RETURN
+
+/*:VRX         PB_1_Click
+*/
+Pb_1_click:
+    CALL Quit
+RETURN
+
+/*:VRX         PB_2_Click
+*/
+Pb_2_click:
+    ADDRESS Cmd 'start view kr2.inf' 'register'
+RETURN
+
+/*:VRX         PB_3_Click
+*/
+PB_3_Click: 
+    Ok = About(VRWindow(), AppName, ININame)
+return
+
+/*:VRX         Quit
+*/
+Quit:
+    CALL Saveprops
+    Window = Vrwindow()
+    CALL Vrset Window, "Shutdown", 1
+    DROP Window
+RETURN
+
+/*:VRX         RestoreProps
+*/
+Restoreprops:
+RETURN
+    Ok = Vrmethod( Vrget(Vrwindow(), "name"), "ListChildren", "child." )
+
+    Lastchild=Child.0+1
+    Child.lastchild= Vrget(Vrwindow(), "name")
+    Child.0=Lastchild
+    Initstring=""
+    DO X=1 TO Child.0
+        Value = Vrgetini( "KR2", Vrget(Child.x, Name), "KR2.INI", "NOCLOSE" )
+        PARSE VAR VALUE Font "þ" Fore "þ" Back
+        Ok = Vrset(Child.x, "font", Font)
+        Ok = Vrset(Child.x, "forecolor", Fore)
+        Ok = Vrset(Child.x, "backcolor", Back)
+    END
+
+RETURN
+
+/*:VRX         SaveProps
+*/
+Saveprops:
+RETURN
+    Ok = Vrmethod( Vrget(Vrwindow(), "name"), "ListChildren", "child." )
+
+    Lastchild=Child.0+1
+    Child.lastchild = Vrget(Vrwindow(), "name")
+    Child.0 = Lastchild
+    Initstring = ""
+    DO X = 1 TO Child.0
+        IF Vrmethod( "Application", "SupportsProperty", Child.x , "font" ) = 1 THEN DO
+            IF Vrmethod( "Application", "SupportsProperty", Child.x , "forecolor" ) = 1 THEN DO
+                IF Vrmethod( "Application", "SupportsProperty", Child.x , "backcolor" ) = 1 THEN DO
+                    Initstrg = Vrget(Child.x, "font") || "þ" Vrget(Child.x, "forecolor") || "þ" Vrget(Child.x, "backcolor")
+                    Ok = Vrsetini( "KR2", Vrget(Child.x, "Name"), Initstrg, "KR2.INI", "NOCLOSE" )
+                END
+            END
+        END
+    END
+
+
+RETURN
+
+/*:VRX         WaitMouse
+*/
+Waitmouse:
+    CALL Vrset Vrwindow(), "Pointer", "Wait"/* show "Busy" mouse pointer */
+RETURN
+

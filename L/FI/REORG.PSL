@@ -1,0 +1,103 @@
+(**************************************************************)
+(*        B-Tree Isam Reorg Utility Ver 5.51                  *)
+(*   Copyright (C) 1988-1991 Dipl.Math. Ralf Nagel            *)
+(*   Copyright (C) 1991-1994 ENZ EDV-Beratung GmbH            *)
+(*                All rights reserved                         *)
+(*   Modified and used under license by TurboPower Software   *)
+(**************************************************************)
+
+(***Moved to REORG.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$F-,V-,B-,S-,I-,R-}
+  {$IFDEF CanAllowOverlays}
+    {$O+,F+}
+  {$ENDIF}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+
+
+Unit Reorg;                                                       {!!.50mod}
+ ***)
+
+Interface
+
+Uses
+  Filer,     {!!.TP}
+  Restruct,
+  Reindex;
+
+  Procedure ReorgFileBlock ( FBlName        : IsamFileBlockName;
+                             DatSLen        : LongInt;
+                             NumberOfKeys   : Word;
+                             IID            : IsamIndDescr;
+                             DatSLenOld     : LongInt;
+                             FuncBuildKey   : Pointer;
+                             ProcChangeDatS : Pointer );
+    {-Reorganizes a fixed record length fileblocks data and index structure}
+
+
+Implementation
+
+  Type
+    FuncOldStyleChange = Function  ( Var DatSOld;
+                                     Var DatSNew;
+                                         Len     : Word ) : Boolean;
+
+  Const
+    OldStyleChangeFunc : Pointer = Nil;
+
+
+{$IFDEF XXFPlusOptXX}
+  {$UNDEF XXFPlusOptXX}
+{$ENDIF}
+{$IFOPT F+}
+  {$DEFINE XXFPlusOptXX}
+{$ENDIF}
+{$F+}
+  Function CompatChangeFunc ( Var DatSOld;
+                              Var DatSNew;
+                              Var Len     : Word ) : Boolean;
+
+  Begin
+    CompatChangeFunc := FuncOldStyleChange (OldStyleChangeFunc)
+        ( DatSOld, DatSNew, Len );
+  End;
+{$IFNDEF XXFPlusOptXX}
+  {$F-}
+{$ELSE}
+  {$UNDEF XXFPlusOptXX}
+{$ENDIF}
+
+
+  Procedure ReorgFileBlock ( FBlName        : IsamFileBlockName;
+                             DatSLen        : LongInt;
+                             NumberOfKeys   : Word;
+                             IID            : IsamIndDescr;
+                             DatSLenOld     : LongInt;
+                             FuncBuildKey   : Pointer;
+                             ProcChangeDatS : Pointer );
+
+  Var
+    Dummy : Boolean;
+
+  Begin
+    OldStyleChangeFunc := ProcChangeDatS;
+    RestructFileBlock ( FBlName, DatSLen, DatSLenOld, False, 0,
+        CompatChangeFunc, BTNoCharConvert, Nil );
+    If Not IsamOK Then Exit;
+    If NumberOfKeys > 0 Then Begin
+      ReIndexFileBlock ( FBlName, NumberOfKeys, IID, False,
+          Reindex.FuncBuildKey (FuncBuildKey), True, Dummy,
+          BTNoCharConvert, Nil );
+    End;
+  End;
+
+
+(***Moved to REORG.PAS***  !!.TP
+{$IFDEF InitAllUnits}
+Begin
+{$ENDIF}
+End.
+ ***)

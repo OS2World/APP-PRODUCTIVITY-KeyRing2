@@ -1,0 +1,586 @@
+(**************************************************************)
+(*      B-Tree Isam Variable Records Ver 5.51                 *)
+(*   Copyright (C) 1987-1991 Dipl.Math. Ralf Nagel            *)
+(*   Copyright (C) 1991-1994 ENZ EDV-Beratung GmbH            *)
+(*                All rights reserved                         *)
+(*   Modified and used under license by TurboPower Software   *)
+(**************************************************************)
+
+(***Moved to VREC.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$F-,V-,B-,S-,I-,R-}
+  {$IFDEF CanAllowOverlays}
+    {$O+,F+}
+  {$ENDIF}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+
+
+Unit IsamVRec;
+ ***)
+
+InterFace
+
+Uses
+  Filer;     {!!.TP}
+
+Const
+  MaxVariableRecLength = $FFF0;
+{--Internal use only}                                            {!!.50mov}
+  MaxVariableRecLengthM1 = MaxVariableRecLength - 1;             {!!.50mov}
+
+{--Internal use only}                                            {!!.50mov}
+Type                                                             {!!.50mov}
+  IsamVRecBuf  = Array [0..MaxVariableRecLengthM1] Of Byte;      {!!.50mov}
+  PIsamVRecBuf = ^IsamVRecBuf;                                      {!!.50}
+
+{--Internal use only}                                            {!!.50mov}
+Var
+  IVRBPtr         : PIsamVRecBuf;                                {!!.50mov}
+  IsamVRecBufSize : Word;
+
+
+  Function BTCreateVariableRecBuffer ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Create a variable record buffer for the fileblock with the greatest
+      data record length of all variable record fileblocks}
+
+  Procedure BTReleaseVariableRecBuffer;
+    {-Release the variable record buffer}
+
+  Function BTSetVariableRecBuffer ( Size : Word ) : Boolean;
+    {-Create a variable record buffer with Size bytes as an alternative to
+      CreateVariableRecBuffer}
+
+  Procedure BTAddVariableRec (     IFBPtr : IsamFileBlockPtr;
+                               Var RefNr  : LongInt;
+                               Var Source;
+                                   Len    : Word);
+    {-Adds a record with variable length}
+
+  Procedure BTDeleteVariableRec ( IFBPtr : IsamFileBlockPtr;
+                                  RefNr  : LongInt );
+    {-Deletes a record with variable length}
+
+  Procedure BTPutVariableRec (     IFBPtr : IsamFileBlockPtr;
+                                   RefNr  : LongInt;
+                               Var Source;
+                                   Len    : Word );
+    {-Puts a record with variable length to its old place}
+
+  Procedure BTGetVariableRecPart (     IFBPtr : IsamFileBlockPtr;
+                                       RefNr  : LongInt;
+                                   Var Dest;
+                                   Var Len    : Word );
+    {-Reads at maximum Len bytes of a variable record}
+
+  Procedure BTGetVariableRec (     IFBPtr : IsamFileBlockPtr;
+                                   RefNr  : LongInt;
+                               Var Dest;
+                               Var Len    : Word );
+    {-Reads a variable record and returns the read number of bytes in Len}
+
+  Procedure BTGetVRecPartReadOnly (     IFBPtr : IsamFileBlockPtr;
+                                        RefNr  : LongInt;
+                                    Var Dest;
+                                    Var Len    : Word );
+    {-Reads a variable record and returns the read number of bytes in Len;
+      needs either a record lock or another lock, else will do a readlock}
+
+  Procedure BTGetVRecReadOnly (     IFBPtr : IsamFileBlockPtr;
+                                    RefNr  : LongInt;
+                                Var Dest;
+                                Var Len    : Word );
+    {-Reads at maximum Len bytes of a variable record;
+      needs either a record lock or another lock, else will do a readlock}
+
+  Procedure BTGetVariableRecLength (     IFBPtr : IsamFileBlockPtr;
+                                         RefNr  : LongInt;
+                                     Var Len    : Word );
+    {-Gets the length of a variable record and returns it in Len}
+
+
+  Function BTAdjustVariableRecBuffer ( Size : Word ) : Boolean;     {!!.50}
+    {-Increases the variable record buffer if necessary}
+
+                                         {!!.50del BTGetVariableRecRebuilt}
+
+
+Implementation
+
+{-Types, constants and variables moved to the interface}            {!!.50}
+
+
+  Function CreateVariableRecBuffer ( S : Word ) : Boolean;
+
+  Begin
+    CreateVariableRecBuffer := False;
+    If MaxAvail < S Then Exit;
+    GetMem ( IVRBPtr, S );
+    IsamVRecBufSize := S;
+    CreateVariableRecBuffer := True;
+  End;
+
+
+  Function CreateVariableRecBufferIFB ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Begin
+    CreateVariableRecBufferIFB := CreateVariableRecBuffer
+        ( Word (ILI (IFBPtr^.DIDPtr^[0]^.LenRec).Lo) );
+  End;
+
+
+  Function BTCreateVariableRecBuffer ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Begin
+    IsamEntryCode ( IFBPtr, NoOptions );                             {!!.50}
+    If IsamOK Then Begin                                             {!!.50}
+      BTCreateVariableRecBuffer := CreateVariableRecBufferIFB ( IFBPtr );
+    End Else Begin                                                   {!!.50}
+      BTCreateVariableRecBuffer := False;                            {!!.50}
+    End;                                                             {!!.50}
+    IsamExitCode ( IFBPtr );                                         {!!.50}
+  End;
+
+
+  Procedure ReleaseVariableRecBuffer;
+
+  Begin
+    If IsamVRecBufSize <> 0 Then Begin
+      FreeMem ( IVRBPtr, IsamVRecBufSize );
+      IsamVRecBufSize := 0;
+    End;
+  End;
+
+
+  Procedure BTReleaseVariableRecBuffer;
+
+  Begin
+    IsamEntryCode ( Pointer (NotAFileBlockPtr), NoOptions );         {!!.50}
+    If IsamOK Then ReleaseVariableRecBuffer;                         {!!.50}
+    IsamExitCode ( Pointer (NotAFileBlockPtr) );                     {!!.50}
+  End;
+
+
+  Function BTSetVariableRecBuffer ( Size : Word ) : Boolean;
+
+  Begin
+    IsamEntryCode ( Pointer (NotAFileBlockPtr), NoOptions );         {!!.50}
+    If IsamOK Then Begin                                             {!!.50}
+      BTSetVariableRecBuffer := CreateVariableRecBuffer ( Size );
+    End Else Begin                                                   {!!.50}
+      BTSetVariableRecBuffer := False;                               {!!.50}
+    End;                                                             {!!.50}
+    IsamExitCode ( Pointer (NotAFileBlockPtr) );                     {!!.50}
+  End;
+
+
+  Function AdjustVariableRecBuffer ( Size : Word ) : Boolean;        {!!.50}
+
+  Begin
+    If IsamVRecBufSize < Size Then Begin
+      ReleaseVariableRecBuffer;
+      AdjustVariableRecBuffer := CreateVariableRecBuffer ( Size );
+    End Else Begin
+      AdjustVariableRecBuffer := True;
+    End;
+  End;
+
+
+  Function BTAdjustVariableRecBuffer ( Size : Word ) : Boolean;
+
+  Begin
+    IsamEntryCode ( Pointer (NotAFileBlockPtr), NoOptions );         {!!.50}
+    If IsamOK Then Begin                                             {!!.50}
+      BTAdjustVariableRecBuffer := AdjustVariableRecBuffer ( Size ); {!!.50}
+    End Else Begin                                                   {!!.50}
+      BTAdjustVariableRecBuffer := False;                            {!!.50}
+    End;                                                             {!!.50}
+    IsamExitCode ( Pointer (NotAFileBlockPtr) );                     {!!.50}
+  End;
+
+
+  Procedure IsamAddRestVarRec (     IFBPtr : IsamFileBlockPtr;
+                                Var RefNr  : LongInt;
+                                Var Source;
+                                    Len    : Word);
+
+  Var
+    SPtr   : PIsamVRecBuf;                                           {!!.50}
+    CPtr   : ^Word;
+    LPtr   : ^LongInt;
+    SetLen,
+    Pos,
+    Number : Word;
+    Prev   : LongInt;
+
+  Begin
+    SetLen := Word ( ILI (IFBPtr^.DIDPtr^[0]^.LenRec).Lo ) - 7;
+    Number := Len Div SetLen;
+    If Number * SetLen <> Len Then Begin
+      Inc (Number);
+    End;
+    Pos := Pred (Number) * SetLen;
+    Prev := 0;
+    CPtr := Addr ( IVRBPtr^ [Succ (SetLen)] );
+    LPtr := Addr ( IVRBPtr^ [SetLen+3] );
+    SPtr := Addr ( Source );
+    While Number > 0 Do Begin
+      IVRBPtr^ [0] := 1;
+      If Prev = 0 Then Begin
+        CPtr^ := Len-Pos;
+      End Else Begin
+        CPtr^ := SetLen;
+      End;
+      Move ( SPtr^ [Pos], IVRBPtr^ [1], CPtr^ );
+      LPtr^ := Prev;
+      IsamAddRec ( IFBPtr, Prev, IVRBPtr^ );                         {!!.50}
+      If Not IsamOK Then Exit;
+      Dec (Number);
+      If Number <> 0 Then Pos := Pos-SetLen;
+    End;
+    RefNr := Prev;
+  End;
+
+
+  Procedure BTAddVariableRec (     IFBPtr : IsamFileBlockPtr;
+                               Var RefNr  : LongInt;
+                               Var Source;
+                                   Len    : Word );
+
+
+    Procedure IsamAddVariableRec;                                    {!!.50}
+
+    Var
+      S    : Word;
+      SPtr : PIsamVRecBuf;                                           {!!.50}
+      CPtr : ^Word;
+      LPtr : ^LongInt;
+
+    Begin
+      S := Word ( ILI (IFBPtr^.DIDPtr^[0]^.LenRec).Lo );
+      If Not AdjustVariableRecBuffer ( S ) Then Begin
+        IsamOK := False;
+        IsamError := 10040;
+        Exit;
+      End;
+      SPtr := Addr (Source);
+      CPtr := Addr (IVRBPtr^ [S-6]);
+      LPtr := Addr (IVRBPtr^ [S-4]);
+      If Len > (S-6) Then Begin
+        IsamAddRestVarRec ( IFBPtr, RefNr, SPtr^ [S-6], Len-(S-6) );
+        If Not IsamOK Then Exit;
+        Len := S-6;
+      End Else Begin
+        RefNr := 0;
+      End;
+      Move ( SPtr^, IVRBPtr^, Len );                                 {!!.50}
+      CPtr^ := Len;
+      LPtr^ := RefNr;
+      IsamAddRec ( IFBPtr, RefNr, IVRBPtr^ );                        {!!.50}
+    End;
+
+
+  Begin
+    IsamEntryCode ( IFBPtr, OptCheckLock Or OptWriteRoutine );       {!!.50}
+    If IsamOK Then Begin                                             {!!.50}
+      IFBPtr^.CharConvProc ( @Source, Len, False,                    {!!.50}
+          IFBPtr^.CCHookPtr );                                       {!!.50}
+      IsamAddVariableRec;                                            {!!.50}
+      If Not IFBPtr^.CCDestrWrite Then Begin                         {!!.50}
+        IFBPtr^.CharConvProc ( @Source, Len, True,                   {!!.50}
+            IFBPtr^.CCHookPtr );                                     {!!.50}
+      End;                                                           {!!.50}
+    End;                                                             {!!.50}
+    IsamExitCode ( IFBPtr );                                         {!!.50}
+  End;
+
+
+  Procedure IsamDeleteVariableRec ( IFBPtr : IsamFileBlockPtr;       {!!.50}
+                                    RefNr  : LongInt );
+
+  Var
+    NextRefNr : LongInt;
+    S         : Word;
+
+  Begin
+    S := ILI (IFBPtr^.DIDPtr^[0]^.LenRec).Lo;
+    Repeat
+      IsamGetBlock ( IFBPtr^.DatF, LongInt (S) * RefNr + LongInt (S-4),
+                     SizeOf (LongInt), NextRefNr );
+      If Not IsamOK Then Exit;
+      IsamDeleteRec ( IFBPtr, RefNr );                               {!!.50}
+      If Not IsamOK Then Exit;
+      RefNr := NextRefNr;
+    Until NextRefNr = 0;
+  End;
+
+
+  Procedure BTDeleteVariableRec ( IFBPtr : IsamFileBlockPtr;
+                                  RefNr  : LongInt );
+
+
+  Begin
+    IsamEntryCode ( IFBPtr, OptCheckLock Or OptWriteRoutine );       {!!.50}
+    If IsamOK Then IsamDeleteVariableRec ( IFBPtr, RefNr );          {!!.50}
+    IsamExitCode ( IFBPtr );                                         {!!.50}
+  End;
+
+
+  Procedure BTPutVariableRec (     IFBPtr : IsamFileBlockPtr;
+                                   RefNr  : LongInt;
+                               Var Source;
+                                   Len    : Word );
+
+
+    Procedure IsamPutVariableRec;                                    {!!.50}
+
+    Var
+      S        : Word;
+      DelRefNr,
+      AddRefNr : LongInt;
+      SPtr     : PIsamVRecBuf;                                       {!!.50}
+      CPtr     : ^Word;
+      LPtr     : ^LongInt;
+
+    Begin
+      S := Word (ILI (IFBPtr^.DIDPtr^[0]^.LenRec).Lo);
+      If Not AdjustVariableRecBuffer ( S ) Then Begin
+        IsamOK := False;
+        IsamError := 10040;
+        Exit;
+      End;
+      SPtr := Addr (Source);
+      CPtr := Addr (IVRBPtr^ [S-6]);
+      LPtr := Addr (IVRBPtr^ [S-4]);
+      If Len > (S-6) Then Begin
+        IsamAddRestVarRec ( IFBPtr, AddRefNr, SPtr^ [S-6], Len - (S-6) );
+        If Not IsamOK Then Exit;
+        Len := S-6;
+      End Else Begin
+        AddRefNr := 0;
+      End;
+      IsamGetBlock ( IFBPtr^.DatF, LongInt (S) * RefNr + LongInt (S-4),
+                     SizeOf (LongInt), DelRefNr );
+      If Not IsamOK Then Exit;
+      If DelRefNr <> 0 Then Begin
+        IsamDeleteVariableRec ( IFBPtr, DelRefNr );
+        If Not IsamOK Then Exit;
+      End;
+      Move ( SPtr^, IVRBPtr^, Len );
+      CPtr^ := Len;
+      LPtr^ := AddRefNr;
+      IsamPutRec ( IFBPtr, RefNr, IVRBPtr^ );
+    End;
+
+
+  Begin
+    IsamEntryCode ( IFBPtr, OptCheckLock Or OptWriteRoutine );       {!!.50}
+    If IsamOK Then Begin                                             {!!.50}
+      IFBPtr^.CharConvProc ( @Source, Len, False,                    {!!.50}
+          IFBPtr^.CCHookPtr );                                       {!!.50}
+      IsamPutVariableRec;                                            {!!.50}
+      If Not IFBPtr^.CCDestrWrite Then Begin                         {!!.50}
+        IFBPtr^.CharConvProc ( @Source, Len, True,                   {!!.50}
+            IFBPtr^.CCHookPtr );                                     {!!.50}
+      End;                                                           {!!.50}
+    End;                                                             {!!.50}
+    IsamExitCode ( IFBPtr );                                         {!!.50}
+  End;
+
+
+  Procedure IsamGetVariableRecPart (     IFBPtr : IsamFileBlockPtr;
+                                         RefNr  : LongInt;
+                                     Var Dest;
+                                     Var Len    : Word;
+                                         UseRO  : Boolean );
+
+
+    Function GetVRec : Boolean;
+
+    Var
+      SecSize    : Word;
+      DestPos    : Word;
+      SrcPos     : Word;
+      LeftToRead : Word;
+      LenToMove  : Word;
+      DestPtr    : PIsamVRecBuf;                                     {!!.50}
+      LenPtr     : ^Word;
+      RefPtr     : ^LongInt;
+
+    Begin
+      GetVRec := True;
+      SecSize := Word (ILI(IFBPtr^.DIDPtr^[0]^.LenRec).Lo);
+      LenPtr := @IVRBPtr^ [SecSize-6]; {Points to actual length of record
+                                          section}
+      RefPtr := @IVRBPtr^ [SecSize-4]; {Points to next segment reference}
+      DestPtr := @Dest;                  {Points to base of output area}
+      DestPos := 0;                      {Position of data in output area}
+      SrcPos := 0;                       {Position of data in input section}
+      RefPtr^ := RefNr;                  {First section to read}
+      LeftToRead := Len;                 {Bytes left to read}
+      Len := 0;                          {In case we exit with error}
+
+      Repeat
+      {--Read the next section}
+        If (DestPos = 0) And UseRO Then Begin
+          IsamGetRecReadOnly ( IFBPtr, RefPtr^, IVRBPtr^ );          {!!.50}
+          If IsamError = 10205 Then Begin
+            GetVRec := False;
+            IsamClearOK;
+          End;
+        End Else Begin
+          IsamGetRec ( IFBPtr, RefPtr^, IVRBPtr^ );                  {!!.50}
+        End;
+        If Not IsamOK Then Exit;
+
+      {--Transfer section to destination}
+        If LenPtr^ > LeftToRead Then Begin
+          LenToMove := LeftToRead;
+        End Else Begin
+          LenToMove := LenPtr^;
+        End;
+        Move ( IVRBPtr^ [SrcPos], DestPtr^ [DestPos], LenToMove );
+
+      {--Move to next area of destination}
+        Inc ( DestPos, LenToMove );
+        Dec ( LeftToRead, LenToMove );
+
+      {--Data starts at position 1 for all sections but the first}
+        SrcPos := 1;
+      Until (RefPtr^ = 0) Or (LeftToRead = 0);
+
+    {--Return the actual length}
+      Len := DestPos;
+    End;
+
+
+  Var
+    Options : Word;                                                  {!!.50}
+
+  Begin
+    If BTRecIsLocked ( IFBPtr, RefNr ) Then Begin                    {!!.50}
+      Options := NoOptions;                                          {!!.50}
+    End Else Begin                                                   {!!.50}
+      Options := OptReadPrefix;                                      {!!.50}
+    End;                                                             {!!.50}
+    IsamEntryCode ( IFBPtr, Options );                               {!!.50}
+    If AdjustVariableRecBuffer                                       {!!.50}
+        ( Word (ILI (IFBPtr^.DIDPtr^[0]^.LenRec).Lo) ) Then Begin
+      If Not GetVRec And IsamOK Then Begin
+        IsamOK := False;
+        IsamError := 10205;
+      End;
+      If IsamOK Or (IsamError = 10205) Then Begin                    {!!.50}
+        IFBPtr^.CharConvProc ( @Dest, Len, True,                     {!!.50}
+            IFBPtr^.CCHookPtr );                                     {!!.50}
+      End;                                                           {!!.50}
+    End Else Begin                                                   {!!.50}
+      IsamOK := False;                                               {!!.50}
+      IsamError := 10040;                                            {!!.50}
+    End;                                                             {!!.50}
+    IsamExitCode ( IFBPtr );                                         {!!.50}
+  End;
+
+
+  Procedure BTGetVariableRecPart (     IFBPtr : IsamFileBlockPtr;
+                                       RefNr  : LongInt;
+                                   Var Dest;
+                                   Var Len    : Word );
+
+  Begin
+    IsamGetVariableRecPart ( IFBPtr, RefNr, Dest, Len, False );
+  End;
+
+
+  Procedure BTGetVariableRec (     IFBPtr : IsamFileBlockPtr;
+                                   RefNr  : LongInt;
+                               Var Dest;
+                               Var Len    : Word );
+
+  Begin
+    Len := MaxVariableRecLength;
+    IsamGetVariableRecPart ( IFBPtr, RefNr, Dest, Len, False );
+  End;
+
+
+  Procedure BTGetVRecPartReadOnly (     IFBPtr : IsamFileBlockPtr;
+                                        RefNr  : LongInt;
+                                    Var Dest;
+                                    Var Len    : Word );
+
+  Begin
+    IsamGetVariableRecPart ( IFBPtr, RefNr, Dest, Len, True );
+  End;
+
+
+  Procedure BTGetVRecReadOnly (     IFBPtr : IsamFileBlockPtr;
+                                    RefNr  : LongInt;
+                                Var Dest;
+                                Var Len    : Word );
+
+  Begin
+    Len := MaxVariableRecLength;
+    IsamGetVariableRecPart ( IFBPtr, RefNr, Dest, Len, True );
+  End;
+
+
+  Procedure BTGetVariableRecLength (   IFBPtr : IsamFileBlockPtr;
+                                       RefNr  : LongInt;
+                                   Var Len    : Word );
+
+
+    Procedure IsamGetVariableRecLength;                              {!!.50}
+
+    Var
+      S   : Word;
+      Inf : Record
+        L         : Word;
+        NextRefNr : LongInt;
+      End;
+
+    Begin
+      S := Word ( ILI (IFBPtr^.DIDPtr^[0]^.LenRec).Lo );
+      If Not AdjustVariableRecBuffer ( S ) Then Begin
+        IsamOK := False;
+        IsamError := 10040;
+        Exit;
+      End;
+      Len := 0;
+      Repeat
+        IsamGetBlock ( IFBPtr^.DatF, LongInt (S) * RefNr + LongInt (S-6),
+                       SizeOf (Inf), Inf );
+        If Not IsamOK Then Exit;
+        With Inf Do Begin
+          If Len > MaxVariableRecLength - L Then Begin
+            IsamOK := False;
+            IsamError := 10415;
+            Exit;
+          End;
+          RefNr := NextRefNr;
+          Inc (Len, L);
+        End;
+      Until RefNr = 0;
+    End;
+
+
+  Var
+    Options : Word;                                                  {!!.50}
+
+  Begin
+    If BTRecIsLocked ( IFBPtr, RefNr ) Then Begin                    {!!.50}
+      Options := NoOptions;                                          {!!.50}
+    End Else Begin                                                   {!!.50}
+      Options := OptReadPrefix;                                      {!!.50}
+    End;                                                             {!!.50}
+    IsamEntryCode ( IFBPtr, Options );                               {!!.50}
+    If IsamOK Then IsamGetVariableRecLength;                         {!!.50}
+    IsamExitCode ( IFBPtr );                                         {!!.50}
+  End;
+
+(***Moved to VREC.PAS***  !!.TP
+Begin
+  IsamVRecBufSize := 0;
+End.
+ ***)

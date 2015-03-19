@@ -1,0 +1,2851 @@
+(**************************************************************)
+(*   C-BTree Isam Ver 3.5 Pascal Interface Ver 5.51           *)
+(*   Copyright (C) 1986-1991 Dipl.Math. Ralf Nagel            *)
+(*   Copyright (C) 1991-1994 ENZ EDV-Beratung GmbH            *)
+(*                All rights reserved                         *)
+(*   Modified and used under license by TurboPower Software   *)
+(**************************************************************)
+
+(***Moved to FILER.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}                                            {!!.TP}
+  {$F-,V-,B-,S-,I-,R-,X+,A-,N+}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+  {$IFDEF DPMI}
+    {$K+}
+  {$ENDIF}
+
+
+Unit AllIsam;
+ ***)
+
+InterFace
+
+Uses
+{$IFDEF Windows}
+  WinTypes,
+  WinProcs,
+{$ENDIF}
+  Strings;
+
+{--Configuration constants}
+  {$I Filer.Cfg}     {General user defined constants}           {!!.TP}
+
+
+(***************************************************************************)
+  {-Beyond this point there are no user changeable settings}
+
+{--Interfaced constants}
+Const
+  VersionStr = '05.51';
+    {-Current version}
+
+  IsamFileNameLen = 64;
+    {-Length of a single file name}
+
+  MinimizeUseOfNormalHeap = $40000000;
+    {-This value added to Free for BTInitIsam causes the ring buffer to
+      use a minimum of normal heap}
+
+{--Compatibility constants}
+(*MaxKeyLen = 255;  moved back to FILER.CFG *) {!!.TP}
+  MaxHeight = 8;
+
+{--Interfaced types}
+Type
+  IsamFileBlockName = String [192];
+    {-DOS name of a fileblock}
+
+  IsamFileName = String [IsamFileNameLen];
+    {-DOS name of a single file}
+
+  IsamKeyStr = String [MaxKeyLen];
+    {-A key string}
+
+  IsamFileBlockPtr = ^IsamFileBlock;
+    {-Pointer to a fileblock}
+
+  IsamIndDescr = Array [1..MaxNrOfKeys] Of Record
+    KeyL      : Byte;
+    AllowDupK : Boolean;
+  End;
+    {-Descriptor of the index file}
+
+  IsamFile = Record
+    Handle : Word;
+    Name   : Array [0..IsamFileNameLen] Of Char;
+  End;
+    {-File definition}
+
+  NetSupportType = ( NoNet, Novell, MsNet );
+    {-Supported networks}
+
+  ProcBTCharConvert = Procedure ( DataPtr  : Pointer;             {!!.50dum}
+                                  DataLen  : LongInt;
+                                  PostRead : Boolean;
+                                  HookPtr  : Pointer );
+
+{--Private types}
+  IsamFileBlock = Record
+    ValidSign    : LongInt;
+    DatF         : IsamFile;
+    IndF         : IsamFile;
+    DiaF         : IsamFile;
+    NrOfKeys     : 0..MaxNrOfKeys;
+    BlockLen,
+    MaxPages     : LongInt;
+    DIDPtr       : Pointer; {^IsamDatIndDescrAr}
+    DataBuffered,
+    ReadOnlyFB,
+    SaveFB       : Boolean;
+    NSP          : Pointer; {IsamNetSupportPtr}
+  End;
+
+
+Const
+{--The following variable "classes" are used:
+       : public
+   _   : internally used
+   __  : dummy with variable or function to access or to initialize
+         in initialization code
+   ___ : internally used by DLL}
+
+{--Private variables}
+  ___ValidSign                : LongInt = $DeadBeef;
+  ___OnHeap                   : Boolean = False;
+  _IsamNetEmu                 : Boolean = False;
+  __IsamCompiledNets          : Word = 0;
+  _IVRBPtr                    : Pointer = Nil;           {VRec} {!!.TP}
+  _IsamVRecBufSize            : Word = 0;                {VRec} {!!.TP}
+  ___IsamLastError            : LongInt = 0;
+
+{--Interfaced variables}
+  IsamDOSError                : Word = 0;
+  IsamDOSFunc                 : Word = 0;
+  DatExtension                : String [3] = 'DAT';
+  IxExtension                 : String [3] = 'IX';
+  DiaExtension                : String [3] = 'DIA';
+  SavExtension                : String [3] = 'SAV';
+  MsgExtension                : String [3] = 'MSG';
+
+{--Private variables}
+  ___IsamAZStrings            : Boolean = False;
+  ___IsamAZKeyParams          : Boolean = False;
+  ___IsamDefaultAZKeyType     : Boolean = False;
+  ___IsamLockBeforeRead       : Boolean = False;
+  _IsamForceFlushOfMark       : Boolean = False;
+  _IsamIsInitialized          : Boolean = False;
+
+{--Interfaced variables}
+  TestNetExistance            : Boolean = True;
+  SearchForSequentialDefault  : Boolean = True;
+  IsamFlushDOS33              : Boolean = True;
+  AddNullKeys                 : Boolean = True;
+  MaxNrOfWorkStations         : Word = 50;
+  IsamFBLockTimeOutFactor     : Word = 4;
+  IsamLockTimeOut             : Word = 768;
+  IsamDelayBetwLocks          : Word = 64;
+
+{--Private variables}
+  __UsedErrorMessage          : Word = 0;            {IsamTool/DBImpExp}
+  _IsamRBR1Ptr                : Pointer = Nil;
+  _IsamOFBLPtr                : Pointer = Nil;
+  _IsamNrOfRingBufferRecs     : Word = 0;
+  _IsamDefNrOfWS              : Word = 0;
+  _IsamInitializedNet         : Word = 0;
+  _IsamLockRecordFPtr         : Pointer = Nil;
+  _IsamUnLockRecordFPtr       : Pointer = Nil;
+  _IsamExitNetFPtr            : Pointer = Nil;
+  _CallCounter                : LongInt = -1;
+  _IsamDriveNotReadyError     : Boolean = False;
+  _IsamLockError              : Boolean = False;
+  __AllocFPtr                 : Pointer = Nil;
+  __FreeFPtr                  : Pointer = Nil;
+  ___NegValidSign             : LongInt = 0 - $DeadBeef;
+
+
+{--Interfaced variables}
+Var
+  IsamOK : Boolean;
+    {-Contains status of last operation}
+
+  IsamError : Integer Absolute ___IsamLastError;
+    {-Contains error code of last operation}
+
+  IsamReXUserProcPtr : Pointer;
+    {-Pointer to a routine used while rebuilding and reorganizing}
+
+  IsamCompiledNets : Set Of NetSupportType Absolute __IsamCompiledNets;
+    {-Initialized of the unit initialization code;
+      contains the definined network interfaces}
+
+
+{--Interfaced routines}
+  Function BTInitIsam ( ExpectedNet      : NetSupportType;
+                        Free             : LongInt;
+                        NrOfEMSTreePages : Word ) : LongInt;
+    {-Initializes B-Tree Isam; high word of result: pages on EMS heap;
+      low word: pages on normal heap}
+
+  Procedure BTExitIsam;
+    {-Exits use of B-Tree Isam}
+
+  Function BTIsamErrorClass : Integer;
+    {-Evaluates IsamError in error classes 0..4}
+
+  Procedure BTReadLockFileBlock ( IFBPtr : IsamFileBlockPtr );
+    {-Readlocks the fileblock IFBPtr^}
+
+  Procedure BTLockFileBlock ( IFBPtr : IsamFileBlockPtr );
+    {-Locks the fileblock IFBPtr^}
+
+  Procedure BTUnLockFileBlock ( IFBPtr : IsamFileBlockPtr );
+    {-Unlocks the fileblock IFBPtr^}
+
+  Procedure BTReadLockAllOpenFileBlocks;
+    {-Readlocks all open fileblocks}
+
+  Procedure BTLockAllOpenFileBlocks;
+    {-Locks all open fileblocks}
+
+  Procedure BTUnLockAllOpenFileBlocks;
+    {-Unlocks all open fileblocks}
+
+  Procedure BTLockRec ( IFBPtr : IsamFileBlockPtr; Ref : LongInt );
+    {-Locks record Ref}
+
+  Procedure BTUnLockRec ( IFBPtr : IsamFileBlockPtr; Ref : LongInt );
+    {-Unlocks record Ref}
+
+  Procedure BTUnLockAllRecs ( IFBPtr : IsamFileBlockPtr );
+    {-Unlocks all locked records of IFBPtr^}
+
+  Function BTRecIsLocked ( IFBPtr : IsamFileBlockPtr; Ref : LongInt )
+                                                                 : Boolean;
+    {-Returns whether the record Ref is locked}
+
+  Function BTPeekRecIsLocked ( IFBPtr : IsamFileBlockPtr; Ref : LongInt )
+                                                                 : Boolean;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTaRecIsLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Returns whether a record is locked}
+
+  Function BTPeekaRecIsLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Procedure BTInformTTSAbortSuccessful ( IFBPtr : IsamFileBlockPtr );
+    {-Resets all internal data to nothing buffered and no lock at all}
+
+  Procedure BTGetRecordInfo (     IFBPtr     : IsamFileBlockPtr;
+                                  Ref        : LongInt;
+                              Var Start, Len : LongInt;
+                              Var Handle     : Word );
+    {-Returns information about record Ref}
+
+  Procedure BTPeekGetRecordInfo (     IFBPtr     : IsamFileBlockPtr;
+                                      Ref        : LongInt;
+                                  Var Start, Len : LongInt;
+                                  Var Handle     : Word );
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTFileBlockIsOpen ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Returns True, if the fileblock is curently open}
+
+  Function BTPeekFileBlockIsOpen ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTFileBlockIsLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Returns True, if the fileblock is currently locked}
+
+  Function BTPeekFileBlockIsLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTFileBlockIsReadLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Returns True, if the fileblock is currently readlocked}
+
+  Function BTPeekFileBlockIsReadLocked ( IFBPtr : IsamFileBlockPtr )
+                                                                 : Boolean;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Procedure BTForceWritingMark ( FFM : Boolean );
+    {-Forces to write the "modify mark" to disk}
+
+  Function BTSetDosRetry ( NrOfRetries, WaitTime : Integer ) : Boolean;
+    {-Sets number of retries and delay time between on locks and accesses
+      in a MicroSoft compatible network}
+
+  Function BTNetSupported : NetSupportType;
+    {-Returns the currently supported network}
+
+  Function BTPeekNetSupported : NetSupportType;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTNoNetCompiled : Boolean;
+    {-Returns True, if B-Tree Isam was compiled without network support}
+
+  Function BTPeekNoNetCompiled : Boolean;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTIsNetFileBlock ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Returns True, if the fileblock is a net fileblock}
+
+  Function BTPeekIsNetFileBlock ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Procedure BTForceNetBufferWriteThrough ( DoIt : Boolean );
+    {-With DoIt = True the save mode tries to suppress all buffering in a
+      network or multitasking environment}
+
+  Procedure BTPutRec (     IFBPtr  : IsamFileBlockPtr;
+                           RefNr   : LongInt;
+                       Var Source;
+                           ISOLock : Boolean );
+    {-Puts the specified record at the given reference}
+
+  Procedure BTGetRec (     IFBPtr  : IsamFileBlockPtr;
+                           RefNr   : LongInt;
+                       Var Dest;
+                           ISOLock : Boolean );
+    {-Gets the specified record from the given reference}
+
+  Procedure BTGetRecReadOnly (     IFBPtr  : IsamFileBlockPtr;
+                                   RefNr   : LongInt;
+                               Var Dest              );
+    {-Gets the specified record from the given reference even if it's
+      locked}
+
+  Procedure BTGetStartingLong (     IFBPtr  : IsamFileBlockPtr;
+                                    RefNr   : LongInt;
+                                Var Dest    : LongInt );
+    {-Gets the first four bytes of the specified record with the given
+      reference}
+
+  Procedure BTAddRec (     IFBPtr : IsamFileBlockPtr;
+                       Var RefNr  : LongInt;
+                       Var Source                );
+    {-Adds a record to the given fileblock and returns the reference}
+
+  Procedure BTDeleteRec ( IFBPtr : IsamFileBlockPtr; RefNr : LongInt );
+    {-Deletes the record with reference RefNr}
+
+  Function BTUsedRecs ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+    {-Returns the number of currently used records}
+
+  Function BTUsedKeys ( IFBPtr : IsamFileBlockPtr; Key : Word ) : LongInt;
+    {-Returns the number of currently used keys of the specified number}
+
+  Function BTFreeRecs ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+    {-Returns the number of currently not used records}
+
+  Function BTFileLen ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+    {-Returns the number of currently occupied records by this fileblock}
+
+  Function BTNrOfKeys ( IFBPtr : IsamFileBlockPtr ) : Word;
+    {-Returns the number of defined keys}
+
+  Function BTPeekNrOfKeys ( IFBPtr : IsamFileBlockPtr ) : Word;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTDatRecordSize ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+    {-Returns the lenght of a data record}
+
+  Function BTPeekDatRecordSize ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTKeyRecordSize ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+    {-Returns the maximum number of bytes used for a following key adding}
+
+  Function BTPeekKeyRecordSize ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTMinimumDatKeys ( IFBPtr : IsamFileBlockPtr; Space : LongInt )
+                                                                  : LongInt;
+    {-Returns the minimum number of data (including keys), that can be
+      placed on a disk having Space bytes free space}
+
+  Function BTPeekMinimumDatKeys ( IFBPtr : IsamFileBlockPtr;
+                                  Space  : LongInt ) : LongInt;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Procedure BTSetSearchForSequential ( IFBPtr : IsamFileBlockPtr;
+                                       Key    : Word;
+                                       ToOn   : Boolean );
+    {-Sets search mode in sequential key operations to ToOn}
+
+  Procedure BTGetSearchForSequential (     IFBPtr : IsamFileBlockPtr;
+                                           Key    : Word;
+                                       Var SFS    : Boolean );
+    {-Gets search mode for sequential key operations in TSFS}
+
+  Procedure BTFindRecRef (     IFBPtr                  : IsamFileBlockPtr;
+                           Var UserDatRef              : LongInt;
+                               NotFoundSearchDirection : Integer );  {!!.42}
+    {-Returns in UserDatRef the reference number of the found record;
+      NotFoundSearchDirection determines whether and how to search
+      in case nothing was found}
+
+  Procedure BTNextRecRef (     IFBPtr     : IsamFileBlockPtr;
+                           Var UserDatRef : LongInt );               {!!.42}
+    {-Returns in UserDatRef the reference number of the next record}
+
+  Procedure BTPrevRecRef (     IFBPtr     : IsamFileBlockPtr;
+                           Var UserDatRef : LongInt );               {!!.42}
+    {-Returns in UserDatRef the reference number of the previous record}
+
+  Procedure BTGetApprRecPos (     IFBPtr     : IsamFileBlockPtr;
+                              Var RelPos     : Word;
+                                  Scale      : Word;
+                                  UserDatRef : LongInt );            {!!.42}
+    {-Returns in RelPos the approximate relative position of the record
+      with reference UserDatRef in 0..Scale}
+
+  Procedure BTGetApprRecRef (     IFBPtr     : IsamFileBlockPtr;
+                                  RelPos     : Word;
+                                  Scale      : Word;
+                              Var UserDatRef : LongInt );            {!!.42}
+    {-Returns UserDatRef, that is approximately at the position RelPos
+      in 0..Scale}
+
+  Procedure BTClearKey ( IFBPtr : IsamFileBlockPtr; Key : Word );
+    {-Places the internal sequential pointer to a null position}
+
+  Procedure BTNextKey (     IFBPtr     : IsamFileBlockPtr;
+                            Key        : Word;
+                        Var UserDatRef : LongInt;
+                        Var UserKey    : IsamKeyStr    );
+    {-Returns in UserKey / UserDatRef the value and reference number of the
+      next key}
+
+  Procedure BTPrevKey (     IFBPtr     : IsamFileBlockPtr;
+                            Key        : Word;
+                        Var UserDatRef : LongInt;
+                        Var UserKey    : IsamKeyStr       );
+    {-Returns in UserKey / UserDatRef the value and reference number of the
+      previous key}
+
+  Procedure BTFindKey (     IFBPtr     : IsamFileBlockPtr;
+                            Key        : Word;
+                        Var UserDatRef : LongInt;
+                            UserKey    : IsamKeyStr       );
+    {-Returns in UserDatRef the reference number of the specified key}
+
+  Procedure BTSearchKey (     IFBPtr     : IsamFileBlockPtr;
+                              Key        : Word;
+                          Var UserDatRef : LongInt;
+                          Var UserKey    : IsamKeyStr    );
+    {-Returns in UserKey / UserDatRef the value and reference number of the
+      via UserKey specified or the following key}
+
+  Procedure BTFindKeyAndRef (     IFBPtr                  : IsamFileBlockPtr;
+                                  Key                     : Word;
+                              Var UserDatRef              : LongInt;
+                              Var UserKey                 : IsamKeyStr;
+                                  NotFoundSearchDirection : Integer    );
+    {-Returns in UserKey / UserDatRef the value and reference number of the
+      via UserKey / UserDatRef specified combination.
+      NotFoundSearchDirection determines whether and where to search for a
+      result in case nothing was found}
+
+  Procedure BTSearchKeyAndRef (     IFBPtr     : IsamFileBlockPtr;
+                                    Key        : Word;
+                                Var UserDatRef : LongInt;
+                                Var UserKey    : IsamKeyStr );
+    {-Returns in UserKey / UserDatRef the value and reference number of the
+      via UserKey / UserDatRef specified combination.
+      In case nothing was found a following result is searched. If this does
+      not exist, a previous combination is searched}
+
+  Function BTKeyExists ( IFBPtr     : IsamFileBlockPtr;
+                         Key        : Word;
+                         UserDatRef : LongInt;
+                         UserKey    : IsamKeyStr    ) : Boolean;
+    {-Returns True, if the combination UserKey / UserDatRef exists}
+
+  Procedure BTNextDiffKey (     IFBPtr     : IsamFileBlockPtr;
+                                Key        : Word;
+                            Var UserDatRef : LongInt;
+                            Var UserKey    : IsamKeyStr    );
+    {-Returns in UserKey / UserDatRef the value and reference number of the
+      next from UserKey different key}
+
+  Procedure BTPrevDiffKey (     IFBPtr     : IsamFileBlockPtr;
+                                Key        : Word;
+                            Var UserDatRef : LongInt;
+                            Var UserKey    : IsamKeyStr    );
+    {-Returns in UserKey / UserDatRef the value and reference number of the
+      previous from UserKey different key}
+
+  Procedure BTAddKey ( IFBPtr     : IsamFileBlockPtr;
+                       Key        : Word;
+                       UserDatRef : LongInt;
+                       UserKey    : IsamKeyStr    );
+    {-Adds the combination UserKey / UserDatRef to the tree}
+
+  Procedure BTDeleteKey ( IFBPtr     : IsamFileBlockPtr;
+                          Key        : Word;
+                          UserDatRef : LongInt;
+                          UserKey    : IsamKeyStr    );
+    {-Deletes the combination UserKey / UserDatRef in the tree}
+
+  Procedure BTDeleteAllKeys ( IFBPtr : IsamFileBlockPtr; Key : Word );
+    {-Deletes all keys with number Key}
+
+  Function BTOtherWSChangedKey ( IFBPtr : IsamFileBlockPtr;
+                                 Key    : Word ) : Boolean;
+    {-Returns True, if it is definite, that a key of number Key was changed
+      by another work station}
+
+  Procedure BTGetApprRelPos (     IFBPtr     : IsamFileBlockPtr;
+                                  Key        : Word;
+                              Var RelPos     : Word;
+                                  Scale      : Word;
+                                  UserKey    : IsamKeyStr;
+                                  UserDatRef : LongInt );
+    {-Returns in RelPos the approximate relative position of the combination
+      UserKey / UserDatRef in 0..Scale}
+
+  Procedure BTGetApprKeyAndRef (     IFBPtr     : IsamFileBlockPtr;
+                                     Key,
+                                     RelPos     : Word;
+                                     Scale      : Word;
+                                 Var UserKey    : IsamKeyStr;
+                                 Var UserDatRef : LongInt );
+    {-Returns the combination UserKey / UserDatRef, that is approximately
+      at the position RelPos in 0..Scale}
+
+  Procedure BTFlushAllFileBlocks;
+    {-Flushes all new data of all fileblocks to disk}
+
+  Procedure BTFlushFileBlock ( IFBPtr : IsamFileBlockPtr );
+    {-Flushes all new data of this fileblocks to disk}
+
+  Procedure BTCreateFileBlock ( FName        : IsamFileBlockName;
+                                DatSLen      : LongInt;
+                                NumberOfKeys : Word;
+                                IID          : IsamIndDescr );
+    {-Creates a closed fileblock}
+
+  Procedure BTOpenFileBlock ( Var IFBPtr      : IsamFileBlockPtr;
+                                  FName       : IsamFileBlockName;
+                                  ReadOnly,
+                                  AllReadOnly,
+                                  Save,
+                                  Net         : Boolean );
+    {-Opens a fileblock}
+
+  Procedure BTCloseFileBlock ( Var IFBPtr : IsamFileBlockPtr );
+    {-Closes a fileblock}
+
+  Procedure BTCloseAllFileBlocks;
+    {-Closes all open fileblocks}
+
+  Procedure BTDeleteFileBlock ( FName  : IsamFileBlockName );
+    {-Deletes a fileblock}
+
+  Function BTDataFileName ( IFBPtr : IsamFileBlockPtr ) : IsamFileName;
+    {-Returns the name of the data file including path and extension}
+
+  Function BTPeekDataFileName ( IFBPtr : IsamFileBlockPtr ) : IsamFileName;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTIndexFileName ( IFBPtr : IsamFileBlockPtr ) : IsamFileName;
+    {-Returns the name of the index file including path and extension}
+
+  Function BTPeekIndexFileName ( IFBPtr : IsamFileBlockPtr ) : IsamFileName;
+    {-Just like the routine without "Peek", but not destroying the previous
+      error on success}
+
+  Function BTGetNextUsedAddRecRef ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+    {-Returns the data reference, that is used for adding the next record;
+      this function is of a more internal nature}
+
+  Function BTGetAfterNextUsedAddRecRef ( IFBPtr : IsamFileBlockPtr )
+                                                                 : LongInt;
+    {-Returns the data reference, that is used after adding the next record;
+      this function is of a more internal nature}
+
+  Function BTGetInternalDialogID ( IFBPtr : IsamFileBlockPtr ) : Word;
+    {-Returns the internal ID used by network accesss to this fileblock}
+
+  Function BTGetAllowDupKeys ( IFBPtr : IsamFileBlockPtr;            {!!.50}
+                               KeyNr  : Word ) : Boolean;
+    {-Returns, whether duplicate keys are allowed or not}
+
+  Function BTGetKeyLen ( IFBPtr : IsamFileBlockPtr;                  {!!.50}
+                         KeyNr  : Word ) : Word;
+    {-Returns the length of the key string KeyNr}
+
+  Procedure BTNoCharConvert ( DataPtr  : Pointer;                    {!!.50}
+                              DataLen  : LongInt;
+                              PostRead : Boolean;
+                              HookPtr  : Pointer );
+    {-Does nothing}
+
+  Procedure BTSetCharConvert ( IFBPtr     : IsamFileBlockPtr;        {!!.50}
+                               CCProc     : ProcBTCharConvert;
+                               HookPtr    : Pointer;
+                               DestrWrite : Boolean );
+   {-Sets the routine to convert data fields between different character
+     sets; the routine CCProc is called after reading a record and before
+     writing a record; if DestWrite is for CCProc is called in addition
+     after writing a record to reconvert the record}
+
+ {--Interfaced only for compatibility reasons; not used outside except
+    for network tests}
+  Function BTIsamLockRecord ( Start,
+                              Len       : LongInt;
+                              Handle ,
+                              TimeOut,
+                              DelayTime : Word ) : Boolean;
+    {-Locks the bytes Start to Start+Len-1 of the file
+      with handle Handle; TimeOut is the maximum wait time which may be
+      separated in several retries with DelayTime milliseconds}
+
+  Function BTIsamUnLockRecord ( Start,
+                                Len    : LongInt;
+                                Handle : Word     ) : Boolean;
+    {-Unlocks the bytes Start to Start+Len-1 of the file
+      with handle Handle}
+
+  Function BTIsamGetSequentialOK ( IFBPtr : IsamFileBlockPtr;        {!!.50}
+                                   KeyNr  : Word ) : Boolean;
+    {-Returns, whether sequentiell access for key KeyNr is ok}
+
+{--Routines of internal nature, but interfaced as well}
+  Procedure IsamClearOK;
+    {-Resets all status variables, even internal ones}
+
+  Function IsamExists ( Name : IsamFileName ) : Boolean;
+    {-Returns True, if the specified file exists}
+
+  Procedure IsamAssign ( Var F : IsamFile; FName : IsamFileName );
+    {-Assigns FName to the file F}
+
+  Procedure IsamRewrite ( Var F : IsamFile );
+    {-Creates the file F}
+
+  Procedure IsamReset ( Var F : IsamFile; NetUsed, ReadOnly : Boolean );
+    {-Opens the file F in the specified mode}
+
+  Procedure IsamClose ( Var F : IsamFile );
+    {-Closes the file F}
+
+  Procedure IsamDelete ( Var F : IsamFile );
+    {-Deletes the file F}
+
+  Procedure IsamRename ( Var F : IsamFile; FName : IsamFileName );
+    {-Renames the file F to FName}
+
+  Procedure IsamLongSeek ( Var F : IsamFile; Ref : LongInt );
+    {-Seeks the position Ref in the file F}
+
+  Procedure IsamLongSeekEOF ( Var F : IsamFile; Var Len : LongInt );
+    {-Seeks the end of file position in the file F and returns its length}
+
+  Procedure IsamBlockRead ( Var F : IsamFile; Var Dest; Len  : Word );
+    {-Reads a block of data with Len bytes out of the file F to Dest}
+
+  Procedure IsamBlockReadRetLen ( Var F         : IsamFile;
+                                  Var Dest;
+                                      Len       : Word;
+                                  Var BytesRead : Word );
+    {-Reads a block of data with Len bytes out of the file F to Dest;
+      returns the number of bytes read in BytesRead}
+
+  Procedure IsamBlockWrite ( Var F : IsamFile; Var Source; Len : Word );
+    {-Writes a block of data with Len bytes to the file F from Source}
+
+  Procedure IsamGetBlock ( Var F : IsamFile; Ref, Len : LongInt; Var Dest );
+    {-Reads a block of data with Len bytes starting at Ref out of the file
+      F to Dest}
+
+  Procedure IsamPutBlock ( Var F      : IsamFile;
+                               Ref,
+                               Len    : LongInt;
+                           Var Source );
+    {-Writes a block of data with Len bytes to the file F starting at Ref
+      from Source}
+
+  Procedure IsamFlush ( Var F        : IsamFile;
+                        Var WithDUP  : Boolean;
+                            NetUsed  : Boolean );
+    {-Flushes the buffers of F to disk, depending on the constant
+      FlushDOS33 and the parameter NetUsed}
+
+  Procedure IsamExtractFileNames (     FNameComp : IsamFileBlockName;
+                                   Var FNameD,
+                                       FNameI    : IsamFileBlockName );
+    {-Seperates two file names seperated by ";"}
+
+  Procedure IsamCopyFile ( Source,
+                           Dest                  : IsamFileBlockName;
+                           DeleteSourceAfterCopy : Boolean );
+
+    {-Copies file Source to Dest}
+
+  Function IsamForceExtension ( Name, Ext : IsamFileName ) : IsamFileName;
+    {-Forces the extension Ext to the file name Name}
+
+  Procedure IsamDelay ( MilliSecs : LongInt );
+    {-Delays for MilliSecs milliseconds using a DOS call, not the CRT unit}
+
+
+  Function IsamSmallInfoRecSize : Byte;                              {!!.50}
+    {-Returns the size of the header record used for the data file}
+
+  Function IsamPageEntrySize : Word;                                 {!!.50}
+    {-Returns the size of a page entry}
+
+{--Internal use only routines}
+  Function IsamGetNumRecAddress ( IFBPtr : IsamFileBlockPtr ) : Pointer;
+                                                                     {!!.50}
+    {-Gets the address of the NumRec field in the data file descriptor}
+
+  Procedure IsamAddRec (     IFBPtr : IsamFileBlockPtr;              {!!.50}
+                         Var RefNr  : LongInt;
+                         Var Source );
+    {-Adds a record without IsamEntryCode/IsamExitCode}
+
+  Function GetBDCreatePageSize : Byte;
+    {-Maximum number of index entries per page used when fileblock
+      is created}
+
+  Function GetBDMaxPageSize : Byte;
+    {-Maximum number of index entries per page B-Tree Isam can handle;
+      never set smaller than CreatePageSize!}
+
+  Function GetBDMaxHeight : Byte;
+    {-Maximum height of the tree}
+
+  Function GetBDInheritFileHandles : Boolean;
+    {-False suppresses inheriting the file handles used for fileblocks
+      to child processes}
+
+  Function GetBDMaxKeyLen : Byte;
+    {-Maximum length of a key string}
+
+
+Implementation
+
+  Type
+    IsamConstInfo = Record
+      IsamVersion,
+      IsamSmallInfoRecSize,
+      IsamPageEntrySize,
+      IsamPageSize,
+      IsamCreatePageSize,
+      IsamMaxPageSize,
+      IsamMaxHeight,
+      IsamMaxLockEntries,
+      IsamMaxKeyLen,
+      IsamMaxNrOfKeys        : Word;
+      IsamInheritFileHandles,
+      IsamLockBeforeRead     : Boolean;
+      IsamCompiledNets       : Word;
+      UsedErrorMessage       : Word;
+    End;
+
+  Var
+    _CreatePageSize     : Byte;
+    _MaxPageSize        : Byte;
+    _MaxHeight          : Byte;
+    _InheritFileHandles : Boolean;
+    _MaxKeyLen          : Byte;
+    _SmallInfoRecSize   : Byte;
+
+    _IsamPageEntrySize  : Word;
+    _IsamPageSize       : Word;
+
+
+  Function GetBDCreatePageSize : Byte;
+
+  Begin
+    GetBDCreatePageSize := _CreatePageSize;
+  End;
+
+
+  Function GetBDMaxPageSize : Byte;
+
+  Begin
+    GetBDMaxPageSize := _MaxPageSize;
+  End;
+
+
+  Function GetBDMaxHeight : Byte;
+
+  Begin
+    GetBDMaxHeight := _MaxHeight
+  End;
+
+
+  Function GetBDInheritFileHandles : Boolean;
+
+  Begin
+    GetBDInheritFileHandles := _InheritFileHandles;
+  End;
+
+
+  Function GetBDMaxKeyLen : Byte;
+
+  Begin
+    GetBDMaxKeyLen := _MaxKeyLen;
+  End;
+
+
+  Function IsamSmallInfoRecSize : Byte;
+
+  Begin
+    IsamSmallInfoRecSize := _SmallInfoRecSize;
+  End;
+
+
+  Function IsamPageEntrySize : Word;
+
+  Begin
+    IsamPageEntrySize := _IsamPageEntrySize;
+  End;
+
+
+  Function AllocFar ( Size : Word ) : Pointer; Export;
+
+  Var
+    P : Pointer;
+
+  Begin
+    If MaxAvail < Size Then Begin
+      AllocFar := Nil;
+    End Else Begin
+      GetMem ( P, Size );
+      AllocFar := P;
+    End;
+  End;
+
+
+  Procedure FreeFar ( P : Pointer; Size : Word ); Export;
+
+  Begin
+    If (Size <> 0) And (P <> Nil) Then FreeMem ( P, Size );
+  End;
+
+
+
+  Const
+    DLLName = 'CBTLWDS';
+
+
+  Function BDInitIsam (     IPDPtr             : Pointer;
+                            ExpectedNet        : Word;
+                            NrOfTreePages      : Word;
+                            NrOfEMSTreePages   : Word;
+                        Var NrOfAllocatedPages : LongInt ) : LongInt;
+      Far; External DLLName Index 514;  {Name 'BDINITISAM';}
+
+  Function BDExitIsam ( IPDPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 515;  {Name 'BDEXITISAM';}
+
+  Function BDIsamErrorClass ( IsamError : LongInt ) : LongInt;
+      Far; External DLLName Index 516;  {Name 'BDISAMERRORCLASS';}
+
+  Function BDNoNetCompiled (     IPDPtr : Pointer;
+                             Var NoNet  : Boolean ) : LongInt;
+      Far; External DLLName Index 517;  {Name 'BDNONETCOMPILED';}
+
+  Function BDPeekNoNetCompiled (     IPDPtr : Pointer;
+                                 Var NoNet  : Boolean ) : LongInt;
+      Far; External DLLName Index 518;  {Name 'BDPEEKNONETCOMPILED';}
+
+  Function BDNetSupported (     IPDPtr : Pointer;
+                            Var NetST  : Word ) : LongInt;
+      Far; External DLLName Index 519;  {Name 'BDNETSUPPORTED';}
+
+  Function BDPeekNetSupported (     IPDPtr : Pointer;
+                                Var NetST  : Word ) : LongInt;
+      Far; External DLLName Index 520;  {Name 'BDPEEKNETSUPPORTED';}
+
+  Function BDFileBlockIsOpen (     IPDPtr : Pointer;
+                                   IFBPtr : IsamFileBlockPtr;
+                               Var IsOpen : Boolean ) : LongInt;
+      Far; External DLLName Index 521;  {Name 'BDFILEBLOCKISOPEN';}
+
+  Function BDPeekFileBlockIsOpen (     IPDPtr : Pointer;
+                                       IFBPtr : IsamFileBlockPtr;
+                                   Var IsOpen : Boolean ) : LongInt;
+      Far; External DLLName Index 522;  {Name 'BDPEEKFILEBLOCKISOPEN';}
+
+  Function BDIsNetFileBlock (     IPDPtr : Pointer;
+                                  IFBPtr : IsamFileBlockPtr;
+                              Var IsNet  : Boolean ) : LongInt;
+      Far; External DLLName Index 523;  {Name 'BDISNETFILEBLOCK';}
+
+  Function BDPeekIsNetFileBlock (     IPDPtr : Pointer;
+                                      IFBPtr : IsamFileBlockPtr;
+                                  Var IsNet  : Boolean ) : LongInt;
+      Far; External DLLName Index 524;  {Name 'BDPEEKISNETFILEBLOCK';}
+
+  Function BDFileBlockIsLocked (     IPDPtr   : Pointer;
+                                     IFBPtr   : IsamFileBlockPtr;
+                                 Var IsLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 525;  {Name 'BDFILEBLOCKISLOCKED';}
+
+  Function BDPeekFileBlockIsLocked (     IPDPtr   : Pointer;
+                                         IFBPtr   : IsamFileBlockPtr;
+                                     Var IsLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 526;  {Name 'BDPEEKFILEBLOCKISLOCKED';}
+
+  Function BDFileBlockIsReadLocked (     IPDPtr       : Pointer;
+                                         IFBPtr       : IsamFileBlockPtr;
+                                     Var IsReadLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 527;  {Name 'BDFILEBLOCKISREADLOCKED';}
+
+  Function BDPeekFileBlockIsReadLocked
+                        (     IPDPtr       : Pointer;
+                              IFBPtr       : IsamFileBlockPtr;
+                          Var IsReadLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 528; {Name 'BDPEEKFILEBLOCKISREADLOCKED';}
+
+  Function BDReadLockFileBlock ( IPDPtr : Pointer;
+                                 IFBPtr : IsamFileBlockPtr ) : LongInt;
+      Far; External DLLName Index 529;  {Name 'BDREADLOCKFILEBLOCK';}
+
+  Function BDLockFileBlock ( IPDPtr : Pointer;
+                             IFBPtr : IsamFileBlockPtr ) : LongInt;
+      Far; External DLLName Index 530;  {Name 'BDLOCKFILEBLOCK';}
+
+  Function BDUnLockFileBlock ( IPDPtr : Pointer;
+                               IFBPtr : IsamFileBlockPtr ) : LongInt;
+      Far; External DLLName Index 531;  {Name 'BDUNLOCKFILEBLOCK';}
+
+  Function BDUnLockAllOpenFileBlocks ( IPDPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 532;  {Name 'BDUNLOCKALLOPENFILEBLOCKS';}
+
+  Function BDReadLockAllOpenFileBlocks ( IPDPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 533; {Name 'BDREADLOCKALLOPENFILEBLOCKS';}
+
+  Function BDLockAllOpenFileBlocks ( IPDPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 534;  {Name 'BDLOCKALLOPENFILEBLOCKS';}
+
+  Function BDGetRecordInfo (     IPDPtr : Pointer;
+                                 IFBPtr : IsamFileBlockPtr;
+                                 Ref    : LongInt;
+                             Var Start  : LongInt;
+                             Var Len    : LongInt;
+                             Var Handle : Word ) : LongInt;
+      Far; External DLLName Index 535;  {Name 'BDGETRECORDINFO';}
+
+  Function BDPeekGetRecordInfo (     IPDPtr : Pointer;
+                                     IFBPtr : IsamFileBlockPtr;
+                                     Ref    : LongInt;
+                                 Var Start  : LongInt;
+                                 Var Len    : LongInt;
+                                 Var Handle : Word ) : LongInt;
+      Far; External DLLName Index 536;  {Name 'BDPEEKGETRECORDINFO';}
+
+  Function BDLockRec ( IPDPtr : Pointer;
+                       IFBPtr : IsamFileBlockPtr;
+                       Ref    : LongInt ) : LongInt;
+      Far; External DLLName Index 537;  {Name 'BDLOCKREC';}
+
+  Function BDUnLockRec ( IPDPtr : Pointer;
+                         IFBPtr : IsamFileBlockPtr;
+                         Ref    : LongInt ) : LongInt;
+      Far; External DLLName Index 538;  {Name 'BDUNLOCKREC';}
+
+  Function BDUnLockAllRecs ( IPDPtr : Pointer;
+                             IFBPtr : IsamFileBlockPtr ) : LongInt;
+      Far; External DLLName Index 539;  {Name 'BDUNLOCKALLRECS';}
+
+  Function BDRecIsLocked (     IPDPtr   : Pointer;
+                               IFBPtr   : IsamFileBlockPtr;
+                               Ref      : LongInt;
+                           Var IsLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 540;  {Name 'BDRECISLOCKED';}
+
+  Function BDPeekRecIsLocked (     IPDPtr   : Pointer;
+                                   IFBPtr   : IsamFileBlockPtr;
+                                   Ref      : LongInt;
+                               Var IsLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 541;  {Name 'BDPEEKRECISLOCKED';}
+
+  Function BDaRecIsLocked (     IPDPtr   : Pointer;
+                                IFBPtr   : IsamFileBlockPtr;
+                            Var IsLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 542;  {Name 'BDARECISLOCKED';}
+
+  Function BDPeekaRecIsLocked (     IPDPtr   : Pointer;
+                                    IFBPtr   : IsamFileBlockPtr;
+                                Var IsLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 543;  {Name 'BDPEEKARECISLOCKED';}
+
+  Function BDInformTTSAbortSuccessful ( IPDPtr : Pointer;
+                                        IFBPtr : IsamFileBlockPtr )
+                                                               : LongInt;
+      Far; External DLLName Index 544;  {Name 'BDINFORMTTSABORTSUCCESSFUL';}
+
+  Function BDForceWritingMark ( IPDPtr : Pointer;
+                                FFM    : Boolean ) : LongInt;
+      Far; External DLLName Index 545;  {Name 'BDFORCEWRITINGMARK';}
+
+  Function BDForceNetBufferWriteThrough ( IPDPtr : Pointer;
+                                          DoIt   : Boolean ) : LongInt;
+      Far; External DLLName Index 546;{Name 'BDFORCENETBUFFERWRITETHROUGH';}
+
+  Function BDGetRec ( IPDPtr  : Pointer;
+                      IFBPtr  : IsamFileBlockPtr;
+                      RefNr   : LongInt;
+                      DestPtr : Pointer;
+                      ISOLock : Boolean ) : LongInt;
+      Far; External DLLName Index 547;  {Name 'BDGETREC';}
+
+  Function BDGetRecReadOnly ( IPDPtr  : Pointer;
+                              IFBPtr  : IsamFileBlockPtr;
+                              RefNr   : LongInt;
+                              DestPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 548;  {Name 'BDGETRECREADONLY';}
+
+  Function BDGetStartingLong (     IPDPtr  : Pointer;
+                                   IFBPtr  : IsamFileBlockPtr;
+                                   RefNr   : LongInt;
+                               Var Dest    : LongInt ) : LongInt;
+      Far; External DLLName Index 549;  {Name 'BDGETSTARTINGLONG';}
+
+  Function BDPutRec ( IPDPtr    : Pointer;
+                      IFBPtr    : IsamFileBlockPtr;
+                      RefNr     : LongInt;
+                      SourcePtr : Pointer;
+                      ISOLock   : Boolean ) : LongInt;
+      Far; External DLLName Index 550;  {Name 'BDPUTREC';}
+
+  Function BDAddRec (     IPDPtr    : Pointer;
+                          IFBPtr    : IsamFileBlockPtr;
+                      Var RefNr     : LongInt;
+                          SourcePtr : Pointer ) : LongInt;
+      Far; External DLLName Index 551;  {Name 'BDADDREC';}
+
+  Function BDDeleteRec ( IPDPtr : Pointer;
+                         IFBPtr : IsamFileBlockPtr;
+                         RefNr  : LongInt ) : LongInt;
+      Far; External DLLName Index 552;  {Name 'BDDELETEREC';}
+
+  Function BDUsedRecs (     IPDPtr   : Pointer;
+                            IFBPtr   : IsamFileBlockPtr;
+                        Var UsedRecs : LongInt ) : LongInt;
+      Far; External DLLName Index 553;  {Name 'BDUSEDRECS';}
+
+  Function BDFreeRecs (     IPDPtr   : Pointer;
+                            IFBPtr   : IsamFileBlockPtr;
+                        Var FreeRecs : LongInt ) : LongInt;
+      Far; External DLLName Index 554;  {Name 'BDFREERECS';}
+
+  Function BDFileLen (     IPDPtr  : Pointer;
+                           IFBPtr  : IsamFileBlockPtr;
+                       Var FileLen : LongInt ) : LongInt;
+      Far; External DLLName Index 555;  {Name 'BDFILELEN';}
+
+  Function BDUsedKeys (     IPDPtr   : Pointer;
+                            IFBPtr   : IsamFileBlockPtr;
+                            Key      : Word;
+                        Var UsedKeys : LongInt ) : LongInt;
+      Far; External DLLName Index 556;  {Name 'BDUSEDKEYS';}
+
+  Function BDNrOfKeys (     IPDPtr   : Pointer;
+                            IFBPtr   : IsamFileBlockPtr;
+                        Var NrOfKeys : Word ) : LongInt;
+      Far; External DLLName Index 557;  {Name 'BDNROFKEYS';}
+
+  Function BDPeekNrOfKeys (     IPDPtr   : Pointer;
+                                IFBPtr   : IsamFileBlockPtr;
+                            Var NrOfKeys : Word ) : LongInt;
+      Far; External DLLName Index 558;  {Name 'BDPEEKNROFKEYS';}
+
+  Function BDDatRecordSize (     IPDPtr        : Pointer;
+                                 IFBPtr        : IsamFileBlockPtr;
+                             Var DatRecordSize : LongInt ) : LongInt;
+      Far; External DLLName Index 559;  {Name 'BDDATRECORDSIZE';}
+
+  Function BDPeekDatRecordSize (     IPDPtr        : Pointer;
+                                     IFBPtr        : IsamFileBlockPtr;
+                                 Var DatRecordSize : LongInt ) : LongInt;
+      Far; External DLLName Index 560;  {Name 'BDPEEKDATRECORDSIZE';}
+
+  Function BDKeyRecordSize (     IPDPtr     : Pointer;
+                                 IFBPtr     : IsamFileBlockPtr;
+                             Var KeyRecSize : LongInt ) : LongInt;
+      Far; External DLLName Index 561;  {Name 'BDKEYRECORDSIZE';}
+
+  Function BDPeekKeyRecordSize (     IPDPtr     : Pointer;
+                                     IFBPtr     : IsamFileBlockPtr;
+                                 Var DatRecSize : LongInt ) : LongInt;
+      Far; External DLLName Index 562;  {Name 'BDPEEKKEYRECORDSIZE';}
+
+  Function BDMinimumDatKeys (     IPDPtr     : Pointer;
+                                  IFBPtr     : IsamFileBlockPtr;
+                                  Space      : LongInt;
+                              Var MinDatKeys : LongInt ) : LongInt;
+      Far; External DLLName Index 563;  {Name 'BDMINIMUMDATKEYS';}
+
+  Function BDPeekMinimumDatKeys (     IPDPtr     : Pointer;
+                                      IFBPtr     : IsamFileBlockPtr;
+                                      Space      : LongInt;
+                                  Var MinDatKeys : LongInt ) : LongInt;
+      Far; External DLLName Index 564;  {Name 'BDPEEKMINIMUMDATKEYS';}
+
+  Function BDSetDOSRetry (     IPDPtr      : Pointer;
+                               NrOfRetries : Integer;
+                               WaitTime    : Integer;
+                           Var Successful  : Boolean ) : LongInt;
+      Far; External DLLName Index 565;  {Name 'BDSETDOSRETRY';}
+
+  Function BDSetSearchForSequential ( IPDPtr : Pointer;
+                                      IFBPtr : IsamFileBlockPtr;
+                                      Key    : Word;
+                                      ToOn   : Boolean ) : LongInt;
+      Far; External DLLName Index 566;  {Name 'BDSETSEARCHFORSEQUENTIAL';}
+
+  Function BDGetSearchForSequential (     IPDPtr : Pointer;
+                                          IFBPtr : IsamFileBlockPtr;
+                                          Key    : Word;
+                                      Var SFS    : Boolean ) : LongInt;
+      Far; External DLLName Index 567;  {Name 'BDGETSEARCHFORSEQUENTIAL';}
+
+  Function BDFindRecRef (     IPDPtr     : Pointer;
+                              IFBPtr     : IsamFileBlockPtr;
+                          Var UserDatRef : LongInt;
+                              NFSD       : Integer ) : LongInt;
+      Far; External DLLName Index 568;  {Name 'BDFINDRECREF';}
+
+  Function BDNextRecRef (     IPDPtr     : Pointer;
+                              IFBPtr     : IsamFileBlockPtr;
+                          Var UserDatRef : LongInt ) : LongInt;
+      Far; External DLLName Index 569;  {Name 'BDNEXTRECREF';}
+
+  Function BDPrevRecRef (     IPDPtr     : Pointer;
+                              IFBPtr     : IsamFileBlockPtr;
+                          Var UserDatRef : LongInt ) : LongInt;
+      Far; External DLLName Index 570;  {Name 'BDPREVRECREF';}
+
+  Function BDGetApprRecPos (     IPDPtr     : Pointer;
+                                 IFBPtr     : IsamFileBlockPtr;
+                             Var RelPos     : Word;
+                                 Scale      : Word;
+                                 UserDatRef : LongInt ) : LongInt;
+      Far; External DLLName Index 571;  {Name 'BDGETAPPRRECPOS';}
+
+  Function BDGetApprRecRef (     IPDPtr     : Pointer;
+                                 IFBPtr     : IsamFileBlockPtr;
+                                 RelPos     : Word;
+                                 Scale      : Word;
+                             Var UserDatRef : LongInt ) : LongInt;
+      Far; External DLLName Index 572;  {Name 'BDGETAPPRRECREF';}
+
+  Function BDClearKey ( IPDPtr : Pointer;
+                        IFBPtr : IsamFileBlockPtr;
+                        Key    : Word ) : LongInt;
+      Far; External DLLName Index 573;  {Name 'BDCLEARKEY';}
+
+  Function BDNextKey (     IPDPtr     : Pointer;
+                           IFBPtr     : IsamFileBlockPtr;
+                           Key        : Word;
+                       Var UserDatRef : LongInt;
+                       Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 574;  {Name 'BDNEXTKEY';}
+
+  Function BDPrevKey (     IPDPtr     : Pointer;
+                           IFBPtr     : IsamFileBlockPtr;
+                           Key        : Word;
+                       Var UserDatRef : LongInt;
+                       Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 575;  {Name 'BDPREVKEY';}
+
+  Function BDFindKey (     IPDPtr     : Pointer;
+                           IFBPtr     : IsamFileBlockPtr;
+                           Key        : Word;
+                       Var UserDatRef : LongInt;
+                       Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 576;  {Name 'BDFINDKEY';}
+
+  Function BDSearchKey (     IPDPtr     : Pointer;
+                             IFBPtr     : IsamFileBlockPtr;
+                             Key        : Word;
+                         Var UserDatRef : LongInt;
+                         Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 577;  {Name 'BDSEARCHKEY';}
+
+  Function BDFindKeyAndRef (     IPDPtr     : Pointer;
+                                 IFBPtr     : IsamFileBlockPtr;
+                                 Key        : Word;
+                             Var UserDatRef : LongInt;
+                             Var UserKey    : IsamKeyStr;
+                                 NSFS       : Integer ) : LongInt;
+      Far; External DLLName Index 578;  {Name 'BDFINDKEYANDREF';}
+
+  Function BDSearchKeyAndRef (     IPDPtr     : Pointer;
+                                   IFBPtr     : IsamFileBlockPtr;
+                                   Key        : Word;
+                               Var UserDatRef : LongInt;
+                               Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 579;  {Name 'BDSEARCHKEYANDREF';}
+
+  Function BDKeyExists (     IPDPtr     : Pointer;
+                             IFBPtr     : IsamFileBlockPtr;
+                             Key        : Word;
+                             UserDatRef : LongInt;
+                         Var UserKey    : IsamKeyStr;
+                         Var KeyExists  : Boolean ) : LongInt;
+      Far; External DLLName Index 580;  {Name 'BDKEYEXISTS';}
+
+  Function BDNextDiffKey (     IPDPtr     : Pointer;
+                               IFBPtr     : IsamFileBlockPtr;
+                               Key        : Word;
+                           Var UserDatRef : LongInt;
+                           Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 581;  {Name 'BDNEXTDIFFKEY';}
+
+  Function BDPrevDiffKey (     IPDPtr     : Pointer;
+                               IFBPtr     : IsamFileBlockPtr;
+                               Key        : Word;
+                           Var UserDatRef : LongInt;
+                           Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 582;  {Name 'BDPREVDIFFKEY';}
+
+  Function BDAddKey (     IPDPtr     : Pointer;
+                          IFBPtr     : IsamFileBlockPtr;
+                          Key        : Word;
+                          UserDatRef : LongInt;
+                      Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 583;  {Name 'BDADDKEY';}
+
+  Function BDDeleteKey (     IPDPtr     : Pointer;
+                             IFBPtr     : IsamFileBlockPtr;
+                             Key        : Word;
+                             UserDatRef : LongInt;
+                         Var UserKey    : IsamKeyStr ) : LongInt;
+      Far; External DLLName Index 584;  {Name 'BDDELETEKEY';}
+
+  Function BDDeleteAllKeys ( IPDPtr : Pointer;
+                             IFBPtr : IsamFileBlockPtr;
+                             Key    : Word ) : LongInt;
+      Far; External DLLName Index 585;  {Name 'BDDELETEALLKEYS';}
+
+  Function BDOtherWSChangedKey (     IPDPtr     : Pointer;
+                                     IFBPtr     : IsamFileBlockPtr;
+                                     Key        : Word;
+                                 Var ChangedKey : Boolean ) : LongInt;
+      Far; External DLLName Index 586;  {Name 'BDOTHERWSCHANGEDKEY';}
+
+  Function BDGetApprRelPos (     IPDPtr     : Pointer;
+                                 IFBPtr     : IsamFileBlockPtr;
+                                 Key        : Word;
+                             Var RelPos     : Word;
+                                 Scale      : Word;
+                             Var UserKey    : IsamKeyStr;
+                                 UserDatRef : LongInt ) : LongInt;
+      Far; External DLLName Index 587;  {Name 'BDGETAPPRRELPOS';}
+
+  Function BDGetApprKeyAndRef (     IPDPtr     : Pointer;
+                                    IFBPtr     : IsamFileBlockPtr;
+                                    Key        : Word;
+                                    RelPos     : Word;
+                                    Scale      : Word;
+                                Var UserKey    : IsamKeyStr;
+                                Var UserDatRef : LongInt ) : LongInt;
+      Far; External DLLName Index 588;  {Name 'BDGETAPPRKEYANDREF';}
+
+  Function BDFlushAllFileBlocks ( IPDPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 589;  {Name 'BDFLUSHALLFILEBLOCKS';}
+
+  Function BDFlushFileBlock ( IPDPtr : Pointer;
+                              IFBPtr : IsamFileBlockPtr ) : LongInt;
+      Far; External DLLName Index 590;  {Name 'BDFLUSHFILEBLOCK';}
+
+  Function BDDeleteFileBlock ( IPDPtr : Pointer;
+                               FName  : PChar ) : LongInt;
+      Far; External DLLName Index 591;  {Name 'BDDELETEFILEBLOCK';}
+
+  Function BDCreateFileBlock (     IPDPtr       : Pointer;
+                                   FName        : PChar;
+                                   DatSLen      : LongInt;
+                                   NumberOfKeys : Word;
+                               Var IID          : IsamIndDescr ) : LongInt;
+      Far; External DLLName Index 592;  {Name 'BDCREATEFILEBLOCK';}
+
+  Function BDOpenFileBlock (     IPDPtr      : Pointer;
+                             Var IFBPtr      : IsamFileBlockPtr;
+                                 FName       : PChar;
+                                 ReadOnly    : Boolean;
+                                 AllReadOnly : Boolean;
+                                 Save        : Boolean;
+                                 Net         : Boolean ) : LongInt;
+      Far; External DLLName Index 593;  {Name 'BDOPENFILEBLOCK';}
+
+  Function BDCloseFileBlock (     IPDPtr : Pointer;
+                              Var IFBPtr : IsamFileBlockPtr ) : LongInt;
+      Far; External DLLName Index 594;  {Name 'BDCLOSEFILEBLOCK';}
+
+  Function BDCloseAllFileBlocks ( IPDPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 595;  {Name 'BDCLOSEALLFILEBLOCKS';}
+
+  Function BDDataFileName ( IPDPtr : Pointer;
+                            IFBPtr : IsamFileBlockPtr;
+                            FName  : PChar ) : LongInt;
+      Far; External DLLName Index 596;  {Name 'BDDATAFILENAME';}
+
+  Function BDPeekDataFileName ( IPDPtr : Pointer;
+                                IFBPtr : IsamFileBlockPtr;
+                                FName  : PChar ) : LongInt;
+      Far; External DLLName Index 597;  {Name 'BDPEEKDATAFILENAME';}
+
+  Function BDIndexFileName ( IPDPtr : Pointer;
+                             IFBPtr : IsamFileBlockPtr;
+                             FName  : PChar ) : LongInt;
+      Far; External DLLName Index 598;  {Name 'BDINDEXFILENAME';}
+
+  Function BDPeekIndexFileName ( IPDPtr : Pointer;
+                                 IFBPtr : IsamFileBlockPtr;
+                                 FName  : PChar ) : LongInt;
+      Far; External DLLName Index 599;  {Name 'BDPEEKINDEXFILENAME';}
+
+  Function BDGetNextUsedAddRecRef (     IPDPtr      : Pointer;
+                                        IFBPtr      : IsamFileBlockPtr;
+                                    Var NextUsedRef : LongInt ) : LongInt;
+      Far; External DLLName Index 600;  {Name 'BDGETNEXTUSEDADDRECREF';}
+
+  Function BDGetAfterNextUsedAddRecRef
+                             (     IPDPtr      : Pointer;
+                                   IFBPtr      : IsamFileBlockPtr;
+                               Var AfterNextUsedRef : LongInt ) : LongInt;
+      Far; External DLLName Index 601; {Name 'BDGETAFTERNEXTUSEDADDRECREF';}
+
+  Function BDGetInternalDialogID (     IPDPtr : Pointer;
+                                       IFBPtr : IsamFileBlockPtr;
+                                   Var ID     : Word ) : LongInt;
+      Far; External DLLName Index 602;  {Name 'BDGETINTERNALDIALOGID';}
+
+  Function BDGetAllowDupKeys (     IPDPtr : Pointer;
+                                   IFBPtr : IsamFileBlockPtr;
+                                   KeyNr  : Word;
+                               Var DupKey : Boolean ) : LongInt;
+      Far; External DLLName Index 603;  {Name 'BDGETALLOWDUPKEYS';}
+
+  Function BDGetKeyLen (     IPDPtr : Pointer;
+                             IFBPtr : IsamFileBlockPtr;
+                             KeyNr  : Word;
+                         Var KeyLen : Word ) : LongInt;
+      Far; External DLLName Index 604;  {Name 'BDGETKEYLEN';}
+
+  Function BDIsamLockRecord (     IPDPtr    : Pointer;
+                                  Start,
+                                  Len       : LongInt;
+                                  Handle ,
+                                  TimeOut,
+                                  DelayTime : Word;
+                              Var Locked    : Boolean ) : LongInt;
+      Far; External DLLName Index 281;  {Name 'BDISAMLOCKRECORD';}
+
+  Function BDIsamUnLockRecord (     IPDPtr   : Pointer;
+                                    Start,
+                                    Len      : LongInt;
+                                    Handle   : Word;
+                                Var UnLocked : Boolean ) : LongInt;
+      Far; External DLLName Index 282;  {Name 'BDISAMUNLOCKRECORD';}
+
+  Function BDIsamGetSequentialOK (     IPDPtr : Pointer;
+                                       IFBPtr : IsamFileBlockPtr;
+                                       KeyNr  : Word;
+                                   Var SequOK : Boolean ) : LongInt;
+      Far; External DLLName Index 283;  {Name 'BDISAMGETSEQUENTIALOK';}
+
+  Procedure BDIsamClearOK ( IPDPtr : Pointer );
+      Far; External DLLName Index 257;  {Name 'BDISAMCLEAROK';}
+
+  Procedure BDIsamAssign ( Var F     : IsamFile;
+                               FName : PChar );
+      Far; External DLLName Index 258;  {Name 'BDISAMASSIGN';}
+
+  Function BDIsamExists ( IPDPtr : Pointer;
+                          FName  : PChar ) : Boolean;
+      Far; External DLLName Index 259;  {Name 'BDISAMEXISTS';}
+
+  Procedure BDIsamRewrite (     IPDPtr : Pointer;
+                            Var F      : IsamFile );
+      Far; External DLLName Index 260;  {Name 'BDISAMREWRITE';}
+
+  Procedure BDIsamClose (     IPDPtr : Pointer;
+                          Var F      : IsamFile );
+      Far; External DLLName Index 261;  {Name 'BDISAMCLOSE';}
+
+  Procedure BDIsamDelete (     IPDPtr : Pointer;
+                           Var F      : IsamFile );
+      Far; External DLLName Index 262;  {Name 'BDISAMDELETE';}
+
+  Procedure BDIsamRename (     IPDPtr : Pointer;
+                           Var F      : IsamFile;
+                               FName  : PChar );
+      Far; External DLLName Index 263;  {Name 'BDISAMRENAME';}
+
+  Procedure BDIsamLongSeek (     IPDPtr : Pointer;
+                             Var F      : IsamFile;
+                                 Ref    : LongInt );
+      Far; External DLLName Index 264;  {Name 'BDISAMLONGSEEK';}
+
+  Procedure BDIsamLongSeekEOF (     IPDPtr : Pointer;
+                                Var F      : IsamFile;
+                                Var Ref    : LongInt );
+      Far; External DLLName Index 265;  {Name 'BDISAMLONGSEEKEOF';}
+
+  Procedure BDIsamBlockReadRetLen (     IPDPtr    : Pointer;
+                                    Var F         : IsamFile;
+                                        DestPtr   : Pointer;
+                                        Len       : Word;
+                                    Var BytesRead : Word );
+      Far; External DLLName Index 266;  {Name 'BDISAMBLOCKREADRETLEN';}
+
+  Procedure BDIsamBlockRead (     IPDPtr  : Pointer;
+                              Var F       : IsamFile;
+                                  DestPtr : Pointer;
+                                  Len     : Word );
+      Far; External DLLName Index 267;  {Name 'BDISAMBLOCKREAD';}
+
+  Procedure BDIsamBlockWrite (     IPDPtr    : Pointer;
+                               Var F         : IsamFile;
+                                   SourcePtr : Pointer;
+                                   Len       : Word );
+      Far; External DLLName Index 268;  {Name 'BDISAMBLOCKWRITE';}
+
+  Procedure BDIsamReset (     IPDPtr   : Pointer;
+                          Var F        : IsamFile;
+                              NetUsed  : Boolean;
+                              ReadOnly : Boolean );
+      Far; External DLLName Index 269;  {Name 'BDISAMRESET';}
+
+  Procedure BDIsamGetBlock (     IPDPtr  : Pointer;
+                             Var F       : IsamFile;
+                                 Ref     : LongInt;
+                                 Len     : LongInt;
+                                 DestPtr : Pointer);
+      Far; External DLLName Index 270;  {Name 'BDISAMGETBLOCK';}
+
+  Procedure BDIsamPutBlock (     IPDPtr    : Pointer;
+                             Var F         : IsamFile;
+                                 Ref       : LongInt;
+                                 Len       : LongInt;
+                                 SourcePtr : Pointer);
+      Far; External DLLName Index 271;  {Name 'BDISAMPUTBLOCK';}
+
+  Procedure BDIsamFlush (     IPDPtr  : Pointer;
+                          Var F       : IsamFile;
+                          Var WithDup : Boolean;
+                              NetUsed : Boolean );
+      Far; External DLLName Index 272;  {Name 'BDISAMFLUSH';}
+
+  Procedure BDIsamCopyFile ( IPDPtr                : Pointer;
+                             Source                : PChar;
+                             Dest                  : PChar;
+                             DeleteSourceAfterCopy : Boolean );
+      Far; External DLLName Index 273;  {Name 'BDISAMCOPYFILE';}
+
+  Procedure BDIsamExtractFileNames ( FNameComp : PChar;
+                                     FNameD    : PChar;
+                                     FNameI    : PChar );
+      Far; External DLLName Index 274;  {Name 'BDISAMEXTRACTFILENAMES';}
+
+  Function BDIsamForceExtension ( IPDPtr : Pointer;
+                                  Name   : PChar;
+                                  Ext    : PChar;
+                                  FName  : PChar ) : PChar;
+      Far; External DLLName Index 275;  {Name 'BDISAMFORCEEXTENSION';}
+
+  Procedure BDIsamDelay ( IPDPtr    : Pointer;
+                          MilliSecs : LongInt );
+      Far; External DLLName Index 276;  {Name 'BDISAMDELAY';}
+
+  Procedure BDGetIsamConstInfo ( Var ICInfo : IsamConstInfo );
+      Far; External DLLName Index 605;  {Name 'BDGETISAMCONSTINFO';}
+
+
+  Function BDIsamGetNumRecAddress (     IPDPtr  : Pointer;
+                                        IFBPtr  : IsamFileBlockPtr;
+                                    Var Address : Pointer ) : LongInt;
+      Far; External DLLName Index 284;  {Name 'BDISAMGETNUMRECADDRESS';}
+
+  Procedure BDIsamAddRec (     IPDPtr  : Pointer;
+                               IFBPtr  : IsamFileBlockPtr;
+                           Var RefNr   : LongInt;
+                           Var Source );
+      Far; External DLLName Index 285;  {Name 'BDISAMADDREC';}
+
+
+
+  Function BTInitIsam ( ExpectedNet      : NetSupportType;
+                        Free             : LongInt;
+                        NrOfEMSTreePages : Word ) : LongInt;
+
+  Var
+    FuncRes   : LongInt;
+    NrOfPages : Word;
+
+  Begin
+  {$IFDEF Windows}
+    If Not _IsamIsInitialized Then Begin
+      __AllocFPtr := MakeProcInstance ( @AllocFar, HInstance );
+      If __AllocFPtr <> Nil Then Begin
+        __FreeFPtr := MakeProcInstance ( @FreeFar, HInstance );
+        If __FreeFPtr = Nil Then Begin
+          FreeProcInstance ( __AllocFPtr );
+          __AllocFPtr := Nil;
+        End;
+      End;
+    End;
+  {$ELSE}
+    __AllocFPtr := @AllocFar;
+    __FreeFPtr := @FreeFar;
+  {$ENDIF}
+  {$IFDEF NoNet}
+    ExpectedNet := NoNet;
+  {$ENDIF}
+
+    If Free >= MinimizeUseOfNormalHeap Then Begin
+      NrOfPages := $8000; {MinimizeUseOfNormalHeap in C version}
+    End Else Begin
+      NrOfPages := (MemAvail - Free)
+          Div (_IsamPageEntrySize + _IsamPageSize + 8);
+    End;
+
+    IsamOk := BDInitIsam ( @___ValidSign, Word (ExpectedNet), NrOfPages,
+        NrOfEMSTreePages, FuncRes ) = 0;
+    BTInitIsam := FuncRes;
+  End;
+
+
+  Procedure BTExitIsam;
+
+  Begin
+    IsamOk := BDExitIsam ( @___ValidSign ) = 0;
+    If IsamOk Then Begin
+    {$IFDEF Windows}
+      If (__FreeFPtr <> Nil) And (__AllocFPtr <> Nil) Then Begin
+        FreeProcInstance ( __FreeFPtr );
+        FreeProcInstance ( __AllocFPtr );
+      End;
+    {$ENDIF}
+      __FreeFPtr := Nil;
+      __AllocFPtr := Nil;
+    End;
+  End;
+
+
+  Function BTIsamErrorClass : Integer;
+
+  Begin
+    BTIsamErrorClass := BDIsamErrorClass ( IsamError ) And $FFFF;
+  End;
+
+
+  Function BTNoNetCompiled : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDNoNetCompiled ( @___ValidSign, FuncRes ) = 0;
+  {$IFDEF NoNet}
+    BTNoNetCompiled := True;
+  {$ELSE}
+    BTNoNetCompiled := FuncRes;
+  {$ENDIF}
+  End;
+
+
+  Function BTPeekNoNetCompiled : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    If BDPeekNoNetCompiled ( @___ValidSign, FuncRes ) <> 0 Then
+        IsamOk := False;
+  {$IFDEF NoNet}
+    BTPeekNoNetCompiled := True;
+  {$ELSE}
+    BTPeekNoNetCompiled := FuncRes;
+  {$ENDIF}
+  End;
+
+
+  Function BTNetSupported : NetSupportType;
+
+  Var
+    FuncRes : Word;
+
+  Begin
+    IsamOk := BDNetSupported ( @___ValidSign, FuncRes ) = 0;
+    BTNetSupported := NetSupportType (Lo ( FuncRes ));
+  End;
+
+
+  Function BTPeekNetSupported : NetSupportType;
+
+  Var
+    FuncRes : Word;
+
+  Begin
+    If BDPeekNetSupported ( @___ValidSign, FuncRes ) <> 0 Then
+        IsamOk := False;;
+    BTPeekNetSupported := NetSupportType (Lo ( FuncRes ));
+  End;
+
+
+  Function BTFileBlockIsOpen ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDFileBlockIsOpen ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTFileBlockIsOpen := FuncRes;
+  End;
+
+
+  Function BTPeekFileBlockIsOpen ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    If BDPeekFileBlockIsOpen ( @___ValidSign, IFBPtr, FuncRes ) <> 0 Then
+        IsamOk := False;
+    BTPeekFileBlockIsOpen := FuncRes;
+  End;
+
+
+  Function BTIsNetFileBlock ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDIsNetFileBlock ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTIsNetFileBlock := FuncRes;
+  End;
+
+
+  Function BTPeekIsNetFileBlock ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    If BDPeekIsNetFileBlock ( @___ValidSign, IFBPtr, FuncRes ) <> 0 Then
+        IsamOk := False;
+    BTPeekIsNetFileBlock := FuncRes;
+  End;
+
+
+  Function BTFileBlockIsLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDFileBlockIsLocked ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTFileBlockIsLocked := FuncRes;
+  End;
+
+
+  Function BTPeekFileBlockIsLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    If BDPeekFileBlockIsLocked ( @___ValidSign, IFBPtr, FuncRes ) <> 0 Then
+        IsamOk := False;
+    BTPeekFileBlockIsLocked := FuncRes;
+  End;
+
+
+  Function BTFileBlockIsReadLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDFileBlockIsReadLocked ( @___ValidSign, IFBPtr, FuncRes )
+        = 0;
+    BTFileBlockIsReadLocked := FuncRes;
+  End;
+
+
+  Function BTPeekFileBlockIsReadLocked ( IFBPtr : IsamFileBlockPtr )
+                                                                 : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    If BDPeekFileBlockIsReadLocked ( @___ValidSign, IFBPtr, FuncRes )
+        <> 0 Then IsamOk := False;
+    BTPeekFileBlockIsReadLocked := FuncRes;
+  End;
+
+
+  Procedure BTReadLockFileBlock ( IFBPtr : IsamFileBlockPtr );
+
+  Begin
+    IsamOk := BDReadLockFileBlock ( @___ValidSign, IFBPtr ) = 0;
+  End;
+
+
+  Procedure BTLockFileBlock ( IFBPtr : IsamFileBlockPtr );
+
+  Begin
+    IsamOk := BDLockFileBlock ( @___ValidSign, IFBPtr ) = 0;
+  End;
+
+
+  Procedure BTUnLockFileBlock ( IFBPtr : IsamFileBlockPtr );
+
+  Begin
+    IsamOk := BDUnLockFileBlock ( @___ValidSign, IFBPtr ) = 0;
+  End;
+
+
+  Procedure BTUnLockAllOpenFileBlocks;
+
+  Begin
+    IsamOk := BDUnLockAllOpenFileBlocks ( @___ValidSign ) = 0;
+  End;
+
+
+  Procedure BTReadLockAllOpenFileBlocks;
+
+  Begin
+    IsamOk := BDReadLockAllOpenFileBlocks ( @___ValidSign ) = 0;
+  End;
+
+
+  Procedure BTLockAllOpenFileBlocks;
+
+  Begin
+    IsamOk := BDLockAllOpenFileBlocks ( @___ValidSign ) = 0;
+  End;
+
+
+  Procedure BTGetRecordInfo (     IFBPtr     : IsamFileBlockPtr;
+                                  Ref        : LongInt;
+                              Var Start, Len : LongInt;
+                              Var Handle     : Word );
+
+  Begin
+    IsamOk := BDGetRecordInfo ( @___ValidSign, IFBPtr, Ref, Start, Len,
+        Handle ) = 0;
+  End;
+
+
+  Procedure BTPeekGetRecordInfo (     IFBPtr     : IsamFileBlockPtr;
+                                      Ref        : LongInt;
+                                  Var Start, Len : LongInt;
+                                  Var Handle     : Word );
+
+  Begin
+    If BDPeekGetRecordInfo ( @___ValidSign, IFBPtr, Ref, Start, Len,
+        Handle ) <> 0 Then IsamOk := False;
+  End;
+
+
+  Procedure BTLockRec ( IFBPtr : IsamFileBlockPtr; Ref : LongInt );
+
+  Begin
+    IsamOk := BDLockRec ( @___ValidSign, IFBPtr, Ref ) = 0;
+  End;
+
+
+  Procedure BTUnLockRec ( IFBPtr : IsamFileBlockPtr; Ref : LongInt );
+
+  Begin
+    IsamOk := BDUnLockRec ( @___ValidSign, IFBPtr, Ref ) = 0;
+  End;
+
+
+  Procedure BTUnLockAllRecs ( IFBPtr : IsamFileBlockPtr );
+
+  Begin
+    IsamOk := BDUnLockAllRecs ( @___ValidSign, IFBPtr ) = 0;
+  End;
+
+
+  Function BTRecIsLocked ( IFBPtr : IsamFileBlockPtr; Ref : LongInt )
+                                                                : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDRecIsLocked ( @___ValidSign, IFBPtr, Ref, FuncRes ) = 0;
+    BTRecIsLocked := FuncRes;
+  End;
+
+
+  Function BTPeekRecIsLocked ( IFBPtr : IsamFileBlockPtr; Ref : LongInt )
+                                                                : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    If BDPeekRecIsLocked ( @___ValidSign, IFBPtr, Ref, FuncRes )
+        <> 0 Then IsamOk := False;
+    BTPeekRecIsLocked := FuncRes;
+  End;
+
+
+  Function BTaRecIsLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDaRecIsLocked ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTaRecIsLocked := FuncRes;
+  End;
+
+
+  Function BTPeekaRecIsLocked ( IFBPtr : IsamFileBlockPtr ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    If BDPeekaRecIsLocked ( @___ValidSign, IFBPtr, FuncRes )
+        <> 0 Then IsamOk := False;
+    BTPeekaRecIsLocked := FuncRes;
+  End;
+
+
+  Procedure BTInformTTSAbortSuccessful ( IFBPtr : IsamFileBlockPtr );
+
+  Begin
+    IsamOk := BDInformTTSAbortSuccessful( @___ValidSign, IFBPtr ) = 0;
+  End;
+
+
+  Procedure BTForceWritingMark ( FFM : Boolean );
+
+  Begin
+    IsamOk := BDForceWritingMark ( @___ValidSign, FFM ) = 0;
+  End;
+
+
+  Procedure BTForceNetBufferWriteThrough ( DoIt : Boolean );
+
+  Begin
+    IsamOk := BDForceNetBufferWriteThrough ( @___ValidSign, DoIt ) = 0;
+  End;
+
+
+  Procedure BTGetRec (     IFBPtr  : IsamFileBlockPtr;
+                           RefNr   : LongInt;
+                       Var Dest;
+                           ISOLock : Boolean );
+
+  Begin
+    IsamOk := BDGetRec ( @___ValidSign, IFBPtr, RefNr, @Dest, ISOLock ) = 0;
+  End;
+
+
+  Procedure BTGetRecReadOnly (     IFBPtr  : IsamFileBlockPtr;
+                                   RefNr   : LongInt;
+                               Var Dest              );
+
+  Begin
+    IsamOk := BDGetRecReadOnly ( @___ValidSign, IFBPtr, RefNr, @Dest ) = 0;
+  End;
+
+
+  Procedure BTGetStartingLong (     IFBPtr  : IsamFileBlockPtr;
+                                    RefNr   : LongInt;
+                                Var Dest    : LongInt );
+
+  Begin
+    IsamOk := BDGetStartingLong ( @___ValidSign, IFBPtr, RefNr, Dest ) = 0;
+  End;
+
+
+  Procedure BTPutRec (     IFBPtr  : IsamFileBlockPtr;
+                           RefNr   : LongInt;
+                       Var Source;
+                           ISOLock : Boolean );
+
+  Begin
+    IsamOk := BDPutRec ( @___ValidSign, IFBPtr, RefNr, @Source, ISOLock )
+        = 0;
+  End;
+
+
+  Procedure BTAddRec (     IFBPtr : IsamFileBlockPtr;
+                       Var RefNr  : LongInt;
+                       Var Source                );
+
+  Begin
+    IsamOk := BDAddRec ( @___ValidSign, IFBPtr, RefNr, @Source ) = 0;
+  End;
+
+
+  Procedure BTDeleteRec ( IFBPtr : IsamFileBlockPtr; RefNr : LongInt );
+
+  Begin
+    IsamOk := BDDeleteRec ( @___ValidSign, IFBPtr, RefNr ) = 0;
+  End;
+
+
+  Function BTUsedRecs ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDUsedRecs ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTUsedRecs := FuncRes;
+  End;
+
+
+  Function BTFreeRecs ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDFreeRecs ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTFreeRecs := FuncRes;
+  End;
+
+
+  Function BTFileLen ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDFileLen ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTFileLen := FuncRes;
+  End;
+
+
+  Function BTUsedKeys ( IFBPtr : IsamFileBlockPtr; Key : Word ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDUsedKeys ( @___ValidSign, IFBPtr, Key, FuncRes ) = 0;
+    BTUsedKeys := FuncRes;
+  End;
+
+
+  Function BTNrOfKeys ( IFBPtr : IsamFileBlockPtr ) : Word;
+
+  Var
+    FuncRes : Word;
+
+  Begin
+    IsamOk := BDNrOfKeys ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTNrOfKeys := FuncRes;
+  End;
+
+
+  Function BTPeekNrOfKeys ( IFBPtr : IsamFileBlockPtr ) : Word;
+
+  Var
+    FuncRes : Word;
+
+  Begin
+    If BDPeekNrOfKeys ( @___ValidSign, IFBPtr, FuncRes ) <> 0 Then
+        IsamOk := False;
+    BTPeekNrOfKeys := FuncRes;
+  End;
+
+
+  Function BTDatRecordSize ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDDatRecordSize ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTDatRecordSize := FuncRes;
+  End;
+
+
+  Function BTPeekDatRecordSize ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    If BDPeekDatRecordSize ( @___ValidSign, IFBPtr, FuncRes ) <> 0 Then
+        IsamOk := False;
+    BTPeekDatRecordSize := FuncRes;
+  End;
+
+
+  Function BTKeyRecordSize ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDKeyRecordSize ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTKeyRecordSize := FuncRes;
+  End;
+
+
+  Function BTPeekKeyRecordSize ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    If BDPeekKeyRecordSize ( @___ValidSign, IFBPtr, FuncRes ) <> 0 Then
+        IsamOk := False;
+    BTPeekKeyRecordSize := FuncRes;
+  End;
+
+
+  Function BTMinimumDatKeys ( IFBPtr : IsamFileBlockPtr;
+                              Space  : LongInt ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDMinimumDatKeys ( @___ValidSign, IFBPtr, Space, FuncRes )
+        = 0;
+    BTMinimumDatKeys := FuncRes;
+  End;
+
+
+  Function BTPeekMinimumDatKeys ( IFBPtr : IsamFileBlockPtr;
+                                  Space  : LongInt ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    If BDPeekMinimumDatKeys ( @___ValidSign, IFBPtr, Space, FuncRes ) <> 0
+        Then IsamOk := False;
+    BTPeekMinimumDatKeys := FuncRes;
+  End;
+
+
+  Function BTSetDosRetry ( NrOfRetries, WaitTime : Integer ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDSetDosRetry ( @___ValidSign, NrOfRetries, WaitTime,
+        FuncRes ) = 0;
+    BTSetDosRetry := FuncRes;
+  End;
+
+
+  Procedure BTSetSearchForSequential ( IFBPtr : IsamFileBlockPtr;
+                                       Key    : Word;
+                                       ToOn   : Boolean );
+
+  Begin
+    IsamOk := BDSetSearchForSequential ( @___ValidSign, IFBPtr, Key, ToOn )
+        = 0;
+  End;
+
+
+  Procedure BTGetSearchForSequential (     IFBPtr : IsamFileBlockPtr;
+                                           Key    : Word;
+                                       Var SFS    : Boolean );
+
+  Begin
+    IsamOk := BDGetSearchForSequential ( @___ValidSign, IFBPtr, Key, SFS )
+        = 0;
+  End;
+
+
+  Procedure BTFindRecRef (     IFBPtr                  : IsamFileBlockPtr;
+                           Var UserDatRef              : LongInt;
+                               NotFoundSearchDirection : Integer );
+
+  Begin
+    IsamOk := BDFindRecRef ( @___ValidSign, IFBPtr, UserDatRef,
+        NotFoundSearchDirection ) = 0;
+  End;
+
+
+  Procedure BTNextRecRef (     IFBPtr     : IsamFileBlockPtr;
+                           Var UserDatRef : LongInt );
+
+  Begin
+    IsamOk := BDNextRecRef ( @___ValidSign, IFBPtr, UserDatRef ) = 0;
+  End;
+
+
+  Procedure BTPrevRecRef (     IFBPtr     : IsamFileBlockPtr;
+                           Var UserDatRef : LongInt );
+
+  Begin
+    IsamOk := BDPrevRecRef ( @___ValidSign, IFBPtr, UserDatRef ) = 0;
+  End;
+
+
+  Procedure BTGetApprRecPos (     IFBPtr     : IsamFileBlockPtr;
+                              Var RelPos     : Word;
+                                  Scale      : Word;
+                                  UserDatRef : LongInt );
+
+  Begin
+    IsamOk := BDGetApprRecPos ( @___ValidSign, IFBPtr, RelPos, Scale,
+        UserDatRef ) = 0;
+  End;
+
+
+  Procedure BTGetApprRecRef (     IFBPtr     : IsamFileBlockPtr;
+                                  RelPos     : Word;
+                                  Scale      : Word;
+                              Var UserDatRef : LongInt );
+
+  Begin
+    IsamOk := BDGetApprRecRef ( @___ValidSign, IFBPtr, RelPos, Scale,
+        UserDatRef ) = 0;
+  End;
+
+
+  Procedure BTClearKey ( IFBPtr : IsamFileBlockPtr; Key : Word );
+
+  Begin
+    IsamOk := BDClearKey ( @___ValidSign, IFBPtr, Key ) = 0;
+  End;
+
+
+  Procedure BTNextKey (     IFBPtr     : IsamFileBlockPtr;
+                            Key        : Word;
+                        Var UserDatRef : LongInt;
+                        Var UserKey    : IsamKeyStr    );
+
+  Begin
+    IsamOk := BDNextKey ( @___ValidSign, IFBPtr, Key, UserDatRef, UserKey )
+        = 0;
+  End;
+
+
+  Procedure BTPrevKey (     IFBPtr     : IsamFileBlockPtr;
+                            Key        : Word;
+                        Var UserDatRef : LongInt;
+                        Var UserKey    : IsamKeyStr       );
+
+  Begin
+    IsamOk := BDPrevKey ( @___ValidSign, IFBPtr, Key, UserDatRef, UserKey )
+        = 0;
+  End;
+
+
+  Procedure BTFindKey (     IFBPtr     : IsamFileBlockPtr;
+                            Key        : Word;
+                        Var UserDatRef : LongInt;
+                            UserKey    : IsamKeyStr       );
+
+  Begin
+    IsamOk := BDFindKey ( @___ValidSign, IFBPtr, Key, UserDatRef, UserKey )
+        = 0;
+  End;
+
+
+  Procedure BTSearchKey (     IFBPtr     : IsamFileBlockPtr;
+                              Key        : Word;
+                          Var UserDatRef : LongInt;
+                          Var UserKey    : IsamKeyStr    );
+
+  Begin
+    IsamOk := BDSearchKey ( @___ValidSign, IFBPtr, Key, UserDatRef,
+        UserKey ) = 0;
+  End;
+
+
+  Procedure BTFindKeyAndRef (     IFBPtr                  : IsamFileBlockPtr;
+                                  Key                     : Word;
+                              Var UserDatRef              : LongInt;
+                              Var UserKey                 : IsamKeyStr;
+                                  NotFoundSearchDirection : Integer    );
+
+  Begin
+    IsamOk := BDFindKeyAndRef ( @___ValidSign, IFBPtr, Key, UserDatRef,
+        UserKey, NotFoundSearchDirection ) = 0;
+  End;
+
+
+  Procedure BTSearchKeyAndRef (     IFBPtr     : IsamFileBlockPtr;
+                                    Key        : Word;
+                                Var UserDatRef : LongInt;
+                                Var UserKey    : IsamKeyStr );
+
+  Begin
+    IsamOk := BDSearchKeyAndRef ( @___ValidSign, IFBPtr, Key, UserDatRef,
+        UserKey ) = 0;
+  End;
+
+
+  Function BTKeyExists ( IFBPtr     : IsamFileBlockPtr;
+                         Key        : Word;
+                         UserDatRef : LongInt;
+                         UserKey    : IsamKeyStr    ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDKeyExists ( @___ValidSign, IFBPtr, Key, UserDatRef,
+        UserKey, FuncRes ) = 0;
+    BTKeyExists := FuncRes;
+  End;
+
+
+  Procedure BTNextDiffKey (     IFBPtr     : IsamFileBlockPtr;
+                                Key        : Word;
+                            Var UserDatRef : LongInt;
+                            Var UserKey    : IsamKeyStr    );
+
+  Begin
+    IsamOk := BDNextDiffKey ( @___ValidSign, IFBPtr, Key, UserDatRef,
+        UserKey ) = 0;
+  End;
+
+
+  Procedure BTPrevDiffKey (     IFBPtr     : IsamFileBlockPtr;
+                                Key        : Word;
+                            Var UserDatRef : LongInt;
+                            Var UserKey    : IsamKeyStr    );
+
+  Begin
+    IsamOk := BDPrevDiffKey ( @___ValidSign, IFBPtr, Key, UserDatRef,
+        UserKey ) = 0;
+  End;
+
+
+  Procedure BTAddKey ( IFBPtr     : IsamFileBlockPtr;
+                       Key        : Word;
+                       UserDatRef : LongInt;
+                       UserKey    : IsamKeyStr    );
+
+  Begin
+    IsamOk := BDAddKey ( @___ValidSign, IFBPtr, Key, UserDatRef, UserKey )
+        = 0;
+  End;
+
+
+  Procedure BTDeleteKey ( IFBPtr     : IsamFileBlockPtr;
+                          Key        : Word;
+                          UserDatRef : LongInt;
+                          UserKey    : IsamKeyStr    );
+  Begin
+    IsamOk := BDDeleteKey ( @___ValidSign, IFBPtr, Key, UserDatRef,
+        UserKey ) = 0;
+  End;
+
+
+  Procedure BTDeleteAllKeys ( IFBPtr : IsamFileBlockPtr; Key : Word );
+
+  Begin
+    IsamOk := BDDeleteAllKeys ( @___ValidSign, IFBPtr, Key ) = 0;
+  End;
+
+
+  Function BTOtherWSChangedKey ( IFBPtr : IsamFileBlockPtr;
+                                 Key    : Word ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDOtherWSChangedKey ( @___ValidSign, IFBPtr, Key, FuncRes )
+        = 0;
+    BTOtherWSChangedKey := FuncRes;
+  End;
+
+
+  Procedure BTGetApprRelPos (     IFBPtr     : IsamFileBlockPtr;
+                                  Key        : Word;
+                              Var RelPos     : Word;
+                                  Scale      : Word;
+                                  UserKey    : IsamKeyStr;
+                                  UserDatRef : LongInt );
+
+  Begin
+    IsamOk := BDGetApprRelPos ( @___ValidSign, IFBPtr, Key, RelPos, Scale,
+        UserKey, UserDatRef ) = 0;
+  End;
+
+
+  Procedure BTGetApprKeyAndRef (     IFBPtr     : IsamFileBlockPtr;
+                                     Key,
+                                     RelPos     : Word;
+                                     Scale      : Word;
+                                 Var UserKey    : IsamKeyStr;
+                                 Var UserDatRef : LongInt );
+
+  Begin
+    IsamOk := BDGetApprKeyAndRef ( @___ValidSign, IFBPtr, Key, RelPos,
+        Scale, UserKey, UserDatRef ) = 0;
+  End;
+
+
+  Procedure BTFlushAllFileBlocks;
+
+  Begin
+    IsamOk := BDFlushAllFileBlocks( @___ValidSign ) = 0;
+  End;
+
+
+  Procedure BTFlushFileBlock ( IFBPtr : IsamFileBlockPtr );
+
+  Begin
+    IsamOk := BDFlushFileBlock ( @___ValidSign, IFBPtr ) = 0;
+  End;
+
+
+  Procedure BTDeleteFileBlock ( FName : IsamFileBlockName );
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+
+  Begin
+    StrPCopy ( FNameBuf, FName );
+    IsamOk := BDDeleteFileBlock ( @___ValidSign, FNameBuf ) = 0;
+  End;
+
+
+  Procedure BTCreateFileBlock ( FName        : IsamFileBlockName;
+                                DatSLen      : LongInt;
+                                NumberOfKeys : Word;
+                                IID          : IsamIndDescr );
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+
+  Begin
+    StrPCopy ( FNameBuf, FName );
+    IsamOk := BDCreateFileBlock ( @___ValidSign, FNameBuf, DatSLen,
+        NumberOfKeys, IID ) = 0;
+  End;
+
+
+  Procedure BTOpenFileBlock ( Var IFBPtr      : IsamFileBlockPtr;
+                                  FName       : IsamFileBlockName;
+                                  ReadOnly,
+                                  AllReadOnly,
+                                  Save,
+                                  Net         : Boolean );
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+
+  Begin
+    StrPCopy ( FNameBuf, FName );
+    IsamOk := BDOpenFileBlock ( @___ValidSign, IFBPtr, FNameBuf, ReadOnly,
+        AllReadOnly, Save,
+      {$IFDEF NoNet}
+        False
+      {$ELSE}
+        Net
+      {$ENDIF} ) = 0;
+  End;
+
+
+  Procedure BTCloseFileBlock ( Var IFBPtr : IsamFileBlockPtr );
+
+  Begin
+    IsamOk := BDCloseFileBlock ( @___ValidSign, IFBPtr ) = 0;
+  End;
+
+
+  Procedure BTCloseAllFileBlocks;
+
+  Begin
+    IsamOk := BDCloseAllFileBlocks ( @___ValidSign ) = 0;
+  End;
+
+
+  Function BTDataFileName ( IFBPtr : IsamFileBlockPtr ) : IsamFileName;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    FNameBuf [0] := #0;
+    IsamOk := BDDataFileName ( @___ValidSign, IFBPtr, FNameBuf ) = 0;
+    BTDataFileName := StrPas ( FNameBuf );
+  End;
+
+
+  Function BTPeekDataFileName ( IFBPtr : IsamFileBlockPtr ) : IsamFileName;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    FNameBuf [0] := #0;
+    If BDPeekDataFileName ( @___ValidSign, IFBPtr, FNameBuf ) <> 0 Then
+        IsamOk := False;
+    BTPeekDataFileName := StrPas ( FNameBuf );
+  End;
+
+
+  Function BTIndexFileName ( IFBPtr : IsamFileBlockPtr ) : IsamFileName;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    FNameBuf [0] := #0;
+    IsamOk := BDIndexFileName ( @___ValidSign, IFBPtr, FNameBuf ) = 0;
+    BTIndexFileName := StrPas ( FNameBuf );
+  End;
+
+
+  Function BTPeekIndexFileName ( IFBPtr : IsamFileBlockPtr ) : IsamFileName;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    FNameBuf [0] := #0;
+    If BDPeekIndexFileName ( @___ValidSign, IFBPtr, FNameBuf ) <> 0 Then
+        IsamOk := False;
+    BTPeekIndexFileName := StrPas ( FNameBuf );
+  End;
+
+
+  Function BTGetNextUsedAddRecRef ( IFBPtr : IsamFileBlockPtr ) : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDGetNextUsedAddRecRef ( @___ValidSign, IFBPtr, FuncRes )
+        = 0;
+    BTGetNextUsedAddRecRef := FuncRes;
+  End;
+
+
+  Function BTGetAfterNextUsedAddRecRef ( IFBPtr : IsamFileBlockPtr )
+                                                                : LongInt;
+
+  Var
+    FuncRes : LongInt;
+
+  Begin
+    IsamOk := BDGetAfterNextUsedAddRecRef ( @___ValidSign, IFBPtr, FuncRes )
+        = 0;
+    BTGetAfterNextUsedAddRecRef := FuncRes;
+  End;
+
+
+  Function BTGetInternalDialogID ( IFBPtr : IsamFileBlockPtr ) : Word;
+
+  Var
+    FuncRes : Word;
+
+  Begin
+    IsamOk := BDGetInternalDialogID ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    BTGetInternalDialogID := FuncRes;
+  End;
+
+
+  Function BTGetAllowDupKeys ( IFBPtr : IsamFileBlockPtr;            {!!.50}
+                               KeyNr  : Word ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDGetAllowDupKeys ( @___ValidSign, IFBPtr, KeyNr, FuncRes )
+        = 0;
+    BTGetAllowDupKeys := FuncRes;
+  End;
+
+
+  Function BTGetKeyLen ( IFBPtr : IsamFileBlockPtr;                  {!!.50}
+                         KeyNr  : Word ) : Word;
+
+  Var
+    FuncRes : Word;
+
+  Begin
+    IsamOk := BDGetKeyLen ( @___ValidSign, IFBPtr, KeyNr, FuncRes ) = 0;
+    BTGetKeyLen := FuncRes;
+  End;
+
+
+  Procedure BTNoCharConvert ( DataPtr  : Pointer;                    {!!.50}
+                              DataLen  : LongInt;
+                              PostRead : Boolean;
+                              HookPtr  : Pointer );
+
+  Begin
+  End;
+
+
+  Procedure BTSetCharConvert ( IFBPtr     : IsamFileBlockPtr;        {!!.50}
+                               CCProc     : ProcBTCharConvert;
+                               HookPtr    : Pointer;
+                               DestrWrite : Boolean );
+
+  Begin
+    {!!! to implement with ver 3.51}
+  End;
+
+
+  Function BTIsamLockRecord ( Start,
+                              Len       : LongInt;
+                              Handle ,
+                              TimeOut,
+                              DelayTime : Word ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDIsamLockRecord ( @___ValidSign, Start, Len, Handle,
+        TimeOut, DelayTime, FuncRes ) = 0;
+    BTIsamLockRecord := FuncRes;
+  End;
+
+
+  Function BTIsamUnLockRecord ( Start,
+                                Len    : LongInt;
+                                Handle : Word     ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDIsamUnLockRecord ( @___ValidSign, Start, Len, Handle,
+        FuncRes ) = 0;
+    BTIsamUnLockRecord := FuncRes;
+  End;
+
+
+  Function BTIsamGetSequentialOK ( IFBPtr : IsamFileBlockPtr;        {!!.50}
+                                   KeyNr  : Word ) : Boolean;
+
+  Var
+    FuncRes : Boolean;
+
+  Begin
+    IsamOk := BDIsamGetSequentialOK ( @___ValidSign, IFBPtr, KeyNr,
+        FuncRes ) = 0;
+    BTIsamGetSequentialOK := FuncRes;
+  End;
+
+
+  Procedure IsamClearOK;
+
+  Begin
+    BDIsamClearOK ( @___ValidSign );
+    IsamOk := True;
+  End;
+
+
+  Procedure IsamAssign ( Var F : IsamFile; FName : IsamFileName );
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    StrPCopy ( FNameBuf, FName );
+    BDIsamAssign ( F, FNameBuf );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function IsamExists ( Name : IsamFileName ) : Boolean;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    StrPCopy ( FNameBuf, Name );
+    IsamExists := BDIsamExists ( @___ValidSign, FNameBuf );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamRewrite ( Var F : IsamFile );
+
+  Begin
+    BDIsamRewrite ( @___ValidSign, F );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamClose ( Var F : IsamFile );
+
+  Begin
+    BDIsamClose ( @___ValidSign, F );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamDelete ( Var F : IsamFile );
+
+  Begin
+    BDIsamDelete ( @___ValidSign, F );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamRename ( Var F : IsamFile; FName : IsamFileName );
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    StrPCopy ( FNameBuf, FName );
+    BDIsamRename ( @___ValidSign, F, FNameBuf );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamLongSeek ( Var F : IsamFile; Ref : LongInt );
+
+  Begin
+    BDIsamLongSeek ( @___ValidSign, F, Ref );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamLongSeekEOF ( Var F : IsamFile; Var Len : LongInt );
+
+  Begin
+    BDIsamLongSeekEOF ( @___ValidSign, F, Len );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamBlockReadRetLen ( Var F         : IsamFile;
+                                  Var Dest;
+                                      Len       : Word;
+                                  Var BytesRead : Word );
+
+  Begin
+    BDIsamBlockReadRetLen ( @___ValidSign, F, @Dest, Len, BytesRead );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamBlockRead ( Var F : IsamFile; Var Dest; Len  : Word );
+
+  Begin
+    BDIsamBlockRead ( @___ValidSign, F, @Dest, Len );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamBlockWrite ( Var F : IsamFile; Var Source; Len : Word );
+
+  Begin
+    BDIsamBlockWrite ( @___ValidSign, F, @Source, Len );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamReset ( Var F : IsamFile; NetUsed, ReadOnly : Boolean );
+
+  Begin
+    BDIsamReset ( @___ValidSign, F, NetUsed, ReadOnly );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamGetBlock ( Var F : IsamFile; Ref, Len : LongInt; Var Dest );
+
+  Begin
+    BDIsamGetBlock ( @___ValidSign, F, Ref, Len, @Dest );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamPutBlock ( Var F      : IsamFile;
+                               Ref,
+                               Len    : LongInt;
+                           Var Source );
+
+  Begin
+    BDIsamPutBlock ( @___ValidSign, F, Ref, Len, @Source );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamFlush ( Var F        : IsamFile;
+                        Var WithDUP  : Boolean;
+                            NetUsed  : Boolean );
+
+  Begin
+    BDIsamFlush ( @___ValidSign, F, WithDup, NetUsed );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamCopyFile ( Source,
+                           Dest                  : IsamFileBlockName;
+                           DeleteSourceAfterCopy : Boolean );
+
+  Var
+    SourceBuf,
+    DestBuf   : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+
+  Begin
+    StrPCopy ( SourceBuf, Source );
+    StrPCopy ( DestBuf, Dest );
+    BDIsamCopyFile ( @___ValidSign, SourceBuf, DestBuf,
+        DeleteSourceAfterCopy );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamExtractFileNames (     FNameComp : IsamFileBlockName;
+                                   Var FNameD,
+                                       FNameI    : IsamFileBlockName );
+
+  Var
+    CompBuf,
+    DBuf,
+    IBuf    : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+
+  Begin
+    StrPCopy ( CompBuf, FNameComp );
+    DBuf [0] := #0;
+    IBuf [0] := #0;
+    BDIsamExtractFileNames ( CompBuf, DBuf, IBuf );
+    FNameD := StrPas ( DBuf );
+    FNameI := StrPas ( IBuf );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function IsamForceExtension ( Name, Ext : IsamFileName ) : IsamFileName;
+
+  Var
+    NameBuf,
+    ResultBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    StrPCopy ( NameBuf, Name );
+    ResultBuf [0] := #0;
+    BDIsamForceExtension ( @___ValidSign, NameBuf, @Ext, ResultBuf );
+    IsamForceExtension := StrPas ( ResultBuf );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure IsamDelay ( MilliSecs : LongInt );
+
+  Begin
+    BDIsamDelay ( @___ValidSign, MilliSecs );
+  End;
+
+
+  Function IsamGetNumRecAddress ( IFBPtr : IsamFileBlockPtr ) : Pointer;
+
+  Var
+    FuncRes : Pointer;
+
+  Begin
+    IsamOk := BDIsamGetNumRecAddress ( @___ValidSign, IFBPtr, FuncRes ) = 0;
+    IsamGetNumRecAddress := FuncRes;
+  End;
+
+
+  Procedure IsamAddRec (     IFBPtr : IsamFileBlockPtr;
+                         Var RefNr  : LongInt;
+                         Var Source );
+
+  Begin
+    BDIsamAddRec ( @___ValidSign, IFBPtr, RefNr, Source );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Var
+    SaveExitProc : Pointer;
+
+  Procedure IsamExitProc; Far;
+
+  Begin
+    If _IsamIsInitialized Then Begin
+      BTCloseAllFileBlocks;
+      IsamClearOK;
+    End;
+    ExitProc := SaveExitProc;
+  End;
+
+
+  Procedure IsamEntryProc;
+
+  Var
+    ConstInfo : IsamConstInfo;
+    D         : Double;
+
+  Begin
+    D := 1;
+      {-Force the use of the numerical coprocessor or emulator}
+
+    BDGetIsamConstInfo ( ConstInfo );
+    If ConstInfo.IsamVersion <> $0350 Then Begin
+      RunError ( 253 );
+    End;
+    _IsamPageEntrySize := ConstInfo.IsamPageEntrySize;
+    _IsamPageSize := ConstInfo.IsamPageSize;
+    _CreatePageSize := Lo (ConstInfo.IsamCreatePageSize);
+    _MaxPageSize := Lo (ConstInfo.IsamMaxPageSize);
+    _MaxHeight := Lo (ConstInfo.IsamMaxHeight);
+    _MaxKeyLen := Lo (ConstInfo.IsamMaxKeyLen);
+    _SmallInfoRecSize := Lo ( ConstInfo.IsamSmallInfoRecSize );
+    If MaxNrOfKeys > Lo (ConstInfo.IsamMaxNrOfKeys) Then Begin
+      RunError ( 253 );
+    End;
+    _InheritFileHandles := ConstInfo.IsamInheritFileHandles;
+  {$IFDEF LockBeforeRead}
+    ___IsamLockBeforeRead := True;
+  {$ENDIF}
+  {$IFNDEF NoNet}
+    __IsamCompiledNets := ConstInfo.IsamCompiledNets;
+  {$ENDIF}
+    __UsedErrorMessage := ConstInfo.UsedErrorMessage;
+  {$IFDEF ASCIIZeroKeys}
+    ___IsamDefaultAZKeyType := True;
+  {$ENDIF}
+
+    IsamDelay ( 0 );
+      {-Initialization call with dummy parameter}
+    SaveExitProc := ExitProc;
+    ExitProc := @IsamExitProc;
+  End;
+
+(***Moved to FILER.PAS***  !!.TP
+Begin
+  IsamEntryProc;
+End.
+ ***)

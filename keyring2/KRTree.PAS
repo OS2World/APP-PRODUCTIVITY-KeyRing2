@@ -1,0 +1,1401 @@
+{***************************************************************************
+* Filename: ~modname~
+* Version:  ~version~
+* Date:     ~date~ @ ~time~
+* Group:    ~group~
+* Release:  ~release~
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* Version   Date     Time    Programmer   Description
+* ~log~
+*
+*
+* ~notes~
+* Description
+* -----------
+* IDK INI file reader/writer for KR2.
+* TTreeReader is descendent from the context node objects found in
+* UTCONT.  Context nodes do recursive descent parsing of IDK INI files
+* and build a searchable binary tree structure on the heap.
+*
+* ~notesend~
+* ~nokeywords~
+*
+****************************************************************************
+
+}
+{$I NDEFINE.INC}
+UNIT KRTree;
+INTERFACE
+USES
+    OpDate,
+    USE32,
+    UTCONT,
+    VARDEC;
+
+TYPE
+    TField         = (EFNone, EIconResource, EDescr, EPassword, EUserID, ESerialNumber, ELastUpdate, EExpire, EURL, ENote);
+(*
+*)
+CONST
+
+    DefaultFlg     : ARRAY[1..10] OF STRING[1] =
+    (
+        'I',                      {1 icon}
+        'D',                      {2 desc}
+        'N',                      {3 userid}
+        'P',                      {4 password}
+        'S',                      {5 serial num}
+        'L',                      {6 last update}
+        'E',                      {7 expire date}
+        'U',                      {8 url}
+        'W',                      {9 note}
+        'O'                       {10 order}
+        );
+
+    RecTypeNames   : ARRAY[TRecType] OF STRING[11] =
+    ('None',
+     'App',
+     'WWW',
+     'PIN',
+     'Combo',
+     'Other1',
+     'Other2');
+
+    FieldNames     : ARRAY[TField] OF STRING[20] =
+    (
+        {12345678901234567890}
+        'None',
+        'IconResource',
+        'Description',
+        'Password',
+        'UserID',
+        'SerialNumber',
+        'LastUpdate',
+        'Expire',
+        'URL',
+        'Note'
+        );
+
+    PrivKey        = 5551212;
+
+    CRLF           : STRING[2] = ^M^J;
+
+CONST
+    {>:SecretStuff}
+
+    SESTRS1        = 'À˛Y<[AX√Xú˜';
+    SESTRN1        = 16552;
+    SESTRP1        = 50245;
+
+    {>:SecretStuff:}
+
+    SESTRS2        = #41'π*Æy|m·îwÂr';
+    SESTRN2        = 46192;
+    SESTRP2        = 26263;
+
+    {:comment}
+
+    SESTRS3        = 'O‚îñöá[';
+    SESTRN3        = 20979;
+    SESTRP3        = 37924;
+
+    {* AutoCreated: }
+
+    SESTRS4        = ':∏ﬁ¶–TWÀ¥j@';
+    SESTRN4        = 64451;
+    SESTRP4        = 34407;
+
+    {* }
+
+    SESTRS5        = '`Z';
+    SESTRN5        = 65381;
+    SESTRP5        = 30700;
+
+    {4929190}
+
+    SESTRS6        = '˚YôF§';
+    SESTRN6        = 27011;
+    SESTRP6        = 48469;
+
+    (*{*)
+
+    SESTRS7        = 'i';
+    SESTRN7        = 64110;
+    SESTRP7        = 3286;
+
+    (*}*)
+
+    SESTRS8        = '';
+    SESTRN8        = 5288;
+    SESTRP8        = 50324;
+
+    {>:}
+
+    SESTRS9        = 'ŒÌ';
+    SESTRN9        = 20876;
+    SESTRP9        = 61414;
+
+    {>:checksum}
+
+    SESTRS10       = '·Õ å6Ûpõ';
+    SESTRN10       = 50136;
+    SESTRP10       = 1901;
+
+    {checksum}
+
+    SESTRS11       = '√_»g"Ñ';
+    SESTRN11       = 28281;
+    SESTRP11       = 44756;
+
+    {* Crypted INI file}
+
+    SESTRS13       = '>∏˝=¥–È¨–BlÚ¡';
+    SESTRN13       = 3493;
+    SESTRP13       = 19336;
+
+    {4929190}
+
+    SESTRS12       = 'ŸHê'#123'ÃﬂÜ';
+    SESTRN12       = 18826;
+    SESTRP12       = 18991;
+
+    {>:CUSTOMPAGE}
+
+    SESTRS14       = 'z†.ÎÅ∑;Ûâõ3';
+    SESTRN14       = 61805;
+    SESTRP14       = 10795;
+
+    {:NAME}
+
+    SESTRS15       = '`§◊ú';
+    SESTRN15       = 45529;
+    SESTRP15       = 28648;
+
+    {:HINT}
+
+    SESTRS16       = 'Û>•ëµ';
+    SESTRN16       = 39084;
+    SESTRP16       = 16061;
+
+    {:PGLOGOICON}
+
+    SESTRS17       = '≥•†äÂ∏∑Õ';
+    SESTRN17       = 28758;
+    SESTRP17       = 27877;
+
+    {:FIELDENABLE}
+
+    SESTRS18       = 'w]5€√ñ∑1'#26'>8';
+    SESTRN18       = 33088;
+    SESTRP18       = 2305;
+
+    {:COLUMNORDER}
+
+    SESTRS19       = 'R‡UD≤TÖUïw’ß';
+    SESTRN19       = 15732;
+    SESTRP19       = 45763;
+
+
+    {FLAG}
+
+    SESTRS29       = 'Å¶ å';
+    SESTRN29       = 17371;
+    SESTRP29       = 61406;
+
+    {ENB}
+
+    SESTRS30       = '®BZ';
+    SESTRN30       = 13328;
+    SESTRP30       = 6614;
+
+    {COLNAME}
+
+    SESTRS31       = '&ún∏qπF';
+    SESTRN31       = 55935;
+    SESTRP31       = 15193;
+
+    {F}
+
+    SESTRS32       = '˙';
+    SESTRN32       = 61927;
+    SESTRP32       = 6911;
+
+    {PG}
+
+    SESTRS33       = 'û¨';
+    SESTRN33       = 59918;
+    SESTRP33       = 17399;
+
+    {* Program and materials Copyright (c) 1999-2001, IDK, Inc.}
+
+    SESTRS34 = 'Æ¨ß†°P'#255'oı'#19'πò™çK6≈€l®7úvìí'#11'ÂlÍií '#8'nté˛†$ç&ºIèZC®'#11#19'C'#17'!#ƒTÜ`';
+    SESTRN34 = 38952;
+    SESTRP34 = 11211;
+
+    {* ALL RIGHTS RESERVED}
+
+    SESTRS35       = 'uG3t10ÿU'#13'"˛§=B~Å/◊z[';
+    SESTRN35       = 27742;
+    SESTRP35       = 53973;
+
+    {* For support call: (805) 492-9190    (0800-1830 Pacific time, M-F)}
+
+    SESTRS36       = '\Å?´JHÈ—'#41'.€◊Ößj:àZíab'#39'‹òj∂íEæ'#40'îÛ;˚xØ*mUáπÂæO<K?Â«G©XèÜá®ôÌÏw™À';
+    SESTRN36       = 45591;
+    SESTRP36       = 35538;
+
+    {* Email: kr2@idk-inc.com}
+
+    SESTRS37       = 'w◊XÊà¨-,‚h•çπádõ≤$-*03û';
+    SESTRN37       = 29440;
+    SESTRP37       = 42126;
+
+    {:SORTABBREV}
+
+    SESTRS39       = 'eïÀ˚†ä[i£Ó';
+    SESTRN39       = 21638;
+    SESTRP39       = 56736;
+
+TYPE
+    PCryptedRdr    = ^TCryptedRdr;
+    TCryptedRdr    = OBJECT(NTreeReaderT)
+                         CONSTRUCTOR ReadInit(Name, Password : shortSTRING; CryptMode : BOOLEAN);
+                         {$IFDEF XLATE}
+                         CONSTRUCTOR DESReadInit(Name, Password : shortSTRING; CryptMode : BOOLEAN);
+                         CONSTRUCTOR BLOWriteInit(Name, Password : shortSTRING; Encrypt : BOOLEAN);
+                         {$ENDIF}
+                         CONSTRUCTOR WriteInit(Name, Password : shortSTRING; Encrypt : BOOLEAN);
+                         FUNCTION GetLine(VAR Line : shortSTRING) : BOOLEAN; VIRTUAL; {virtual so you can do encryption}
+                         FUNCTION PutLine(Line : shortSTRING) : BOOLEAN; VIRTUAL;
+                         DESTRUCTOR Done; VIRTUAL;
+                     PRIVATE
+                         B              : FILE;
+                         T              : TEXT;
+                         CryptEnabled   : BOOLEAN;
+                         LineNum        : LONGINT;
+                         HdrInfo        : TCryptHead;
+
+                         FUNCTION LoadCryptoHdr : BOOLEAN;
+                     END;
+
+    PTreeReader    = ^TTreeReader;
+    TTreeReader    = OBJECT(ContextNodeT)
+                         CurrentRoot    : STRING;
+                         {file open stuff}
+                         CONSTRUCTOR InitRead(Name, Password : STRING; EnableCrypt : BOOLEAN);
+                             {$IFDEF XLATE}
+                         CONSTRUCTOR InitDESRead(Name, Password : STRING; EnableCrypt : BOOLEAN);
+                         FUNCTION WriteBLOINI(Name, Password : STRING; EnableCrypt : BOOLEAN) : BOOLEAN;
+                         {$ENDIF}
+                         CONSTRUCTOR InitWrite(Name : STRING);
+                         DESTRUCTOR Done; VIRTUAL;
+                         FUNCTION WriteFileHeader(Tc : NTreeReaderP) : BOOLEAN; VIRTUAL;
+                         FUNCTION WriteINI(Name, Password : STRING; EnableCrypt : BOOLEAN) : BOOLEAN; VIRTUAL;
+
+                             {root management}
+                         PROCEDURE SetRoot(NewRoot : STRING);
+                         FUNCTION SetRootByName(NewRoot : STRING) : BOOLEAN;
+                         FUNCTION SetNthRoot(NewRoot : WORD) : BOOLEAN;
+                         FUNCTION GetRoot(N : WORD; VAR ROOT, Comment : STRING) : BOOLEAN;
+                         FUNCTION RootExists(ROOT : STRING) : BOOLEAN;
+
+                         FUNCTION GetNthField(RecType : TRecType; RecNum : LONGINT; Field : TField; ValInstance : LONGINT) : STRING;
+                         FUNCTION ChangeNthField(Value : STRING; RecType : TRecType; RecNum : LONGINT; Field : TField; ValInstance : LONGINT) : BOOLEAN;
+
+                         FUNCTION DelRec(RecType : TRecType; RecNum : LONGINT) : BOOLEAN; {kill entire record}
+
+                         FUNCTION GetRecCount(RecType : TRecType) : LONGINT; {count all records in RecType}
+                         FUNCTION GetRec(RecType : TRecType; RecNum : LONGINT; VAR Rec : TDataRec) : BOOLEAN;
+                         FUNCTION PutRec(RecType : TRecType; RecNum : LONGINT; VAR Rec : TDataRec) : BOOLEAN;
+
+                         FUNCTION GetPageName(PgNum : WORD) : STRING;
+                         FUNCTION GetPageHint(PgNum : WORD) : STRING;
+                         FUNCTION GetPageIcon(PgNum : WORD) : STRING;
+                         FUNCTION GetColumnEnable(PgNum, Fieldnum : WORD; VAR Enb : STRING; VAR Flag : STRING; VAR Hint : STRING; VAR SlideAbbrev : STRING) : BOOLEAN;
+                         FUNCTION GetColName(PgNum, ColNum : WORD) : STRING;
+
+                         FUNCTION PWXLifetimeExpired : BOOLEAN;
+                         PROCEDURE ChangeInceptDate(NewDate : OpDate.Date);
+                             {$IFDEF DLL}
+                         FUNCTION EXEDropdeadExpired : BOOLEAN;
+                         {$ENDIF}
+
+                         FUNCTION PutPageName(PgNum : WORD; Name : STRING) : BOOLEAN;
+                         FUNCTION PutPageHint(PgNum : WORD; Name : STRING) : BOOLEAN;
+                         FUNCTION PutPageIcon(PgNum : WORD; Name : STRING) : BOOLEAN;
+                         FUNCTION PutColumnEnable(PgNum, Fieldnum : WORD; Enable, Flag, Hint : STRING; Abbrev : STRING) : BOOLEAN;
+                         FUNCTION PutColName(PgNum, ColNum : WORD; Name : STRING) : BOOLEAN;
+
+                         FUNCTION GetPageOrdEnb(PgNum : WORD) : STRING;
+                         FUNCTION MergeTree(PMale : PTreeReader) : BOOLEAN;
+                     PRIVATE
+                         MyIniFileName  : STRING;
+                         RootComment    : STRING;
+                         NRP            : PCryptedRdr;
+                     END;
+
+FUNCTION GetCrypter : STRING;
+VAR
+    CurrInceptDate : DateTimeRec;
+
+
+IMPLEMENTATION
+USES
+    DGLIB,
+    DGMath,
+    {$IFNDEF DLL}
+    KERROR,
+    KRYPTON,
+    {$ENDIF}
+    KREGUTL,
+    OpRoot,
+    OpString,
+    Os2Base,
+    STRCRC,
+    SysUtils,
+    UREXX,
+    UTTIMDAT;
+
+    {&OrgName+}
+    {$IFDEF DLL}
+    PROCEDURE CryptInit(Password : STRING; CryptStyle : TCryptHead); EXTERNAL 'KRYPTON' Name 'CryptInit';
+    FUNCTION CryptBlock(Block : STRING) : STRING; EXTERNAL 'KRYPTON' Name 'CryptBlock';
+    FUNCTION DeCryptBlk(var Block; BlockSize : LONGINT) : STRING; EXTERNAL 'KRYPTON' Name 'DeCryptBlk';
+    FUNCTION GetCryptType : STRING; EXTERNAL 'KRYPTON' Name 'GetCryptType';
+    PROCEDURE CryptDeinit; EXTERNAL 'KRYPTON' Name 'CryptDeinit';
+    FUNCTION EXEExpired:BOOLEAN; EXTERNAL 'KREGISTR' Name 'KRFN6';
+    FUNCTION Squawk(Challenge:STRING):LONGINT; EXTERNAL 'KRYPTON' Name 'Squawk';
+
+    {$ENDIF}
+CONST
+    EscChar        = #0;
+
+    {---------------}
+
+    FUNCTION SquawkTest : BOOLEAN;
+    VAR
+        Strg           : STRING;
+    BEGIN
+        Strg := RandStr(5, 12);
+        Result := CryptSquawk(Strg) = Squawk(Strg);
+    END;
+
+    {---------------}
+
+    FUNCTION TCryptedRdr.LoadCryptoHdr : BOOLEAN;
+    VAR
+        Res            : LONGINT;
+    BEGIN
+        Result := FALSE;
+        BLOCKREAD(B, HdrInfo, SIZEOF(HdrInfo), Res);
+        IF Res <> SIZEOF(HdrInfo) THEN BEGIN
+            InitStatus := 27;     {sector not found}
+            EXIT;
+        END;
+        IF HdrInfo.ID <> DecodeStrg(SESTRS238, SESTRN238, SESTRP238) {'IDK-Keyring/2'} THEN BEGIN
+            {invalid hdr, probably old style DES or non-CBC Blowfish}
+            FILLCHAR(HdrInfo, SIZEOF(HdrInfo), #0);
+            WITH HdrInfo DO BEGIN
+                ID := DecodeStrg(SESTRS238, SESTRN238, SESTRP238) {'IDK-Keyring/2'} ;
+                {$IFDEF BLO}
+                 CryptStyle := EBF;
+                 {$ELSE}
+                CryptStyle := EDES;
+                {$ENDIF}
+                VerMaj := IniVerMajor;
+                VerMin := IniVerMinor;
+                DTRNow(Seed);
+                InceptDate.D := 0;
+                InceptDate.T := 0;
+            END;
+            SEEK(B, 0);           {since it is probably old style, reset file pointer to first encrypted line}
+        END;
+        CurrInceptDate.D := HdrInfo.InceptDate.D XOR HdrInfo.Seed.D;
+        CurrInceptDate.T := HdrInfo.InceptDate.T XOR HdrInfo.Seed.T;
+
+        Result := TRUE;
+    END;
+
+    {----------------}
+
+    CONSTRUCTOR TCryptedRdr.ReadInit(Name, Password : shortSTRING; CryptMode : BOOLEAN);
+    VAR
+        OFM            : WORD;
+    BEGIN
+        VarDecInit;
+        LineNum := 0;
+        IF NOT NTreeReaderT.Init THEN begin
+            FAIL;
+        end;
+
+        Mode := NTCLOSED;
+        IF NOT FileExists(Name) THEN
+            FAIL;
+        CryptEnabled := CryptMode;
+        IF CryptEnabled THEN BEGIN
+            ASSIGN(B, Name);
+            OFM := FILEMODE;
+            FILEMODE := 0;
+            {$I-}
+            RESET(B, 1);
+        END
+        ELSE BEGIN
+            ASSIGN(T, Name);
+            OFM := FILEMODE;
+            FILEMODE := 0;
+            {$I-}
+            RESET(T);
+        END;
+
+        InitStatus := IORESULT;
+        FILEMODE := OFM;
+        IF InitStatus <> 0 THEN begin
+            FAIL;
+        end;
+        {$I+}
+        Mode := NTCRYPTEDREAD;
+
+        IF CryptMode THEN BEGIN
+            IF NOT LoadCryptoHdr THEN begin{this only fails on short files}
+                FAIL;
+            end;
+            IF NOT SquawkTest THEN begin
+                FAIL;
+            end;
+            CryptInit(Password, HdrInfo);
+        END;
+        CryptEnabled := CryptMode;
+    END;
+
+    {----------------}
+
+    {$IFDEF XLATE}
+    CONSTRUCTOR TCryptedRdr.DESReadInit(Name, Password : shortSTRING; CryptMode : BOOLEAN);
+    VAR
+        OFM            : WORD;
+    BEGIN
+        VarDecInit;
+        LineNum := 0;
+        IF NOT NTreeReaderT.Init THEN
+            FAIL;
+
+        Mode := NTCLOSED;
+        IF NOT FileExists(Name) THEN
+            FAIL;
+        CryptEnabled := CryptMode;
+        IF CryptEnabled THEN BEGIN
+            ASSIGN(B, Name);
+            OFM := FILEMODE;
+            FILEMODE := 0;
+            {$I-}
+            RESET(B, 1);
+        END
+        ELSE BEGIN
+            ASSIGN(T, Name);
+            OFM := FILEMODE;
+            FILEMODE := 0;
+            {$I-}
+            RESET(T);
+        END;
+
+        InitStatus := IORESULT;
+        FILEMODE := OFM;
+        IF InitStatus <> 0 THEN
+            FAIL;
+        {$I+}
+        Mode := NTCRYPTEDREAD;
+
+        if cryptmode then begin
+            IF NOT LoadCryptoHdr THEN {this only fails on short files}
+                FAIL;
+            if not squawktest then
+                fail;
+            DESCryptInit(Password, HdrInfo);
+        end;
+        CryptEnabled := CryptMode;
+    END;
+
+    {----------------}
+
+    CONSTRUCTOR TCryptedRdr.BLOWriteInit(Name, Password : shortSTRING; Encrypt : BOOLEAN);
+    VAR
+        BytesWritten   : LONGINT;
+    BEGIN
+        VarDecInit;
+        FILLCHAR(HdrInfo, SIZEOF(HdrInfo), #0);
+
+        WITH HdrInfo DO BEGIN
+            ID := DecodeStrg(SESTRS238, SESTRN238, SESTRP238) {'IDK-Keyring/2'} ;
+            VerMaj := IniVerMajor;
+            VerMin := IniVerMinor;
+            CryptStyle := EUNKNOWN; {krypton dll sets the encryption style in write mode}
+            DTRNow(Seed);
+            IF (CurrInceptDate.D = 0) AND (CurrInceptDate.T = 0) THEN
+                CurrInceptDate := Seed;
+            InceptDate.D := CurrInceptDate.D XOR Seed.D;
+            InceptDate.T := CurrInceptDate.T XOR Seed.T;
+        END;
+
+        LineNum := 0;
+        IF NOT NTreeReaderT.Init THEN
+            FAIL;
+        CryptEnabled := Encrypt;
+        IF CryptEnabled THEN BEGIN
+            ASSIGN(B, Name);
+            {$I-}
+            REWRITE(B, 1);
+        END
+        ELSE BEGIN
+            ASSIGN(T, Name);
+            {$I-}
+            REWRITE(T);
+        END;
+        InitStatus := IORESULT;
+        IF InitStatus <> 0 THEN
+            FAIL;
+        Mode := NTCRYPTEDWRITE;
+        {$I+}
+        IF Encrypt THEN BEGIN
+            if not squawktest then
+                fail;
+            BLOCryptInit(Password, HdrInfo);
+            BLOCKWRITE(B, HdrInfo, SIZEOF(HdrInfo), BytesWritten);
+            IF SIZEOF(HdrInfo) <> BytesWritten THEN BEGIN
+                InitStatus := 5;
+                FAIL;
+            END;
+        END;
+    END;
+    {$ENDIF XLATE}
+
+    {---------------}
+
+    CONSTRUCTOR TCryptedRdr.WriteInit(Name, Password : shortSTRING; Encrypt : BOOLEAN);
+    VAR
+        BytesWritten   : LONGINT;
+    BEGIN
+        VarDecInit;
+        FILLCHAR(HdrInfo, SIZEOF(HdrInfo), #0);
+
+        WITH HdrInfo DO BEGIN
+            ID := DecodeStrg(SESTRS238, SESTRN238, SESTRP238) {'IDK-Keyring/2'} ;
+            VerMaj := IniVerMajor;
+            VerMin := IniVerMinor;
+            CryptStyle := EUNKNOWN; {krypton dll sets the encryption style in write mode}
+            DTRNow(Seed);
+            IF (CurrInceptDate.D = 0) AND (CurrInceptDate.T = 0) THEN
+                CurrInceptDate := Seed;
+            InceptDate.D := CurrInceptDate.D XOR Seed.D;
+            InceptDate.T := CurrInceptDate.T XOR Seed.T;
+        END;
+
+        LineNum := 0;
+        IF NOT NTreeReaderT.Init THEN
+            FAIL;
+        CryptEnabled := Encrypt;
+        IF CryptEnabled THEN BEGIN
+            ASSIGN(B, Name);
+            {$I-}
+            REWRITE(B, 1);
+        END
+        ELSE BEGIN
+            ASSIGN(T, Name);
+            {$I-}
+            REWRITE(T);
+        END;
+        InitStatus := IORESULT;
+        IF InitStatus <> 0 THEN
+            FAIL;
+        Mode := NTCRYPTEDWRITE;
+        {$I+}
+        IF Encrypt THEN BEGIN
+            IF NOT SquawkTest THEN
+                FAIL;
+            CryptInit(Password, HdrInfo);
+            BLOCKWRITE(B, HdrInfo, SIZEOF(HdrInfo), BytesWritten);
+            IF SIZEOF(HdrInfo) <> BytesWritten THEN BEGIN
+                InitStatus := 5;
+                FAIL;
+            END;
+        END;
+    END;
+
+    {---------------}
+
+    {read a block from the ini file and decrypt it}
+    FUNCTION TCryptedRdr.GetLine(VAR Line : shortSTRING) : BOOLEAN;
+    VAR
+        Buff           : shortSTRING;
+        I,
+        BlockSize      : BYTE;
+        PubKey,
+        CurPos,
+        R              : LONGINT;
+    BEGIN
+        Result := FALSE;
+        IF CryptEnabled THEN BEGIN
+            IF HdrInfo.CryptStyle IN [EDES, EBF] THEN BEGIN
+                {old style ecb with public block len and xored lines}
+                BLOCKREAD(B, PubKey, SIZEOF(PubKey), R);
+                BLOCKREAD(B, BlockSize, SIZEOF(BlockSize), R);
+                IF R <> SIZEOF(BlockSize) THEN
+                    EXIT;
+                BLOCKREAD(B, Buff[1], BlockSize, R);
+                IF R <> BlockSize THEN
+                    EXIT;
+                {we use unencrypted block lengths here, so set buffer size explicitly}
+                SetLength(Buff, BlockSize);
+                Buff := DecodeStrg(DeCryptBlk(Buff, BlockSize), PubKey, PrivKey);
+                Line := TrimTrail(RLEDecompress(Buff, EscChar));
+            END
+            ELSE BEGIN
+                {we don't know the block size, so guess big}
+                BlockSize := $FF;
+                CurPos := FILEPOS(B);
+                BLOCKREAD(B, Buff, BlockSize, R);
+                IF R = 0 THEN
+                    EXIT;
+                Buff := DeCryptBlk(Buff, $FF); {we will overwrite Buff with actual length - use $FF for now}
+                {Buff now contains decrypted length of block, so seek to next block, if any}
+                SEEK(B, LENGTH(Buff) + CurPos + 1);
+                Line := TrimTrail(RLEDecompress(Buff, EscChar));
+            END;
+        END
+        ELSE BEGIN
+            READLN(T, Line);
+            Line := Trim(Line);
+            IF EOF(T) THEN
+                EXIT;
+        END;
+        INC(LineNum);
+        IF (LineNum MOD 50) = 0 THEN BEGIN
+            DosSleep(10);
+        END;
+        Result := TRUE;
+    END;
+
+    {---------------}
+
+    FUNCTION TCryptedRdr.PutLine(Line : shortSTRING) : BOOLEAN;
+    VAR
+        BlockSize      : BYTE;
+        R              : LONGINT;
+        Strg           : shortSTRING;
+    BEGIN
+        INC(LineNum);
+        IF (LineNum MOD 50) = 0 THEN BEGIN
+            DosSleep(10);
+        END;
+        Strg := Line;
+        IF CryptEnabled THEN BEGIN
+            Strg := RLECompress(Strg, EscChar); {compress the line}
+
+            WHILE ((LENGTH(Strg) + 1) MOD 8) <> 0 DO
+                Strg := Strg + ' ';
+            BlockSize := LENGTH(Strg); {get length, minus length byte}
+
+            Strg := CryptBlock(Strg); {encrypt the line, skipping the length byte}
+            INC(BlockSize);       {account for the length byte}
+            BLOCKWRITE(B, Strg[0], BlockSize, R); {write the unencrypted length byte and the crypted line}
+
+            Result := (R = BlockSize); {return success or failure of file write}
+        END
+        ELSE BEGIN
+            Result := FALSE;
+            WRITELN(T, Line);
+            Result := IORESULT = 0;
+        END;
+    END;
+
+    {---------------}
+
+    DESTRUCTOR TCryptedRdr.Done;
+    BEGIN
+        CryptDeinit;
+        IF Mode <> NTCLOSED THEN BEGIN
+            IF CryptEnabled THEN
+                CLOSE(B)
+            ELSE
+                CLOSE(T);
+        END;
+
+        Mode := NTCLOSED;
+        INHERITED Done;
+    END;
+
+    {---------------}
+
+    CONSTRUCTOR TTreeReader.InitRead(Name, Password : STRING; EnableCrypt : BOOLEAN);
+    VAR
+        Strg           : STRING;
+    BEGIN
+        VarDecInit;
+        MyIniFileName := Name;
+        NEW(NRP, ReadInit(Name, Password, EnableCrypt));
+
+        IF NRP = NIL THEN begin
+            FAIL;
+        end;
+
+        IF NOT NRP^.GetLine(Strg) THEN BEGIN {read a line of text}
+            DISPOSE(NRP, Done);
+            InitStatus := 5;
+            FAIL;
+        END;
+
+
+        IF POS('*', Strg) <> 1 THEN BEGIN {header there?}
+            DISPOSE(NRP, Done);
+            InitStatus := 5;
+            FAIL;
+        END;
+
+
+        IF NOT INHERITED Init('>', NTreeReaderP(NRP), 1) THEN begin
+            FAIL;
+        end;
+
+
+        IF NRP <> NIL THEN
+            DISPOSE(NRP, Done);
+
+        NRP := NIL;
+
+        {default to first context in MRC}
+        CurrentRoot := '';
+        RootComment := '';
+        NRP := NIL;
+
+
+        CurrentRoot := DecodeStrg(SESTRS1, SESTRN1, SESTRP1) {'>:SecretStuff'} ;
+        IF NOT GetStringVal(CurrentRoot + DecodeStrg(SESTRS3, SESTRN3, SESTRP3) {':comment'} , 1, RootComment) THEN
+            RootComment := 'None';
+
+        Strg := '';
+        IF NOT GetStringVal(DecodeStrg(SESTRS10, SESTRN10, SESTRP10) {'>:checksum'} , 1, Strg) THEN BEGIN
+            InitStatus := 5;
+            FAIL;
+        END;
+
+        IF Strg <> DecodeStrg(SESTRS12, SESTRN12, SESTRP12) {'4929190'} THEN BEGIN
+            InitStatus := 5;
+            FAIL;
+        END;
+    END;
+
+    {---------------}
+
+    {$IFDEF XLATE}
+    CONSTRUCTOR TTreeReader.InitDESRead(Name, Password : STRING; EnableCrypt : BOOLEAN);
+    VAR
+        Strg           : STRING;
+    BEGIN
+        VarDecInit;
+        MyIniFileName := Name;
+        NEW(NRP, DESReadInit(Name, Password, EnableCrypt));
+
+        IF NRP = NIL THEN
+            FAIL;
+
+        IF NOT NRP^.GetLine(Strg) THEN BEGIN {read a line of text}
+            DISPOSE(NRP, Done);
+            InitStatus := 5;
+            FAIL;
+        END;
+
+
+        IF POS('*', Strg) <> 1 THEN BEGIN {header there?}
+            DISPOSE(NRP, Done);
+            InitStatus := 23; {return a crc error}
+            FAIL;
+        END;
+
+
+        IF NOT INHERITED Init('>', NTreeReaderP(NRP), 1) THEN
+            FAIL;
+
+
+        IF NRP <> NIL THEN
+            DISPOSE(NRP, Done);
+
+        NRP := NIL;
+
+        {default to first context in MRC}
+        CurrentRoot := '';
+        RootComment := '';
+        NRP := NIL;
+
+
+        CurrentRoot := DecodeStrg(SESTRS1, SESTRN1, SESTRP1) {'>:SecretStuff'} ;
+        IF NOT GetStringVal(CurrentRoot + DecodeStrg(SESTRS3, SESTRN3, SESTRP3) {':comment'} , 1, RootComment) THEN
+            RootComment := 'None';
+
+        Strg := '';
+        IF NOT GetStringVal(DecodeStrg(SESTRS10, SESTRN10, SESTRP10) {'>:checksum'} , 1, Strg) THEN BEGIN
+            InitStatus := 5;
+            FAIL;
+        END;
+
+        IF Strg <> DecodeStrg(SESTRS12, SESTRN12, SESTRP12) {'4929190'} THEN BEGIN
+            InitStatus := 5;
+            FAIL;
+        END;
+    END;
+    {$ENDIF XLATE}
+
+    {---------------}
+
+    CONSTRUCTOR TTreeReader.InitWrite(Name : STRING);
+    BEGIN
+        VarDecInit;
+        IF (CurrInceptDate.D = 0) AND (CurrInceptDate.T = 0) THEN
+            DTRNow(CurrInceptDate);
+        MyIniFileName := Name;
+        CurrentRoot := '';
+        IF NOT ContextNodeT.InitPrim('>', 1) THEN
+            FAIL;
+
+        NRP := NIL;
+        CurrentRoot := '>:' + GetNthChild(1);
+    END;
+
+    {---------------}
+
+    DESTRUCTOR TTreeReader.Done;
+    BEGIN
+        IF NRP <> NIL THEN
+            DISPOSE(NRP, Done);
+        NRP := NIL;
+        INHERITED Done;
+    END;
+
+    {---------------}
+
+    {set enablecrypt to true to encrypt data, false to export as clear text}
+    FUNCTION TTreeReader.WriteINI(Name, Password : STRING; EnableCrypt : BOOLEAN) : BOOLEAN;
+    BEGIN
+        Result := FALSE;
+        WriteINI := FALSE;
+
+        {instantiate an INI writer object}
+        NEW(NRP, WriteInit(Name, Password, EnableCrypt));
+        IF NRP = NIL THEN
+            EXIT;
+
+        IF NOT ChangeVal(DecodeStrg(SESTRS10, SESTRN10, SESTRP10) {'>:checksum'} ,
+                         DecodeStrg(SESTRS6, SESTRN6, SESTRP6) {'4929190'} , 1) THEN
+            EXIT;
+
+        {write the header comments, if any}
+        IF WriteFileHeader(NRP) THEN
+            WriteINI := TraverseCopy(NRP, '') {write the tree to disk}
+        ELSE
+            EXIT;
+
+        DISPOSE(NRP, Done);       {close and kill the writer}
+        NRP := NIL;
+        Result := TRUE;
+    END;
+
+    {---------------}
+
+    {$IFDEF XLATE}
+    {set enablecrypt to true to encrypt data, false to export as clear text}
+    FUNCTION TTreeReader.WriteBLOINI(Name, Password : STRING; EnableCrypt : BOOLEAN) : BOOLEAN;
+    BEGIN
+        Result := FALSE;
+
+        {instantiate a blowfish INI writer object}
+        NEW(NRP, BLOWriteInit(Name, Password, EnableCrypt));
+        IF NRP = NIL THEN
+            EXIT;
+
+        IF NOT ChangeVal(DecodeStrg(SESTRS10, SESTRN10, SESTRP10) {'>:checksum'} ,
+                         DecodeStrg(SESTRS6, SESTRN6, SESTRP6) {'4929190'} , 1) THEN
+            EXIT;
+
+        {write the header comments, if any}
+        IF WriteFileHeader(NRP) THEN
+            Result := TraverseCopy(NRP, '') {write the tree to disk}
+        ELSE
+            EXIT;
+
+        DISPOSE(NRP, Done);       {close and kill the writer}
+        NRP := NIL;
+        Result := TRUE;
+    END;
+    {$ENDIF XLATE}
+
+    {---------------}
+
+    PROCEDURE TTreeReader.SetRoot(NewRoot : STRING);
+    BEGIN
+        CurrentRoot := NewRoot;
+        GetStringVal(CurrentRoot + DecodeStrg(SESTRS3, SESTRN3, SESTRP3) {':comment'} , 1, RootComment);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.SetRootByName(NewRoot : STRING) : BOOLEAN;
+    VAR
+        CNP            : ContextNodeP;
+        Dummy          : STRING;
+    BEGIN
+        SetRootByName := FALSE;
+        IF NOT RootExists(NewRoot) THEN
+            EXIT;
+        SetRoot(NewRoot);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.SetNthRoot(NewRoot : WORD) : BOOLEAN;
+    BEGIN
+        SetNthRoot := GetRoot(NewRoot, CurrentRoot, RootComment);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetRoot(N : WORD; VAR ROOT, Comment : STRING) : BOOLEAN;
+    BEGIN
+        GetRoot := FALSE;
+        IF N > NumChild THEN
+            EXIT;
+        CurrentRoot := '>:' + GetNthChild(N);
+        SetRoot(CurrentRoot);
+        ROOT := CurrentRoot;
+        Comment := RootComment;
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.RootExists(ROOT : STRING) : BOOLEAN;
+    BEGIN
+        RootExists := FindNode('>:' + ROOT) <> NIL;
+    END;
+
+    {---------------}
+
+    {$IFDEF DLL}
+    FUNCTION TTreeReader.EXEDropdeadExpired : BOOLEAN;
+    BEGIN
+        Result := EXEExpired;
+    END;
+    {$ENDIF}
+
+    {---------------}
+
+    FUNCTION TTreeReader.PWXLifetimeExpired : BOOLEAN;
+    VAR
+        DTR            : DateTimeRec;
+        MaxSeconds,
+        ElapsedSeconds : LONGINT;
+    BEGIN
+        Result := FALSE;
+        {paid up or beta users have no pwx expiration}
+        IF (TestFeatureBits(PAIDFEATUREBIT) = ETRUE) OR (TestFeatureBits(NONAGFEATUREBIT) = ETRUE) THEN
+            EXIT
+        ELSE BEGIN
+            {must be a demo - check}
+            DTRNow(DTR);
+            ElapsedSeconds := DateTimeDiffSecs(DTR, CurrInceptDate);
+            MaxSeconds := GetPWXExpireSeconds;
+            Result := ElapsedSeconds > MaxSeconds
+        END;
+    END;
+
+    {---------------}
+
+    PROCEDURE TTreeReader.ChangeInceptDate(NewDate : OpDate.Date);
+    BEGIN
+        CurrInceptDate.D := NewDate;
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.WriteFileHeader(Tc : NTreeReaderP) : BOOLEAN;
+    BEGIN
+        WITH Tc^ DO BEGIN
+            PutLine(DecodeStrg(SESTRS5, SESTRN5, SESTRP5) {'* '} );
+            PutLine(DecodeStrg(SESTRS13, SESTRN13, SESTRP13) {* Crypted INI file} );
+            PutLine(DecodeStrg(SESTRS34, SESTRN34, SESTRP34) {* Program and materials Copyright (c) 1999-2000, IDK, Inc.} );
+            PutLine(DecodeStrg(SESTRS35, SESTRN35, SESTRP35) {* ALL RIGHTS RESERVED} );
+            PutLine(DecodeStrg(SESTRS36, SESTRN36, SESTRP36) {* For support call: (805) 492-9190    (0800-1830 Pacific time, M-F)} );
+            PutLine(DecodeStrg(SESTRS37, SESTRN37, SESTRP37) {* Email: kr2@idk-inc.com} );
+            PutLine(DecodeStrg(SESTRS5, SESTRN5, SESTRP5) {'* '} );
+            PutLine(DecodeStrg(SESTRS4, SESTRN4, SESTRP4) {'* AutoCreated: '} + NowStringDeluxe(TRUE, TRUE));
+            PutLine(DecodeStrg(SESTRS5, SESTRN5, SESTRP5) {'* '} );
+            WriteFileHeader := PutLine(' ');
+        END;                      {with}
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetNthField(RecType : TRecType; RecNum : LONGINT; Field : TField; ValInstance : LONGINT) : STRING;
+    VAR
+        CNP            : ContextNodeP;
+    BEGIN
+        Result := '';
+        CNP := FindNode(AddColon(CurrentRoot) + RecTypeNames[RecType] + ':' + Long2Str(RecNum) + ':' + FieldNames[Field]);
+        IF CNP = NIL THEN
+            EXIT;
+        Result := CNP^.GetNthVal(ValInstance);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetPageName(PgNum : WORD) : STRING;
+    VAR
+        CNP            : ContextNodeP;
+    BEGIN
+        Result := '';
+        CNP := FindNode(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                        AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                        DecodeStrg(SESTRS15, SESTRN15, SESTRP15) {':NAME'} );
+
+        IF CNP = NIL THEN
+            EXIT;
+        Result := CNP^.GetNthVal(1);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetPageHint(PgNum : WORD) : STRING;
+    VAR
+        CNP            : ContextNodeP;
+    BEGIN
+        Result := '';
+        CNP := FindNode(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                        AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                        DecodeStrg(SESTRS16, SESTRN16, SESTRP16) {':HINT'} );
+
+        IF CNP = NIL THEN
+            EXIT;
+        Result := CNP^.GetNthVal(1);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetPageIcon(PgNum : WORD) : STRING;
+    VAR
+        CNP            : ContextNodeP;
+    BEGIN
+        Result := '';
+        CNP := FindNode(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                        AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                        DecodeStrg(SESTRS17, SESTRN17, SESTRP17) {':Icon'} );
+        IF CNP = NIL THEN
+            EXIT;
+        Result := CNP^.GetNthVal(1);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetColumnEnable(PgNum, Fieldnum : WORD; VAR Enb : STRING; VAR Flag : STRING; VAR Hint : STRING; VAR SlideAbbrev : STRING) : BOOLEAN;
+    VAR
+        CNP            : ContextNodeP;
+    BEGIN
+        Result := FALSE;
+        CNP := FindNode(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                        AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                        AddColon(DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(Fieldnum)) +
+                        DecodeStrg(SESTRS29, SESTRN29, SESTRP29) {'FLAG'} );
+        IF CNP = NIL THEN
+            EXIT;
+
+        Flag := CNP^.GetNthVal(1);
+
+        IF Flag = '' THEN
+            Flag := DefaultFlg[Fieldnum];
+
+        CNP := FindNode(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                        AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                        AddColon(DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(Fieldnum)) +
+                        DecodeStrg(SESTRS30, SESTRN30, SESTRP30) {'ENB'} );
+        IF CNP = NIL THEN
+            EXIT;
+
+        Enb := CNP^.GetNthVal(1);
+
+        IF Enb = '' THEN
+            Enb := '1';
+
+        CNP := FindNode(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                        AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                        AddColon(DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(Fieldnum)) +
+                        DecodeStrg(SESTRS16, SESTRN16, SESTRP16) {':HINT'} );
+        IF CNP = NIL THEN
+            EXIT;
+
+        Hint := CNP^.GetNthVal(1);
+
+        {sort slide custom abbreviation}
+        CNP := FindNode(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                        AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                        AddColon(DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(Fieldnum)) +
+                        DecodeStrg(SESTRS39, SESTRN39, SESTRP39) {':SORTABBREV'} );
+        IF CNP = NIL THEN
+            EXIT;
+
+        SlideAbbrev := CNP^.GetNthVal(1); {handle missing abbrev in vxrexx}
+
+        Result := TRUE;
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetPageOrdEnb(PgNum : WORD) : STRING;
+    VAR
+        F              : BYTE;
+        Abbrev,
+        Hint,
+        Res,
+        Enb,
+        Flag           : STRING;
+    BEGIN
+        Res := '';
+        FOR F := 1 TO 9 DO BEGIN
+            IF NOT GetColumnEnable(PgNum, F, Enb, Flag, Hint, Abbrev) THEN
+                Res := Res + FieldSep + '1' + FieldSep + DefaultFlg[F] {default to natural order and all enabled, no hint}
+            ELSE BEGIN
+                IF Enb = '' THEN
+                    Enb := '1';
+
+                IF Flag = '' THEN
+                    Flag := DefaultFlg[F];
+
+                Res := Res + FieldSep + Enb + FieldSep + Flag; {user specified order/enb in PWX, so use it}
+            END;
+            Result := Res;
+        END;
+    END;
+
+    {---------------}
+    { Male tree is stuffed into female tree; unconditional merge - no attempt made to delete dupes }
+    FUNCTION TTreeReader.MergeTree(PMale : PTreeReader) : BOOLEAN;
+    var
+        NextAvailFemaleIndex,
+        MaleIndex : LONGINT;
+        TempRec : TDataRec;
+        RT : TRecType;
+    BEGIN
+        Result := TRUE;
+        FOR RT := SUCC(LOW(RT)) to HIGH(RT) DO BEGIN { iterate through all record types}
+            NextAvailFemaleIndex := GetRecCount(RT) + 1; { count records and calc next available index to use in destination (self)}
+            FOR MaleIndex := 1 to PMale^.GetRecCount(RT) DO BEGIN { iterate through male tree indices}
+                IF NOT PMale^.GetRec(RT, MaleINdex, TempRec) THEN BEGIN { get a male record }
+                    Result := FALSE;
+                    BREAK;
+                END;
+                IF NOT PutRec(RT, NextAvailFemaleIndex, TempRec) THEN BEGIN{ stuff it into female tree at next open index }
+                    Result := FALSE;
+                    BREAK;
+                END;
+                INC(NextAvailFemaleIndex); { bump to next available index }
+            END;
+        END;
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.PutColumnEnable(PgNum, Fieldnum : WORD; Enable, Flag, Hint : STRING; Abbrev : STRING) : BOOLEAN;
+    BEGIN
+        Result := ChangeVal(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                            AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                            AddColon(DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(Fieldnum)) +
+                            DecodeStrg(SESTRS30, SESTRN30, SESTRP30) {'ENB'} , Enable, 1);
+
+        IF Result = FALSE THEN
+            EXIT;
+
+        Result := ChangeVal(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                            AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                            AddColon(DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(Fieldnum)) +
+                            DecodeStrg(SESTRS29, SESTRN29, SESTRP29) {'FLAG'} , Flag, 1);
+
+        IF Result = FALSE THEN
+            EXIT;
+
+        Result := ChangeVal(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                            AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                            DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(Fieldnum) +
+                            DecodeStrg(SESTRS16, SESTRN16, SESTRP16) {':HINT'} , Hint, 1);
+
+        IF Result = FALSE THEN
+            EXIT;
+
+        Result := ChangeVal(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                            AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                            DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(Fieldnum) +
+                            DecodeStrg(SESTRS39, SESTRN39, SESTRP39) {':SORTABBREV'} , Abbrev, 1);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetColName(PgNum, ColNum : WORD) : STRING;
+    VAR
+        CNP            : ContextNodeP;
+    BEGIN
+        Result := '';
+        CNP := FindNode(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                        AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                        AddColon(DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(ColNum)) +
+                        DecodeStrg(SESTRS31, SESTRN31, SESTRP31) {'COLNAME'} );
+        IF CNP = NIL THEN
+            EXIT;
+        Result := CNP^.GetNthVal(1);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.PutColName(PgNum, ColNum : WORD; Name : STRING) : BOOLEAN;
+    BEGIN
+        Result := ChangeVal(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                            AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                            AddColon(DecodeStrg(SESTRS32, SESTRN32, SESTRP32) {'F'} + Long2Str(ColNum)) +
+                            DecodeStrg(SESTRS31, SESTRN31, SESTRP31) {'COLNAME'} , Name, 1);
+
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.PutPageName(PgNum : WORD; Name : STRING) : BOOLEAN;
+    BEGIN
+        Result := ChangeVal(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                            AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                            DecodeStrg(SESTRS15, SESTRN15, SESTRP15) {':NAME'} , Name, 1);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.PutPageHint(PgNum : WORD; Name : STRING) : BOOLEAN;
+    BEGIN
+        Result := ChangeVal(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                            AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                            DecodeStrg(SESTRS16, SESTRN16, SESTRP16) {':HINT'} , Name, 1);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.PutPageIcon(PgNum : WORD; Name : STRING) : BOOLEAN;
+    BEGIN
+        Result := ChangeVal(AddColon(DecodeStrg(SESTRS14, SESTRN14, SESTRP14) {'>:CUSTOMPAGE'} ) +
+                            AddColon(DecodeStrg(SESTRS33, SESTRN33, SESTRP33) {'PG'} + Long2Str(PgNum)) +
+                            DecodeStrg(SESTRS17, SESTRN17, SESTRP17) {':Icon'} , Name, 1);
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetRec(RecType : TRecType; RecNum : LONGINT; VAR Rec : TDataRec) : BOOLEAN;
+    VAR
+        CNP            : ContextNodeP;
+        F              : TField;
+    BEGIN
+        Result := FALSE;
+        FILLCHAR(Rec, SIZEOF(Rec), #0);
+        CNP := FindNode(AddColon(CurrentRoot) + AddColon(RecTypeNames[RecType]) + AddColon(Long2Str(RecNum)));
+        IF CNP = NIL THEN
+            EXIT;
+        FOR F := LOW(TField) TO HIGH(TField) DO BEGIN
+            CASE F OF
+                EDescr :
+                    Rec.Description := GetNthField(RecType, RecNum, F, 1);
+                ELastUpdate :
+                    Rec.LastUpdate := GetNthField(RecType, RecNum, F, 1);
+                EUserID :
+                    Rec.UserID := GetNthField(RecType, RecNum, F, 1);
+                ESerialNumber :
+                    Rec.SerialNum := GetNthField(RecType, RecNum, F, 1);
+                EPassword :
+                    Rec.Password := GetNthField(RecType, RecNum, F, 1);
+                EIconResource :
+                    Rec.Icon := GetNthField(RecType, RecNum, F, 1);
+                EFNone : ;
+                EExpire :
+                    Rec.Expire := GetNthField(RecType, RecNum, F, 1);
+                EURL :
+                    Rec.URL := GetNthField(RecType, RecNum, F, 1);
+                ENote :
+                    Rec.Note := GetNthField(RecType, RecNum, F, 1);
+            END;
+        END;
+        Result := TRUE;
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.PutRec(RecType : TRecType; RecNum : LONGINT; VAR Rec : TDataRec) : BOOLEAN;
+    VAR
+        F              : TField;
+    BEGIN
+        FOR F := LOW(TField) TO HIGH(TField) DO BEGIN
+            CASE F OF
+                EDescr :
+                    Result := ChangeNthField(Rec.Description, RecType, RecNum, F, 1);
+                ELastUpdate :
+                    Result := ChangeNthField(Rec.LastUpdate, RecType, RecNum, F, 1);
+                EUserID :
+                    Result := ChangeNthField(Rec.UserID, RecType, RecNum, F, 1);
+                ESerialNumber :
+                    Result := ChangeNthField(Rec.SerialNum, RecType, RecNum, F, 1);
+                EPassword :
+                    Result := ChangeNthField(Rec.Password, RecType, RecNum, F, 1);
+                EIconResource :
+                    Result := ChangeNthField(Rec.Icon, RecType, RecNum, F, 1);
+                EExpire :
+                    Result := ChangeNthField(Rec.Expire, RecType, RecNum, F, 1);
+                EURL :
+                    Result := ChangeNthField(Rec.URL, RecType, RecNum, F, 1);
+                ENote :
+                    Result := ChangeNthField(Rec.Note, RecType, RecNum, F, 1);
+                EFNone : ;
+            END;
+        END;
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.GetRecCount(RecType : TRecType) : LONGINT;
+    VAR
+        CNP            : ContextNodeP;
+    BEGIN
+        Result := 0;
+        CNP := FindNode(AddColon(CurrentRoot) + RecTypeNames[RecType]);
+        IF CNP = NIL THEN
+            EXIT;
+        Result := CNP^.NumChild;
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.DelRec(RecType : TRecType; RecNum : LONGINT) : BOOLEAN; {kill set of fields for item}
+    BEGIN
+        Result := DelBranch(AddColon(CurrentRoot) + AddColon(RecTypeNames[RecType]) + Long2Str(RecNum));
+    END;
+
+    {---------------}
+
+    FUNCTION TTreeReader.ChangeNthField(Value : STRING; RecType : TRecType; RecNum : LONGINT; Field : TField; ValInstance : LONGINT) : BOOLEAN;
+    BEGIN
+        Result := ChangeVal(AddColon(CurrentRoot) + AddColon(RecTypeNames[RecType]) + AddColon(Long2Str(RecNum)) + FieldNames[Field], Value, ValInstance);
+    END;
+
+    {---------------}
+
+    FUNCTION GetCrypter : STRING;
+    BEGIN
+        Result := GetCryptType;
+    END;
+
+    {---------------}
+
+END.
+
+    {---------------}
+    {---------------}
+
+

@@ -1,0 +1,60 @@
+    Instructions, Information, and the obligatory legal requirements
+    ----------------------------------------------------------------
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%% DISCLAIMER %%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+THE USER OF THE PROGRAM BY USING IT AGREES NOT TO HOLD BMT MICRO, INC.
+NOR ITS OWNERS NOR ITS EMPLOYEES LIABLE FOR ANY DAMAGE THAT MAY HAVE
+BEEN CAUSED BY EITHER THE PROPER OR IMPROPER FUNCTIONING OR BY THE USE
+OR MISUSE OF THE PURCHASE APPLET.
+
+%%%%%%%%%%%%%%%%%%%%%%%% END OF DISCLAIMER %%%%%%%%%%%%%%%%%%%%%%%%
+
+
+Tip:  If you have an account with BMT Micro, Inc., put your PIN number
+====  in the credit card field.   (For more info on opening an account
+      with BMT Micro, see the form account.doc in this archive)
+
+1.  The BMT Micro, Inc. purchase applet requires that you be connected
+    to the internet to submit an online order.
+
+2.  Your online order is encrypted prior to being sent.  We make no
+    claims about the ability of another party to intercept and decipher
+    your online order.  In fact, the chances of an online order being
+    intercepted is exactly the same as any other email message you send.
+    The encryption routine does provide an extra layer of security.  I
+    personally would have no problem using this application to send an
+    order but if you are really, really concerned about security please
+    use our secure web server to place an order at http://www.bmtmicro.com.
+
+3.  When you send an order the program also creates a text file named
+    register.frm.   Please print this and save it as a record of your
+    order.
+
+4.  If you wish to pay by means other than a credit card the program
+    will print an order from suitable for mailing.  The printed order
+    form has our mailing address.
+
+5.  The pricing of the products in the list is current as of
+    December 29, 1996.  If for any reason there is a price difference
+    between the current price and the listed price we will contact you
+    via email prior to processing the order.   Under no circumstances
+    will we bill you any amount higher than is quoted on the order form.
+
+6.  We have made every attempt to include all OS/2 products distributed
+    by BMT Micro, Inc.   We are constantly adding programs, if the
+    product you wish to purchase is not listed please contact us via
+    email at bmt@bmtmicro.com or contact us using any of the methods
+    outlined in the bmtmicro.inf catalog.
+
+7.  BMT Micro, Inc. makes no claims for this purchase applet.  If you
+    place an online order and do not hear from us within 24 hours please
+    contact us at bmt@bmtmicro.com and we'll check it out.    You can
+    expect to hear from us even in the case of declined credit cards or
+    orders that cannot be processed for any reason.
+
+December 29th, 1996
+Revision 1.0a
+TDB/jl
+

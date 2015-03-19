@@ -1,0 +1,803 @@
+{***************************************************************************
+* Filename: ~modname~
+* Version:  ~version~
+* Date:     ~date~ @ ~time~
+* Group:    ~group~
+* Release:  ~release~
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* Version   Date     Time    Programmer   Description
+* ~log~
+*
+*
+* ~notes~
+* Description
+* -----------
+* Command line parameter parsing tools
+*
+*
+* ~notesend~
+* ~nokeywords~
+*
+****************************************************************************
+
+}
+{$IFDEF VirtualPascal}
+{$B-,D+,H-,I-,J+,P-,Q+,R+,S+,T-,V-,W+,X+,Z-}
+{&AlignCode+,AlignData+,AlignRec-,Asm-,Cdecl-,Comments-,Delphi+,Frame+,G5+}
+{&LocInfo+,Open32-,Optimise-,OrgName-,SmartLink+,Speed+,Use32-,ZD+}
+{$M 500000}
+{$ENDIF}
+
+UNIT CmdLin3;
+(*
+   This unit will process command line flags, (/N -N)
+        a) as present or absent (Is_Param)
+        b) with an integer (eg. /N54 /X-76) (Param_Int)
+        c) with a real number (eg /J-987.65) (Param_Real)
+        d) with strings, including delimited strings with embedded spaces
+           ( eg. /X"This is the story!" /YFred)
+
+      Routines are included to count and return the parameters that
+      aren't flags (Non_Flag_Count), and to return them without
+      counting the flag parameters (Non_Flag_Param).
+
+      So ( /X76 Filename.txt /N"My name is Fred." George ) would count
+      two non-flag params, #1 = filename.txt and #2 = george.
+
+      This is completely public domain, all I want in return for your use
+      is appreciation.  If you improve this unit, please let me know.
+      Some possible improvements would be to allow embedded strings in
+      non-flag parameters.  I haven't done this because I haven't needed
+      it.
+
+
+      Jim Walsh      CIS:72571,173
+
+      -----------------------------------
+
+      1998 - Kevin McCoy (kgmccoy@idk-inc.com)
+
+      Added many new features and fixes, including the embedded strings
+      mentioned above...  Now it works with long file names with embedded
+      spaces - if you use quotes!
+
+      Now you can do:
+
+      /x3 -T -f "C:\this is a long-path\myfilename.DAT"
+
+      without the "p" in "path" getting parsed incorrectly as a parameter.
+
+      Typical call:
+
+        FOR C := '?' TO 'Z' DO          {loop through all possible flags}
+            IF Is_Param(C) THEN         {is flag there?}
+                CASE C OF               {Eureka!}
+                    '?' :
+                        ShowHelp;
+                    'D' :
+                        ReqdNetType := NoNet;
+                    'M' :
+                        ReqdNetType := MsNet;
+                    'N' :
+                        ReqdNetType := Novell;
+                    'T' :
+                        Timeout := Param_Real('T'); {go get numeric values}
+                    'C' :
+                        Count := Param_Int('C');
+                ELSE
+                        InvalidOption(C); {garbage on cmdline found!}
+
+
+        Filename = Non_Flag_Param(1);     {go get non flagged text}
+
+
+      -----------------------------------
+
+        David Wei (davidwei@cybermail.net)
+
+        Well, here's my contribution to the CmdLin.Pas, but since I have
+        made modification that could not have allowed compatibility to
+        the original style of parameter input. I've decided to rename
+        the CmdLin.pas to CmdLin2.Pas, to indicate that finally CmdLin
+        is allowing 2 and more charactors for flags.
+
+        The useage is exactly as before, except now it does it with
+        STRINGS!
+
+        Param_Int and Param_Real will now return the value of
+        -2147483131 when they have taken an invalid entry, it is chosen
+        it seems to be the least used number...
+
+        If Param_Int encounters an Float point input, it will decode the
+        value AFTER the decimal dot. So if you have an input of 123.456,
+        Param_Int will give you 456 as the return value.
+
+        Param_Text is broken in the work of making it capable of handling
+        string flags...
+
+        And as a note, I much prefer For Loops, so when it comes to
+        modification, I often replace the While Loop with an entirely new
+        For Loop. And it seems that the code is a little shorter... :)
+
+        Good Luck and have fun... Two vital thing of human life... :)
+
+        ----------------------------
+
+        Kevin McCoy again...
+        24 December, 1998
+
+        Some of David's changes broke BP7 compilation.  I put things back
+        the way they were so that the code can straddle VP2, BP7 and no doubt
+        other compilers.
+
+        I added a testbed program (CLTEST.PAS) so that other programmers can
+        add additional features and make sure they do not break existing ones.
+
+        David's -2147483131 sentinel value was a little scary - the original
+        code defaulted to "0", on bad or missing numeric values.  I thought
+        a good comprimise would be to let the programmer specifiy the
+        sentinel or failsafe value (DefaultVal).  Using reasonable DefaultVal
+        values should decrease the amount of code you would have to write to
+        handle -2147483131 or 0 return values.
+
+        I fixed the bug where a decimal point in an Int value messed things
+        up in a counterintuitive manner.  Now we just round off any floating
+        point or scientific notation values to the closest integer value.
+        Hex values (with leading '$') are OK in both Real and Int params.
+
+        I fixed the text parameter bugs, removed the requirement for equal
+        signs on reals and ints (its now optional), and made the code more
+        robust to prevent I/O (Idiot Operator) errors.  :-)
+
+        Limitations: The text parameter parser cannot handle multiple
+        sequential space chars in quoted strings under DOS.  A string like:
+
+        "this    is     a     test" will come out as: "this is a test"
+
+        -------------------------------------------
+
+        2-18-1999 Kevin McCoy
+
+        Added better parsing of command lines containg embedded spaces
+
+        Added code to swallow the command line whole, rather than parsing
+        each space delimited token.
+
+        "this    is     a     test" now comes out as:
+        "this    is     a     test"
+
+        This should help with really bizarre long filenames in command lines.
+        -------------------------------------------
+
+*)
+
+INTERFACE
+    {$IFDEF VirtualPascal}
+USES
+    Use32,
+    SysUtils;
+    {$ENDIF}
+
+FUNCTION Is_Param(Flag : STRING) : BOOLEAN;
+    { Responds yes if the flag (ie N) is found in the command line (ie /N or -N) }
+
+FUNCTION Param_Int(Flag : STRING; DefaultVal : LONGINT) : LONGINT;
+    { Returns the integer value after the parameter, ie -M100, or -M-123 -m=17 -y:3.3 -x$ABCD}
+
+FUNCTION Param_Real(Flag : STRING; DefaultVal : REAL) : REAL;
+    { Returns the Real value after the parameter, ie -X654.87, or -x-3.14159 -x=3.122e17 }
+
+FUNCTION Param_Text(Flag : STRING) : STRING;
+    { Returns the string after the parameter, ie -MHello -> 'Hello',                    }
+    {  -m"This is it, baby" -> 'This is it, baby', valid string delims='' "" []         }
+    {  warning! multiple spaces between words are stripped down to a single space!      }
+    {  Warning! If you want to do something like:  "This is Kevin's computer", make sure}
+    {           you use a different quote type for the apostophe than you did for the   }
+    {           outer quotes.                                                           }
+
+FUNCTION Non_Flag_Param(Index : INTEGER) : STRING;
+    { Returns the indexth parameter, not preceded with a flag delimeter }
+    { /X Text.txt /Y876.76 /G"Yes sir!" MeisterBrau /?                  }
+    { For this command line 'Text.txt' is Non Flag Param #1,            }
+    {    and 'MeisterBrau is #2.                                        }
+    { NB: Delimited Non flag parameters (eg "Meister Brau")             }
+    {  is now supported.                                                }
+
+FUNCTION Non_Flag_Count : INTEGER;
+    { Returns the number of non-flag type parameters }
+
+
+FUNCTION WhereFlagOccurs(Flag : STRING) : INTEGER;
+    { Returns the index of any parameter}
+
+VAR
+    CompleteCommandLine : STRING; {command line buffer}
+
+IMPLEMENTATION
+
+CONST
+    Flag_Delims    : SET OF CHAR = ['/', '-'];
+    Value_Delims   : SET OF CHAR = ['"', '''', '[', ']', ':', '=', '+', '-', '.', '$', '0'..'9'];
+    Str_Delims     : SET OF CHAR = ['''', '"', '[', ']'];
+    WhiteSpace     : SET OF CHAR = [' ', #9];
+
+TYPE
+    TDelimState    = (EInSglQuote, EInDblQuote, EInBracket, ENotInQuote);
+    TDelimRec      = RECORD
+                         Start,
+                         Stop           : CHAR
+                     END;
+
+    TString_Delims = ARRAY[TDelimState] OF TDelimRec;
+
+CONST
+    String_Delims  : TString_Delims = (
+         (Start : ''''; Stop : ''''),
+         (Start : '"'; Stop : '"'),
+         (Start : '['; Stop : ']'),
+         (Start : ' '; Stop : ' ') {don't use this one}
+         );
+
+TYPE
+    TCharSet       = SET OF CHAR;
+
+    {-------------}
+
+    {a state machine to handle quotes and nested quotes.}
+    {It is somewhat simplistic - a stack oriented one would be better}
+    FUNCTION UpdateQuoteStateMachine(C : CHAR; OldState : TDelimState) : TDelimState;
+    VAR
+        I              : BYTE;
+        S              : TDelimState;
+    BEGIN
+        UpdateQuoteStateMachine := OldState;
+        IF OldState = ENotInQuote THEN BEGIN
+            FOR S := LOW(TDelimState) TO PRED(HIGH(TDelimState)) DO BEGIN
+                IF C = String_Delims[S].Start THEN BEGIN
+                    UpdateQuoteStateMachine := S;
+                    EXIT;
+                END;
+            END;
+        END
+        ELSE BEGIN
+            IF C = String_Delims[OldState].Stop THEN
+                UpdateQuoteStateMachine := ENotInQuote;
+        END;
+    END;
+
+    {------------}
+
+    {return the Nth quote or space delimited command line parameter from the buffer}
+    FUNCTION CLParamStr(Nth : BYTE) : STRING;
+    VAR
+        I              : BYTE;
+        DelimState     : TDelimState;
+        Ct,
+        Start          : BYTE;
+    BEGIN
+        CLParamStr := '';
+        DelimState := ENotInQuote;
+        Ct := 0;
+        Start := 1;
+        FOR I := 1 TO LENGTH(CompleteCommandLine) DO BEGIN
+            DelimState := UpdateQuoteStateMachine(CompleteCommandLine[I], DelimState);
+            IF ((CompleteCommandLine[I] = ' ') OR (I = LENGTH(CompleteCommandLine))) AND (DelimState = ENotInQuote) THEN BEGIN
+                INC(Ct);
+                IF Ct = Nth THEN BEGIN
+                    CLParamStr := COPY(CompleteCommandLine, Start, (I - Start) + 1);
+                    EXIT;
+                END
+                ELSE
+                    Start := I + 1;
+            END;
+        END;
+    END;
+
+    {-------------}
+
+    {return the number of space or quote delimited command line parameters from the buffer}
+    FUNCTION CLPARAMCOUNT : BYTE;
+    VAR
+        I              : BYTE;
+        DelimState     : TDelimState;
+        Ct             : BYTE;
+    BEGIN
+        DelimState := ENotInQuote;
+        Ct := 0;
+        FOR I := 1 TO LENGTH(CompleteCommandLine) DO BEGIN
+            DelimState := UpdateQuoteStateMachine(CompleteCommandLine[I], DelimState);
+            IF ((CompleteCommandLine[I] = ' ') OR (I = LENGTH(CompleteCommandLine))) AND (DelimState = ENotInQuote) THEN
+                INC(Ct);
+        END;
+
+        CLPARAMCOUNT := Ct;
+    END;
+
+    {-------------}
+
+    {-Return string S after removing all characters in CS from it}
+    FUNCTION Filter(S : STRING; CS : TCharSet) : STRING;
+    VAR
+        I              : INTEGER;
+        Len            : INTEGER;
+    BEGIN
+        {index through string backwards}
+        FOR I := LENGTH(S) DOWNTO 1 DO
+            {is current char in list of chars to filter?}
+            IF (S[I] IN CS) THEN BEGIN
+                {yes; figure out how many chars to move to overwrite the}
+                {one we don't want}
+                Len := LENGTH(S) - I;
+
+                {make sure we don't do silly stuff - this needs work...}
+                IF Len <= 0 THEN
+                    Len := 1;
+
+                {shift string left one char, overwriting the I'th char}
+                MOVE(S[I + 1], S[I], Len);
+
+                {now truncate the last char - its garbage}
+                {this probably needs work too...}
+                {$IFDEF VirtualPascal}
+                setlength(S, length(s)-1);
+                {$ELSE}
+                DEC(S[0]);
+                {$ENDIF}
+            END;
+
+        Filter := S;
+    END;
+
+    {------------}
+
+    {change string to lower case}
+    FUNCTION LLCase(Flag : STRING) : STRING;
+    VAR
+        Looper,
+        Flag_Length    : INTEGER;
+    BEGIN
+        Flag_Length := LENGTH(Flag);
+        FOR Looper := 1 TO Flag_Length DO
+            IF (Flag[Looper] >= 'A') AND (Flag[Looper] <= 'Z') THEN
+                Flag[Looper] := CHR(ORD(Flag[Looper]) + 32);
+        LLCase := Flag;
+    END;
+
+    {------------}
+
+    {extract numeric values only}
+    FUNCTION ExtractNumericValue(FlgVal : STRING) : STRING;
+    VAR
+        I              : BYTE;
+        Strg           : STRING;
+    BEGIN
+        ExtractNumericValue := '';
+        FOR I := 2 TO LENGTH(FlgVal) DO BEGIN
+            IF (FlgVal[I] IN Value_Delims) THEN BEGIN
+                IF (FlgVal[I] = '=') OR (FlgVal[I] = ':') THEN
+                    INC(I);
+                ExtractNumericValue := COPY(FlgVal, I, $FF);
+                BREAK;
+            END;
+        END;
+    END;
+
+    {------------}
+    {$IFDEF ZILCH}
+    FUNCTION Trim(Strg : STRING) : STRING;
+    BEGIN
+        Trim := '';
+        IF Strg = '' THEN
+            EXIT;
+        WHILE Strg[LENGTH(Strg)] IN WhiteSpace DO
+            {$IFDEF VirtualPascal}
+            {$IFOPT H+}
+            SetLength(Strg, Length(Strg)-1);
+            {$ELSE}
+            DEC(Strg[0]);
+            {$ENDIF}
+            {$ELSE}
+            DEC(Strg[0]);
+        {$ENDIF}
+        Trim := Strg;
+    END;
+{$ENDIF}
+    FUNCTION Trim(S : STRING) : STRING;
+        {-Return a string with trailing white space removed}
+    VAR
+        SLen           : BYTE ABSOLUTE S;
+    BEGIN
+        WHILE (SLen > 0) AND (S[SLen] <= ' ') DO
+            DEC(SLen);
+        Trim := S;
+    END;
+
+    {------------}
+
+    {extract text values only}
+    FUNCTION ExtractTextValue(Flg, FlgVal : STRING) : STRING;
+    VAR
+        I,
+        Start,
+        EndPos         : BYTE;
+        Strg           : STRING;
+        DelimState     : TDelimState;
+    BEGIN
+        ExtractTextValue := FlgVal;
+
+        Strg := '';               {clear accumulator}
+        Start := LENGTH(Flg) + 2;
+        DelimState := UpdateQuoteStateMachine(FlgVal[Start], ENotInQuote);
+
+        IF DelimState <> ENotInQuote THEN BEGIN
+            FOR I := Start + 1 TO LENGTH(FlgVal) DO BEGIN
+                IF (String_Delims[DelimState].Stop = FlgVal[I]) THEN
+                    BREAK;
+                Strg := Strg + FlgVal[I];
+            END;
+        END
+        ELSE
+            Strg := COPY(FlgVal, Start + 1, $FF);
+
+        ExtractTextValue := Strg;
+    END;
+
+    {------------}
+
+    {extract flag only}
+    FUNCTION ExtractFlag(FlgVal : STRING; VAR DelimState : TDelimState) : STRING;
+    VAR
+        I              : BYTE;
+        Strg           : STRING;
+    BEGIN
+        ExtractFlag := Trim(COPY(FlgVal, 2, $FF));
+
+        IF NOT(FlgVal[1] IN Flag_Delims) THEN
+            EXIT;
+
+        FOR I := 2 TO LENGTH(FlgVal) DO BEGIN
+            IF (FlgVal[I] IN Value_Delims) THEN BEGIN
+                Strg := COPY(FlgVal, 2, (I - 2));
+                ExtractFlag := Strg;
+                BREAK;
+            END;
+        END;
+    END;
+
+    {------------}
+
+    {  returns the index number of the paramter where the flag occurs  }
+    {  if the flag is not found, it returns 0                          }
+    FUNCTION WhereFlagOccurs(Flag : STRING) : INTEGER;
+    VAR
+        I,
+        J              : BYTE;
+        DelimState     : TDelimState;
+        f,
+        Ts1            : STRING;
+
+    BEGIN
+        WhereFlagOccurs := 0;
+        Flag := LLCase(Flag);
+        DelimState := ENotInQuote;
+
+        FOR I := 1 TO CLPARAMCOUNT DO BEGIN {step through param clusters}
+            Ts1 := LLCase(CLParamStr(I));
+
+            IF (Ts1[1] IN Flag_Delims) THEN BEGIN {not a possible flag, keep looking}
+                IF DelimState = ENotInQuote THEN BEGIN {make sure we are not quoted}
+                    f := ExtractFlag(Ts1, DelimState); {get the flag}
+                    IF f = Flag THEN BEGIN {is it the one we are looking for?}
+                        WhereFlagOccurs := I; {yep!}
+                        EXIT;     {bail}
+                    END;
+                END;
+            END;
+
+            FOR J := 2 TO LENGTH(Ts1) DO
+                DelimState := UpdateQuoteStateMachine(Ts1[J], DelimState);
+        END;
+    END;
+
+    {------------}
+
+    {does this flag exist in the command line?}
+    FUNCTION Is_Param(Flag : STRING) : BOOLEAN;
+    BEGIN
+        Is_Param := WhereFlagOccurs(Flag) > 0;
+    END;
+
+    {------------}
+
+    {return the Real value (if any) of a flag}
+    {return the DefaultVal if flag does not exist or the value string is malformed}
+    FUNCTION Param_Real(Flag : STRING; DefaultVal : REAL) : REAL;
+    VAR
+        Ts1            : STRING;
+        Stat           : REAL;
+        WhereBad       : INTEGER;
+        L              : LONGINT;
+    BEGIN
+        Param_Real := DefaultVal;
+
+        Flag := LLCase(Flag);
+
+        IF NOT Is_Param(Flag) THEN {missing Param Detection}
+            EXIT;
+
+        Ts1 := Trim(ExtractNumericValue(CLParamStr(WhereFlagOccurs(Flag))));
+
+        IF Ts1 <> '' THEN BEGIN
+            IF Ts1[1] = '$' THEN BEGIN
+                VAL(Ts1, L, WhereBad); { Make the value }
+                IF WhereBad = 0 THEN
+                    Param_Real := L;
+                EXIT;
+            END
+            ELSE
+                VAL(Ts1, Stat, WhereBad); { Make the value }
+            IF WhereBad = 0 THEN
+                Param_Real := Stat; {handle decimal points, hex, scientific notation}
+        END;
+    END;
+
+    {------------}
+
+    {return the Integer value (if any) of a flag}
+    {return the DefaultVal if flag does not exist or the value string is malformed}
+    FUNCTION Param_Int(Flag : STRING; DefaultVal : LONGINT) : LONGINT;
+    VAR
+        R              : REAL;
+    BEGIN
+        {$IFDEF VirtualPascal}
+        TRY
+            Param_Int := ROUND(Param_Real(Flag, DefaultVal));
+        EXCEPT
+            Param_Int := DefaultVal;
+        END;
+        {$ELSE}
+        {$R-}
+        R := Param_Real(Flag, DefaultVal);
+        IF (R > $7FFFFFF) OR (R < $80000000) THEN
+            Param_Int := DefaultVal
+        ELSE
+            Param_Int := ROUND(R);
+        {$R+}
+        {$ENDIF}
+    END;
+
+    {------------}
+
+    {return the Text value (if any) of a flag}
+    {returns empty string if flag does not exist}
+    FUNCTION Param_Text(Flag : STRING) : STRING;
+    VAR
+        Param_loc      : INTEGER;
+        Ts1            : STRING;
+    BEGIN
+        Param_Text := '';
+        Flag := LLCase(Flag);
+
+        Param_loc := WhereFlagOccurs(Flag);
+        IF Param_loc = 0 THEN
+            EXIT;
+
+        Ts1 := LLCase(CLParamStr(Param_loc));
+
+        Param_Text := ExtractTextValue(Flag, Ts1);
+    END;
+
+    {------------}
+
+    {return the Nth space or quoted delimited parameter that has no flag}
+    {Where Index only counts non-flagged parameters}
+    FUNCTION Non_Flag_Param(Index : INTEGER) : STRING;
+    VAR
+        Param_Index,
+        Param_cnt,
+        Cur_Index      : INTEGER;
+        FirstDelim,
+        DelimState     : TDelimState;
+        Strg,
+        Ts1            : STRING;
+        I              : BYTE;
+    BEGIN
+        Cur_Index := 0;
+        Param_Index := 0;
+        DelimState := ENotInQuote;
+
+        {loop through all clusters}
+        REPEAT
+            INC(Param_Index);
+            IF Param_Index > CLPARAMCOUNT THEN BEGIN
+                Ts1 := '';
+                BREAK;            {hit the end of the line, so bail}
+            END
+            ELSE BEGIN
+                Ts1 := CLParamStr(Param_Index);
+                IF Trim(Ts1) = '' THEN
+                    CONTINUE;
+                Strg := '';
+
+                {just test it for delims}
+                FOR I := 1 TO LENGTH(Ts1) DO BEGIN
+                    DelimState := UpdateQuoteStateMachine(Ts1[I], DelimState);
+                    IF I = 1 THEN
+                        FirstDelim := DelimState; {save the outermost quote type}
+                END;
+                IF DelimState <> ENotInQuote THEN BEGIN
+                    {found embedded quote, so step through clusters}
+                    {until closing quote found.}
+                    {accumulate composite flag into TS1}
+                    WHILE (DelimState <> ENotInQuote) DO BEGIN
+                        Strg := Strg + Ts1 + ' ';
+                        INC(Param_Index);
+                        IF Param_Index > CLPARAMCOUNT THEN
+                            BREAK;
+                        Ts1 := CLParamStr(Param_Index);
+                        FOR I := 1 TO LENGTH(Ts1) DO
+                            DelimState := UpdateQuoteStateMachine(Ts1[I], DelimState);
+                    END;
+
+                    IF DelimState = ENotInQuote THEN
+                        Ts1 := Strg + Ts1; {append the last cluster to the accumulator}
+                END;
+
+                {Ts1 should now contain all the clusters associated with a flag or non flagged parameter}
+
+                {is TS1 a flag?}
+                IF NOT(Ts1[1] IN Flag_Delims) THEN BEGIN
+                    {not a flag so increment the nonflag index}
+                    INC(Cur_Index);
+                    {not a flag, so is it the one we are looking for?}
+                    IF Cur_Index = Index THEN BEGIN
+                        {strip the quotes - this probably could use some work!}
+                        CASE FirstDelim OF
+                            EInDblQuote :
+                                Ts1 := Filter(Ts1, ['"']);
+                            EInSglQuote :
+                                Ts1 := Filter(Ts1, ['''']);
+                            EInBracket :
+                                Ts1 := Filter(Ts1, ['[', ']']);
+                        END;
+                        BREAK;
+                    END;
+                END;
+            END;                  {If/Else}
+        UNTIL FALSE;
+        Non_Flag_Param := Trim(Ts1);
+    END;
+
+    {------------}
+
+    {count the number of non flagged parameters on the command line}
+    FUNCTION Non_Flag_Count : INTEGER;
+    VAR
+        Param_Index,
+        Param_cnt,
+        Cur_Index      : INTEGER;
+        FirstDelim,
+        DelimState     : TDelimState;
+        Strg,
+        Ts1            : STRING;
+        I              : BYTE;
+    BEGIN
+        Cur_Index := 0;
+        Param_Index := 0;
+        DelimState := ENotInQuote;
+
+        {loop through all clusters}
+        REPEAT
+            INC(Param_Index);
+            IF Param_Index > CLPARAMCOUNT THEN BEGIN
+                Ts1 := '';
+                BREAK;            {hit the end of the line, so bail}
+            END
+            ELSE BEGIN
+                Ts1 := CLParamStr(Param_Index);
+
+                Strg := '';
+
+                {just test it for delims}
+                FOR I := 1 TO LENGTH(Ts1) DO BEGIN
+                    DelimState := UpdateQuoteStateMachine(Ts1[I], DelimState);
+                    IF I = 1 THEN
+                        FirstDelim := DelimState; {save the outermost quote type}
+                END;
+                IF DelimState <> ENotInQuote THEN BEGIN
+                    {found embedded quote, so step through clusters}
+                    {until closing quote found.}
+                    {accumulate composite flag into TS1}
+                    WHILE (DelimState <> ENotInQuote) DO BEGIN
+                        Strg := Strg + Ts1 + ' ';
+                        INC(Param_Index);
+                        IF Param_Index > CLPARAMCOUNT THEN
+                            BREAK;
+                        Ts1 := CLParamStr(Param_Index);
+                        FOR I := 1 TO LENGTH(Ts1) DO
+                            DelimState := UpdateQuoteStateMachine(Ts1[I], DelimState);
+                    END;
+
+                    IF DelimState = ENotInQuote THEN
+                        Ts1 := Strg + Ts1; {append the last cluster to the accumulator}
+                END;
+
+                {Ts1 should now contain all the clusters associated with a flag or non flagged parameter}
+
+                {is TS1 a flag?}
+                IF NOT(Ts1[1] IN Flag_Delims) THEN BEGIN
+                    {not a flag so increment the nonflag index}
+                    INC(Cur_Index);
+                    {not a flag, so is it the one we are looking for?}
+                END;
+            END;                  {If/Else}
+        UNTIL FALSE;
+        Non_Flag_Count := Cur_Index;
+    END;
+
+    {$IFDEF VirtualPascal}
+    {-------------}
+
+    {return entire command line, VP2}
+    FUNCTION GetCommandLine: STRING;
+    VAR
+        P   : PCHAR;
+    BEGIN
+        P := StrEnd(SysCmdln); {p points to null char after ParamStr(0)}
+        INC(P);                {move to first char of actual command line params}
+        Result := StrPas(P);   {convert to string for simplicity}
+    END;
+
+    {-------------}
+
+    {$ELSE}
+
+    (* Shamelessly lifted from: http://www.fb15.uni-dortmund.de/voelker/tpfaq/tpfaq_26.html
+
+    F: Wie kann ich auf die gesammte Kommandozeile zugreifen ? Ich brauche auch die zwei Leerzeichen zwischen zwei Parametern.
+
+    A: Normalerweise nutzt man ja Paramstr und Paramcount, aber wenn Åber die Kommandozeile ein String eingegeben werden soll,
+    der auch mehrere Leer- zeichen enthÑlt, nehme man folgendes :
+
+    ZZZZ KGM - minor mods applied
+    *)
+
+TYPE
+    CommandLineType = STRING[127];
+
+    {return entire command line, BP7; maybe delphi - not tested}
+    FUNCTION GetCommandLine : STRING;
+    VAR
+        CommandLinePtr : ^CommandLineType;
+    BEGIN
+        CommandLinePtr := PTR(PREFIXSEG, $80);
+        GetCommandLine := CommandLinePtr^;
+    END;
+
+    {$ENDIF}
+
+    (*
+    Achtung: Genau wie TP's Paramstr sollte man sich die Parameter mîglichst schnell nach dem Start des Programms aus dem
+    Speicher holen. Nach einem Diskzugriff kann es schon zu spÑt sein, Dos Åberschreibt nÑmlich einen Teil des PSPs mit dem
+    DTA-Buffer.
+
+    Und hier noch was, um festzustellen, wieviel Zeichen sich in der Kommandozeile befinden:
+
+    ZZZZ KGM - Removed paramcount code, since we use a different reconning
+    for the number of parameters on a line (not always space delimited).
+    *)
+    {$IFNDEF DLL}
+BEGIN
+    {init the command line buffer to prevent corruption as noted in the German comments}
+    {this gets executed automatically at program startup}
+    CompleteCommandLine := GetCommandLine;
+    {$ENDIF}
+END.
+
+    {-------------}
+    {-------------}
+

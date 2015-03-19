@@ -1,0 +1,1011 @@
+;Help text for FBROWSE unit
+;Copyright (c) 1990, 1994 TurboPower Software
+;All rights reserved
+;Version 5.50
+;
+;Uncomment following line if this file is not included into another help file
+;!WIDTH 76
+;
+;-------------------------------------------------------------------
+!TOPIC 1 FBrowse
+FBrowse merges the functionality of B-Tree Filer's Browser unit into
+an object based on Object Professional's CommandWindow. The following
+hierarchy shows the objects implemented in FBrowse:
+
+  [CommandWindow]
+    0002FBrowser
+      0047VBrowser
+
+(The CommandWindow object is implemented in Object Professional's
+OpWindow unit.)
+
+See also:  0053Commands
+;
+;-------------------------------------------------------------------
+!TOPIC 2 FBrowser
+!NOINDEX
+FBrowser = object(CommandWindow)
+!LINE
+FBrowserPtr = ^FBrowser;
+
+A window-based object used for browsing through datafiles containing
+fixed-length records in indexed order. FBrowser offers methods in the
+following categories:
+
+  0054Declarations                   0072General
+  0078Get/set current record         0074Methods to override
+  0077Procedures and functions       0073User hooks
+  0075Setting options                0076Scrolling
+;
+;-------------------------------------------------------------------
+!TOPIC 3 Init
+!NOINDEX
+constructor 0002FBrowser.Init(X1, Y1, X2, Y2 : Byte;
+                          IFBPtr : IsamFileBlockPtr;
+                          KeyNum : Integer;
+                          var DatS;
+                          MaxRows, RowsPerItem : Byte;
+                          MaxCols : Word);
+
+Initialize a browser with default window options.
+
+See also:  0004InitCustom
+;
+;-------------------------------------------------------------------
+!TOPIC 4 InitCustom
+!NOINDEX
+constructor 0002FBrowser.InitCustom(X1, Y1, X2, Y2 : Byte;
+                                var Colors : ColorSet;
+                                Options : LongInt;
+                                IFBPtr : IsamFileBlockPtr;
+                                KeyNum : Integer;
+                                var DatS;
+                                MaxRows, RowsPerItem : Byte;
+                                MaxCols : Word);
+
+Initialize a browser with custom window options.
+
+See also:  0003Init
+;
+;-------------------------------------------------------------------
+!TOPIC 5 Done
+!NOINDEX
+destructor 0002FBrowser.Done; virtual;
+
+Deallocate item records.
+
+See also:  0003Init  0004InitCustom
+;
+;-------------------------------------------------------------------
+!TOPIC 6 ProcessSelf
+!NOINDEX
+procedure 0002FBrowser.ProcessSelf; virtual;
+
+Process browse commands.
+;
+;-------------------------------------------------------------------
+!TOPIC 7 fbOptionsOn
+!NOINDEX
+procedure 0002FBrowser.fbOptionsOn(OptionFlags : LongInt);
+
+Activate multiple options.
+
+See also:  0055BadFBrowserOptions  0009fbOptionsAreOn  0008fbOptionsOff  0061Options
+;
+;-------------------------------------------------------------------
+!TOPIC 8 fbOptionsOff
+!NOINDEX
+procedure 0002FBrowser.fbOptionsOff(OptionFlags : LongInt);
+
+Deactivate multiple options.
+
+See also:  0055BadFBrowserOptions  0009fbOptionsAreOn  0007fbOptionsOn  0061Options
+;
+;-------------------------------------------------------------------
+!TOPIC 9 fbOptionsAreOn
+!NOINDEX
+function 0002FBrowser.fbOptionsAreOn(OptionFlags : LongInt) : Boolean;
+
+Return True if all specified options are on.
+
+See also:  0007fbOptionsOn  0008fbOptionsOff  0061Options
+;
+;-------------------------------------------------------------------
+!TOPIC 10 GetFileBlockPtr
+!NOINDEX
+function 0002FBrowser.GetFileBlockPtr : IsamFileBlockPtr;
+
+Get pointer to associated fileblock.
+
+See also:  0004InitCustom
+;
+;-------------------------------------------------------------------
+!TOPIC 11 GetKeyNumber
+!NOINDEX
+function 0002FBrowser.GetKeyNumber : Integer;
+
+Get current index key number.
+
+See also:  0020SetKeyNumber
+;
+;-------------------------------------------------------------------
+!TOPIC 12 GetCurrentItem
+!NOINDEX
+function 0002FBrowser.GetCurrentItem : Byte;
+
+Get number of currently highlighted item.
+
+See also:  0013GetCurrentCol  0017GetItemString
+;
+;-------------------------------------------------------------------
+!TOPIC 13 GetCurrentCol
+!NOINDEX
+function 0002FBrowser.GetCurrentCol : Word;
+
+Get column currently displayed at left edge of window.
+
+See also:
+  0012GetCurrentItem  0014GetFirstCol  0032SetScreenUpdateProc
+;
+;-------------------------------------------------------------------
+!TOPIC 14 GetFirstCol
+!NOINDEX
+function 0002FBrowser.GetFirstCol : Word;
+
+Get number of first column of data that needs to be loaded into memory by
+the build item routine.
+
+See also:  0013GetCurrentCol  0027SetBuildItemProc
+;
+;-------------------------------------------------------------------
+!TOPIC 15 GetCurrentKeyAndRef
+!NOINDEX
+procedure 0002FBrowser.GetCurrentKeyAndRef(var Key : IsamKeyStr;
+                                       var Ref : LongInt);
+
+Retrieve current key and record number.
+
+See also:  0016GetCurrentRecord
+;
+;-------------------------------------------------------------------
+!TOPIC 16 GetCurrentRecord
+!NOINDEX
+procedure 0002FBrowser.GetCurrentRecord(var DatS; var DatLen : Word);
+
+Retrieve current record.
+
+See also:
+  0015GetCurrentKeyAndRef  0044GetRecord  0018SetCurrentRecord
+;
+;-------------------------------------------------------------------
+!TOPIC 17 GetItemString
+!NOINDEX
+function 0002FBrowser.GetItemString(Item, Row : Byte) : string; virtual;
+
+Get string corresponding to specified Row of specified Item.
+
+See also:  0012GetCurrentItem
+;
+;-------------------------------------------------------------------
+!TOPIC 18 SetCurrentRecord
+!NOINDEX
+procedure 0002FBrowser.SetCurrentRecord(Key : IsamKeyStr; Ref : LongInt);
+
+Set the current record.
+
+See also:  0034CharHook  0016GetCurrentRecord
+;
+;-------------------------------------------------------------------
+!TOPIC 19 SetKeyRange
+!NOINDEX
+procedure 0002FBrowser.SetKeyRange(LowKey, HighKey : IsamKeyStr);
+
+Set subrange of valid keys.
+
+See also:  0020SetKeyNumber
+;
+;-------------------------------------------------------------------
+!TOPIC 20 SetKeyNumber
+!NOINDEX
+procedure 0002FBrowser.SetKeyNumber(KeyNum : Integer);
+
+Switch index keys.
+
+See also:  0011GetKeyNumber  0019SetKeyRange
+;
+;-------------------------------------------------------------------
+!TOPIC 21 SetRetries
+!NOINDEX
+procedure 0002FBrowser.SetRetries(Retries : Integer);
+
+Set number of times to retry on read operations.
+
+See also:  0058DefRetriesOnLock
+;
+;-------------------------------------------------------------------
+!TOPIC 22 SetNormAttr
+!NOINDEX
+procedure 0002FBrowser.SetNormAttr(Color, Mono : Byte);
+
+Set attribute for unselected items.
+
+See also:  0023SetSelectAttr
+;
+;-------------------------------------------------------------------
+!TOPIC 23 SetSelectAttr
+!NOINDEX
+procedure 0002FBrowser.SetSelectAttr(Color, Mono : Byte);
+
+Set attribute for selected items.
+
+See also:  0022SetNormAttr
+;
+;-------------------------------------------------------------------
+!TOPIC 24 SetHorizScrollDelta
+!NOINDEX
+procedure 0002FBrowser.SetHorizScrollDelta(Delta : Byte);
+
+Set columns to jump when scrolling horizontally.
+
+See also:  0026SetHorizScrollBarDelta  0025SetVertScrollDelta
+;
+;-------------------------------------------------------------------
+!TOPIC 25 SetVertScrollDelta
+!NOINDEX
+procedure 0002FBrowser.SetVertScrollDelta(Delta : Byte);
+
+Set rows (items) to jump when scrolling vertically.
+
+See also:  0024SetHorizScrollDelta
+;
+;-------------------------------------------------------------------
+!TOPIC 26 SetHorizScrollBarDelta
+!NOINDEX
+procedure 0002FBrowser.SetHorizScrollBarDelta(Delta : Byte);
+
+Set columns to jump when scrolling horizontally (using scroll bar).
+
+See also:  0024SetHorizScrollDelta
+;
+;-------------------------------------------------------------------
+!TOPIC 27 SetBuildItemProc
+!NOINDEX
+procedure 0002FBrowser.SetBuildItemProc(BIF : BuildItemProc);
+
+Set procedure to build an item. A build item procedure must be of the
+following form:
+
+  {$F+}
+  procedure BuildItem(Row : Byte; var DatS; Len : Word;
+                      RecNum : LongInt; Key : IsamKeyStr;
+                      var S : string; FBP : FBrowserPtr);
+  begin
+    S := ????;
+  end;
+
+See also:
+  0065BuildItemProc  0040BuildOneItem
+  0079BuildOneRow    0014GetFirstCol
+;
+;-------------------------------------------------------------------
+!TOPIC 28 SetFilterFunc
+!NOINDEX
+procedure 0002FBrowser.SetFilterFunc(FF : FilterFunc);
+
+Set record filtering function. A filter function must be of the following
+form:
+
+  {$F+}
+  function MyFilter(RecNum : LongInt; Key : IsamKeyStr;
+                    FBP : FBrowserPtr) : Boolean;
+  begin
+  end;
+
+See also:
+  0066FilterFunc                     0029IsFilteringEnabled
+  0049NullFilterFunc                 0041RecordFilter
+  0019SetKeyRange
+;
+;-------------------------------------------------------------------
+!TOPIC 29 IsFilteringEnabled
+!NOINDEX
+function 0002FBrowser.IsFilteringEnabled : Boolean; virtual;
+
+Return True if filtering is enabled.
+
+See also:  0041RecordFilter  0028SetFilterFunc
+;
+;-------------------------------------------------------------------
+!TOPIC 30 SetSpecialTaskProc
+!NOINDEX
+procedure 0002FBrowser.SetSpecialTaskProc(STP : SpecialTaskProc);
+
+Set user-defined special task hook. A special task procedure must be of the
+following form:
+
+  {$F+}
+  procedure MySpecialTask(RecNum : LongInt; Key : IsamKeyStr;
+                          FBP : FBrowserPtr);
+  begin
+    { FBP^.SetLastCommand(ccNone); }
+  end;
+
+See also:  0042SpecialTask  0068SpecialTaskProc
+;
+;-------------------------------------------------------------------
+!TOPIC 31 SetPreMoveProc
+!NOINDEX
+procedure 0002FBrowser.SetPreMoveProc(PMP : SpecialTaskProc);
+
+Set user-defined procedure to call before each command. A pre-move procedure
+must be of the following form:
+
+  {$F+}
+  procedure MyPreMove(RecNum : LongInt; Key : IsamKeyStr;
+                      FBP : FBrowserPtr);
+  begin
+  end;
+
+See also:  0038PreMove  0068SpecialTaskProc
+;
+;-------------------------------------------------------------------
+!TOPIC 32 SetScreenUpdateProc
+!NOINDEX
+procedure 0002FBrowser.SetScreenUpdateProc(SUP : UpdateProc);
+
+Set user-defined procedure to call on each screen update. A screen update
+procedure must be of the following form:
+
+  {$F+}
+  procedure MyScreenUpdate(FBP : FBrowserPtr);
+  begin
+  end;
+
+See also:  0037ScreenUpdate  0069UpdateProc
+;
+;-------------------------------------------------------------------
+!TOPIC 33 SetRefreshFunc
+!NOINDEX
+procedure 0002FBrowser.SetRefreshFunc(RF : RefreshFunc);
+
+Set routine called to determine if screen refresh is needed. A refresh
+function must be of the following form:
+
+  {$F+}
+  function MyRefreshFunc(FBP : FBrowserPtr) : Boolean;
+  begin
+  end;
+
+See also:
+  0043NeedRefresh                    0050NullRefreshFunc
+  0051RefreshAtEachCommand           0067RefreshFunc
+  0052RefreshPeriodically
+;
+;-------------------------------------------------------------------
+!TOPIC 34 CharHook
+!NOINDEX
+procedure 0002FBrowser.CharHook; virtual;
+
+Called each time a regular character is entered by user.
+
+See also:  0015GetCurrentKeyAndRef  0018SetCurrentRecord
+;
+;-------------------------------------------------------------------
+!TOPIC 35 CursorLeft
+!NOINDEX
+procedure 0002FBrowser.CursorLeft; virtual;
+
+Called to process the ccLeft command.
+
+See also:  0036CursorRight  0013GetCurrentCol
+;
+;-------------------------------------------------------------------
+!TOPIC 36 CursorRight
+!NOINDEX
+procedure 0002FBrowser.CursorRight; virtual;
+
+Called to process the ccRight command.
+
+See also:  0035CursorLeft  0013GetCurrentCol
+;
+;-------------------------------------------------------------------
+!TOPIC 37 ScreenUpdate
+!NOINDEX
+procedure 0002FBrowser.ScreenUpdate; virtual;
+
+Called on each screen update; when current item/column changes.
+
+See also:  0032SetScreenUpdateProc
+;
+;-------------------------------------------------------------------
+!TOPIC 38 PreMove
+!NOINDEX
+procedure 0002FBrowser.PreMove; virtual;
+
+Called just prior to getting each keyboard command.
+
+See also:  0031SetPreMoveProc
+;
+;-------------------------------------------------------------------
+!TOPIC 39 DrawItem
+!NOINDEX
+procedure 0002FBrowser.DrawItem(Item : Byte; Highlight : Boolean); virtual;
+
+Draw the specified (relative) Item of the browse window.
+;
+;-------------------------------------------------------------------
+!TOPIC 40 BuildOneItem
+!NOINDEX
+procedure 0002FBrowser.BuildOneItem(Item : Byte; Locked : Boolean); virtual;
+
+Convert specified item to a string.
+
+See also:  0027SetBuildItemProc
+;
+;-------------------------------------------------------------------
+!TOPIC 41 RecordFilter
+!NOINDEX
+function 0002FBrowser.RecordFilter(RecNum : LongInt;
+                               Key : IsamKeyStr) : Boolean; virtual;
+
+Return True if this record should be displayed.
+
+See also:  0028SetFilterFunc
+;
+;-------------------------------------------------------------------
+!TOPIC 42 SpecialTask
+!NOINDEX
+procedure 0002FBrowser.SpecialTask; virtual;
+
+Special task hook.
+
+See also:  0030SetSpecialTaskProc
+;
+;-------------------------------------------------------------------
+!TOPIC 43 NeedRefresh
+!NOINDEX
+function 0002FBrowser.NeedRefresh : Boolean; virtual;
+
+Called to see if the display needs to be refreshed.
+
+See also:  0033SetRefreshFunc
+;
+;-------------------------------------------------------------------
+!TOPIC 44 GetRecord
+!NOINDEX
+procedure 0002FBrowser.GetRecord(Ref : LongInt; var DatS;
+                             var Len : Word); virtual;
+
+Low-level routine to read a specific record.
+
+See also:  0016GetCurrentRecord
+;
+;-------------------------------------------------------------------
+!TOPIC 45 Load
+!NOINDEX
+constructor 0002FBrowser.Load(var S : IdStream);
+
+Load a file browser from a stream.
+
+See also:  0046Store
+;
+;-------------------------------------------------------------------
+!TOPIC 46 Store
+!NOINDEX
+procedure 0002FBrowser.Store(var S : IdStream);
+
+Store a file browser in a stream.
+
+See also:  0045Load
+;
+;-------------------------------------------------------------------
+!TOPIC 47 VBrowser
+!NOINDEX
+VBrowser = object(0002FBrowser)
+!LINE
+VBrowserPtr = ^VBrowser;
+
+A window-based object used for browsing through datafiles containing
+variable-length records in indexed order.
+
+See also:  0048GetRecord
+;
+;-------------------------------------------------------------------
+!TOPIC 48 GetRecord
+!NOINDEX
+procedure 0047VBrowser.GetRecord(Ref : LongInt; var DatS;
+                             var Len : Word); virtual;
+
+Low-level routine to read a specific record.
+
+See also:  0044FBrowser.GetRecord
+;
+;-------------------------------------------------------------------
+!TOPIC 49 NullFilterFunc
+!NOINDEX
+function 0001FBrowse.NullFilterFunc(RecNum : LongInt; Key : IsamKeyStr;
+                                FBP : FBrowserPtr) : Boolean;
+
+Do-nothing record filtering function.
+
+See also:  0028FBrowser.SetFilterFunc
+;
+;-------------------------------------------------------------------
+!TOPIC 50 NullRefreshFunc
+!NOINDEX
+function 0001FBrowse.NullRefreshFunc(FBP : FBrowserPtr) : Boolean;
+
+Do-nothing refresh function.
+
+See also:  0033FBrowser.SetRefreshFunc
+;
+;-------------------------------------------------------------------
+!TOPIC 51 RefreshAtEachCommand
+!NOINDEX
+function 0001FBrowse.RefreshAtEachCommand(FBP : FBrowserPtr) : Boolean;
+
+Check for need to refresh before each command if no keystrokes pending.
+
+See also:  0033FBrowser.SetRefreshFunc
+;
+;-------------------------------------------------------------------
+!TOPIC 52 RefreshPeriodically
+!NOINDEX
+function 0001FBrowse.RefreshPeriodically(FBP : FBrowserPtr) : Boolean;
+
+Check for need to refresh every RefreshPeriod clock ticks.
+
+See also:  0033FBrowser.SetRefreshFunc  0071RefreshPeriod
+;
+;------------------------------------------------------------
+!TOPIC 53 Commands
+!NOINDEX
+!NOSEARCH
+0002FBrowser's Process method offers appropriate commands to browse
+through a B-Tree Filer data file. The list below arranges them by
+category. In each case the first line gives the name of the command,
+followed by the key(s) to which it is normally assigned. The second and
+following lines give a brief description of the command.
+
+!NOWRAP
+ccLeft         <Left>, <CtrlS>
+Scroll window left 1 column.
+
+ccRight        <Right>, <CtrlD>
+Scroll window right 1 column.
+
+ccHome         <Home>, <CtrlQ><S>
+Scroll window to column 1.
+
+ccEnd          <End>, <CtrlQ><D>
+Scroll window to rightmost column, so that the end of each row is displayed.
+
+ccUp           <Up>, <CtrlE>, <CtrlW>
+Scroll window up one item.
+
+ccDown         <Down>, <CtrlX>, <CtrlZ>
+Scroll window down one item.
+
+ccPageUp       <PgUp>, <CtrlR>
+Scroll window up one page.
+
+ccPageDn       <PgDn>, <CtrlC>
+Scroll window down one page.
+
+ccFirstRec     <CtrlPgUp>, <CtrlQ><R>
+Scroll to first record in file.
+
+ccLastRec      <CtrlPgDn>, <CtrlQ><C>
+Scroll to last record in file.
+
+ccPlus         <+>
+Rebuild and redisplay the current page.
+
+ccSelect       <Enter>, <CtrlM>
+Select the currently highlighted item.
+
+ccQuit         <CtrlBreak>, <Esc>, <ClickRight>
+Quit browsing.
+
+!NOWRAP
+ccHelp         <F1>, <ClickBoth>
+!WRAP
+Help. If a user-written help routine has been established by calling
+0070FBrowserCommands.SetHelpProc, pressing <F1> will call that routine;
+otherwise this command does nothing. If there is a help procedure, the
+0002FBrowser will pass it the following three parameters: ucFBrowser,
+@Self, and the value designated as the window's help index (see
+CommandWindow.SetHelpIndex), which defaults to 0.
+
+!NOWRAP
+ccMouseSel     <ClickLeft>
+!WRAP
+Move the highlight bar to the position indicated by the mouse, if possible. If
+the highlight bar is already over the indicated item, it will be selected,
+just as it would if <Enter> were pressed. This command may also be used to
+scroll the display by clicking on a scroll bar.
+
+
+See also:  0056Command codes  0070FBrowserCommands  0006FBrowser.ProcessSelf
+;
+;-------------------------------------------------------------------
+!TOPIC 54 Declarations
+!NOINDEX
+!NOSEARCH
+FBrowse provides the following types, constants, and variables for working
+with 0002FBrowsers:
+
+    0055BadFBrowserOptions                0065BuildItemProc
+    0056Command codes                     0062Configuration data
+    0057DefFBrowserOptions                0058DefRetriesOnLock
+    0059Error codes                       0060Error messages
+    0070FBrowserCommands                  0066FilterFunc
+    0063Object type codes                 0061Options
+    0067RefreshFunc                       0071RefreshPeriod
+    0068SpecialTaskProc                   0064Unit code
+    0069UpdateProc
+;
+;------------------------------------------------------------
+!TOPIC 55 BadFBrowserOptions
+!NOINDEX
+const
+  BadFBrowserOptions : LongInt =
+    fbLockPending+fbForceRedraw+fbIsNet+fbInProcess;
+
+0002FBrowser options that exist for internal use, and may not be altered
+by calling fbOptionsOn or fbOptionsOff.
+
+See also:  0061Options
+;
+;------------------------------------------------------------
+!TOPIC 56 Command codes
+!NOINDEX
+!NOSEARCH
+const
+  ccFirstRec  = ccTopOfFile; {Move cursor to first record}
+  ccLastRec   = ccEndOfFile; {Move cursor to last record}
+  ccPlus      = ccToggle;    {Rebuild and redraw current page}
+  ccTask0     = 180;         {user-defined task commands}
+  ...
+  ccTask19    = 199;
+
+Command codes unique to FBrowse.
+
+See also:  0053Commands
+;
+;------------------------------------------------------------
+!TOPIC 57 DefFBrowserOptions
+!NOINDEX
+const
+  DefFBrowserOptions : LongInt = fbMousePage+fbDrawActive+fbAutoScale;
+
+The default options for an 0002FBrowser or 0047VBrowser.
+
+See also:  0061Options
+;
+;------------------------------------------------------------
+!TOPIC 58 DefRetriesOnLock
+!NOINDEX
+const
+  DefRetriesOnLock : Integer = 50;
+
+Default number of times to retry following a lock error.
+
+See also:  0021FBrowser.SetRetries
+;
+;------------------------------------------------------------
+!TOPIC 59 Error codes
+!NOINDEX
+!NOSEARCH
+const
+  ecWinTooSmall  = 06000; {init error--window/max rows too small}
+  ecNoIndex      = 06001; {init error--Fileblock is not indexed}
+  ecIsamError    = 06002; {fatal Isam error--IsamError has actual code}
+  ecNoKeysFound  = 06003; {no keys found in requested range}
+  ecRecordGone   = 06004; {tried to select record that no longer exists}
+  ecRecordLocked = 06005; {tried to select record and lock error occurred}
+  ecFileBlockLocked = 06006; {non-fatal error due to locked fileblock}
+
+Codes for errors reported only by 0002FBrowser-based objects.
+
+See also:  0060Error messages
+;
+;------------------------------------------------------------
+!TOPIC 60 Error messages
+!NOINDEX
+!NOSEARCH
+const
+  emIsamError    : string[40] =
+    'Fatal error accessing data or index file';
+  emNoKeysFound  : string[35] =
+    'No records found in specified range';
+  emRecordGone   : string[32] =
+    'Selected record no longer exists';
+  emRecordLocked : string[40] =
+    'Lock error while reading selected record';
+  emFileBlockLocked : string[14] =
+    'File is locked';
+
+The default error messages corresponding to the ecIsamError, ecNoKeysFound,
+ecRecordGone, ecRecordLocked, and ecFileBlockLocked errors, respectively.
+
+See also:  0059Error codes
+;
+;------------------------------------------------------------
+!TOPIC 61 Options
+!NOINDEX
+!NOSEARCH
+const
+  fbScrollByPage   = $00000001; {scroll by page on Up/Down?}
+  fbMousePage      = $00000002; {clicking on scroll bar scrolls by page}
+  fbDrawActive     = $00000004; {Draw and Process leave sel item visible}
+  fbUseReadLock    = $00000008; {use read locks while building pages?}
+  fbAutoScale      = $00000010; {scale scroll bar based on low/high keys?}
+  fbForceUpdate    = $00000020; {force the screen to be updated}
+  fbFlushKbd       = $00000040; {flush keyboard buffer at boundaries}
+  fbBellOnFlush    = $00000080; {ring bell when flushing?}
+  fbBuildOnKey     = $00000100; {build item function needs only the key}
+  fbLockPending    = $10000000; {internal flags}
+  fbForceRedraw    = $20000000;
+  fbIsNet          = $40000000;
+  fbInProcess      = $80000000;
+
+These are the options that affect the behavior of an 0002FBrowser.
+fbScrollByPage affects the vertical scrolling behavior of an FBrowser when
+the cursor is moved (using <Up> or <Down>) to an item not currently on
+screen. If the option is off, the window will be scrolled only enough to
+display the new item. If it is on, the window will be scrolled one full
+page. fbMousePage determines what happens when the user clicks on the up and
+down arrows of a scroll bar. If the option is off, the highlight will be
+moved up or down by a single item; if it is on, the highlight will be moved
+up or down one full page.
+
+If the fbDrawActive option is on, the current item will be highlighted at
+all times; if it is off, the item will be highlighted only while the Process
+method is active. If the fbUseReadLock option is on, the Fileblock in use
+will be read-locked while building pages and scrolling. The fbAutoScale
+option affects the behavior of vertical scroll bars in cases where a low and
+high key have been specified with SetKeyRange. If it is on, the scroll bar's
+scale is based on the positions within the current index of the first and
+last record within the range. If it is off, the scale is based on the total
+number of records in the current index. The fbForceUpdate option must be set
+any time that you call either Draw or Process after adding, deleting, or
+modifying a record in the data file being browsed.
+
+The fbFlushKbd and fbBellOnFlush options are intended primarily for use in
+multi-user applications, to avoid the common problem that occurs when the
+user holds down one of the cursor keys too long. When the end of the
+database is reached, the browser will appear to hang because it's spending
+all of its time processing commands that don't affect the display. The
+fbFlushKbd option simply tells FBrowser to try to avoid this problem by
+flushing the keyboard buffer when a cursor command fails to scroll the
+display. The fbBellOnFlush option tells it to "ring the bell" each time a
+keystroke is flushed from the keyboard buffer. The fbBuildOnKey option tells
+the browser that the build item routine can do its job given only an index
+key, and doesn't need the actual record.
+
+The remaining options--fbLockPending, fbForceRedraw, fbIsNet, and
+fbInProcess--are intended strictly for internal use.
+
+See also:  0055BadFBrowserOptions  0057DefFBrowserOptions
+;
+;------------------------------------------------------------
+!TOPIC 62 Configuration data
+!NOINDEX
+!NOSEARCH
+const
+  FBrowserKeyMax = 200;
+  FBrowserKeyID  : string[13] = 'fbrowser keys';
+  FBrowserKeySet : array[0..FBrowserKeyMax] of Byte = (...);
+  FBrowserCfgEnd : Byte = 0;
+
+FBrowserKeyId is an ID string used to mark the beginning of the
+configuration data area for FBrowse; FBrowserCfgEnd marks the end of the
+data area. In between them is FBrowserKeySet, the command table used by
+0070FBrowserCommands. FBrowserKeyMax is the last valid index into the table.
+;
+;------------------------------------------------------------
+!TOPIC 63 Object type codes
+!NOINDEX
+!NOSEARCH
+const
+  otFBrowser         = 999;
+  veFBrowser         = 0;
+  otVBrowser         = 998;
+  veVBrowser         = 0;
+  ptFBrowserCommands = 999;
+  ptNullFilterFunc   = 998;
+  ptNullRefreshFunc  = 997;
+
+Object type, version, and pointer type codes used internally when storing an
+0002FBrowser in a stream.
+;
+;------------------------------------------------------------
+!TOPIC 64 Unit code
+!NOINDEX
+!NOSEARCH
+const
+  ucFBrowser = 99;
+
+FBrowse's unit code, which is passed to the help routine (if any) when the
+ccHelp command is issued.
+
+See also:  0053Commands
+;
+;------------------------------------------------------------
+!TOPIC 65 BuildItemProc
+!NOINDEX
+type
+  BuildItemProc =
+    procedure (Row : Byte; var DatS; Len : Word; RecNum : LongInt;
+               Key : IsamKeyStr; var S : string; FBP : FBrowserPtr);
+
+A user-written routine that builds the string(s) corresponding to a given
+item (record).
+
+See also:  0027FBrowser.SetBuildItemProc
+;
+;------------------------------------------------------------
+!TOPIC 66 FilterFunc
+!NOINDEX
+type
+  FilterFunc =
+    function (RecNum : LongInt; Key : IsamKeyStr;
+              FBP : FBrowserPtr) : Boolean;
+
+A user-written routine that is called to determine whether or not a given
+record should be displayed.
+
+See also:  0028FBrowser.SetFilterFunc
+;
+;------------------------------------------------------------
+!TOPIC 67 RefreshFunc
+!NOINDEX
+type
+  RefreshFunc = function (FBP : FBrowserPtr) : Boolean;
+
+A user-written routine that is called just before asking for the next
+command.
+
+See also:  0033FBrowser.SetRefreshFunc
+;
+;------------------------------------------------------------
+!TOPIC 68 SpecialTaskProc
+!NOINDEX
+type
+  SpecialTaskProc =
+    procedure (RecNum : LongInt; Key : IsamKeyStr; FBP : FBrowserPtr);
+
+A user-written routine that is called when one of the special task commands
+(ccTask0..ccTask19) is issued. A pre-move procedure is also of this type.
+
+See also:  0030FBrowser.SetSpecialTaskProc
+;
+;------------------------------------------------------------
+!TOPIC 69 UpdateProc
+!NOINDEX
+type
+  UpdateProc = procedure (FBP : FBrowserPtr);
+
+A user-written routine that is called each time the browser's window is
+redrawn or scrolled.
+
+See also:  0032FBrowser.SetScreenUpdateProc
+;
+;------------------------------------------------------------
+!TOPIC 70 FBrowserCommands
+!NOINDEX
+var
+ {$IFDEF UseDrag}
+  FBrowserCommands : DragProcessor;
+ {$ELSE}
+  FBrowserCommands : CommandProcessor;
+ {$ENDIF}
+
+The default CommandProcessor for an 0002FBrowser.
+
+See also:  0053Commands
+;
+;------------------------------------------------------------
+!TOPIC 71 RefreshPeriod
+!NOINDEX
+var
+  RefreshPeriod : Word = 18*5;
+
+This typed constant tells the RefreshPeriodically function how often to
+check to see if the display needs to be refreshed. The value is in clock
+ticks (roughly 18/second), so the default setting requests that checks be
+made every five seconds.
+
+See also:  0052RefreshPeriodically
+;
+;------------------------------------------------------------
+!TOPIC 72 General
+!NOINDEX
+!NOSEARCH
+0002FBrowser provides the following general purpose methods:
+
+  0005Done                           0010GetFileBlockPtr
+  0017GetItemString                  0011GetKeyNumber
+  0003Init                           0004InitCustom
+  0045Load                           0006ProcessSelf
+  0020SetKeyNumber                   0019SetKeyRange
+  0046Store
+;
+;------------------------------------------------------------
+!TOPIC 73 User hooks
+!NOINDEX
+!NOSEARCH
+0002FBrowser provides the following hooks that allow the programmer to
+customize the behavior of the browser for a particular application:
+
+  0029IsFilteringEnabled             0027SetBuildItemProc
+  0028SetFilterFunc                  0031SetPreMoveProc
+  0033SetRefreshFunc                 0032SetScreenUpdateProc
+  0030SetSpecialTaskProc
+;
+;------------------------------------------------------------
+!TOPIC 74 Methods to override
+!NOINDEX
+!NOSEARCH
+The following virtual methods may be overridden by descendents of
+0002FBrowser:
+
+  0040BuildOneItem                   0079BuildOneRow
+  0034CharHook                       0035CursorLeft
+  0036CursorRight                    0039DrawItem
+  0044GetRecord                      0043NeedRefresh
+  0038PreMove                        0041RecordFilter
+  0037ScreenUpdate                   0042SpecialTask
+;
+;------------------------------------------------------------
+!TOPIC 75 Setting options
+!NOINDEX
+!NOSEARCH
+0002FBrowser provides the following methods for setting options:
+
+  0009fbOptionsAreOn                 0008fbOptionsOff
+  0007fbOptionsOn                    0022SetNormAttr
+  0021SetRetries                     0023SetSelectAttr
+;
+;------------------------------------------------------------
+!TOPIC 76 Scrolling
+!NOINDEX
+!NOSEARCH
+0002FBrowser provides the following methods relating to horizontal and
+vertical scrolling:
+
+  0013GetCurrentCol                  0014GetFirstCol
+  0026SetHorizScrollBarDelta         0024SetHorizScrollDelta
+  0025SetVertScrollDelta
+;
+;------------------------------------------------------------
+!TOPIC 77 Procedures and functions
+!NOINDEX
+!NOSEARCH
+The following procedures and functions may be used in conjunction with an
+0002FBrowser:
+
+  0049NullFilterFunc                 0050NullRefreshFunc
+  0051RefreshAtEachCommand           0052RefreshPeriodically
+;
+;------------------------------------------------------------
+!TOPIC 78 Get/set current record
+!NOINDEX
+!NOSEARCH
+0002FBrowser provides the following methods for getting and setting the
+current record:
+
+  0012GetCurrentItem                 0015GetCurrentKeyAndRef
+  0016GetCurrentRecord               0018SetCurrentRecord
+;
+;-------------------------------------------------------------------
+!TOPIC 79 BuildOneRow
+!NOINDEX
+procedure 0002FBrowser.BuildOneRow(Row : Byte; var DatS; Len : Word;
+                               RecNum : LongInt; Key : IsamKeyStr;
+                               var S : string); virtual;
+
+Convert specified row of specified item to a string.
+
+See also:  0027SetBuildItemProc

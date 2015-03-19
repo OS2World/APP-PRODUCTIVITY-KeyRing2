@@ -1,0 +1,447 @@
+/*:VRW
+*/
+VRX   OS/2 v2.14 B3
+BEGIN     Window
+    Visible           "0"
+    Enabled           "1"
+    SystemMenu        "1"
+    Create            ""
+    MinimizeButton    "1"
+    MaximizeButton    "1"
+    BorderType        "sizeable"
+    WindowMode        "Modal"
+    MoveWithParent    "1"
+    LayoutStyle       "None"
+    HideButton        "0"
+    TitleBar          "1"
+    DBCSConversionBar "1"
+    WindowListTitle   "KeyRing/2 Working"
+    Height            "4119"
+    Left              "241"
+    Top               "1036"
+    Width             "4192"
+    EventList         binary lines 0 checksum 0
+    HorizGridSpacing  "60"
+    VertGridSpacing   "60"
+    GridVisible       "1"
+    GridAlign         "1"
+    Close             "CALL Working_Close"
+    DoubleClick       ""
+    Destroy           ""
+    Resize            ""
+    Activate          ""
+    Deactivate        ""
+    Caption           "Encrypting/Decrypting..."
+    Font              "<default>"
+    BackColor         "<default>"
+    PicturePath       ""
+    HelpFile          ""
+    HelpTitle         ""
+    StatusArea        "None"
+    ShowHints         "0"
+    StatusFont        "<default>"
+    WindowIcon        "$1"
+    Help              "CALL Working_Help"
+    Click             ""
+    DragDrop          ""
+    KeyPress          ""
+    ForeColor         "<default>"
+    ContextMenu       ""
+    DragTarget        "All"
+    AllowDrag         "0"
+    DragStart         ""
+    DragIcon          ""
+    DragDiscard       ""
+    DragPrint         ""
+    Name              "Working"
+    UserData          binary lines 1 checksum 1054
+"5573616765204e6f746573"
+    HelpText          ""
+    HelpTag           ""
+    HintText          ""
+    BEGIN         VRPictureBox
+        BorderSize        "10"
+        Border            "1"
+        Height            "3228"
+        Left              "60"
+        Top               "60"
+        Width             "3939"
+        Visible           "1"
+        TabStop           "0"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        PicturePath       "#1"
+        Autosize          "0"
+        ResizePicture     "1"
+        BorderColor       "<default>"
+        TabGroup          "0"
+        ClipSiblings      "0"
+        TabIndex          "3"
+        Click             ""
+        DragDrop          ""
+        GotFocus          ""
+        LostFocus         ""
+        KeyPress          ""
+        ForeColor         "<default>"
+        BackColor         "<default>"
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "Pict_1"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        Query             ""
+        QueryColumns      ""
+    END
+    BEGIN         VRTimer
+        Delay             "1000"
+        Enabled           "0"
+        Justification     "Left"
+        VertJustification "Top"
+        WordBreak         "1"
+        Height            "482"
+        Left              "2072"
+        Top               "831"
+        Width             "964"
+        Visible           "0"
+        EventList         binary lines 0 checksum 0
+        Trigger           "CALL HatCounterTimer_Trigger"
+        Autosize          "0"
+        Caption           "Timer"
+        Font              "<default>"
+        ClipSiblings      "0"
+        TabIndex          "1"
+        DragDrop          ""
+        ForeColor         "<default>"
+        BackColor         "<default>"
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "HatCounterTimer"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+    END
+    BEGIN         VRTransparentText
+        Left              "1626"
+        Top               "2048"
+        Width             "205"
+        Height            "385"
+        Justification     "Centered"
+        VertJustification "Centered"
+        WrapText          "0"
+        SizeToText        "1"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           "1"
+        ForeColor         "Blue"
+        ClipSiblings      "1"
+        TabIndex          "2"
+        Font              "18.System VIO"
+        Click             ""
+        ContextMenu       ""
+        Name              "TT_1"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        Query             ""
+        QueryColumns      ""
+    END
+    BEGIN         VRDescriptiveText
+        Justification     "Center"
+        VertJustification "Center"
+        WordBreak         "1"
+        Height            "313"
+        Left              "60"
+        Top               "3373"
+        Width             "3987"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Autosize          "0"
+        Caption           "Working..."
+        Font              "9.WarpSans Bold"
+        ClipSiblings      "0"
+        TabIndex          "4"
+        DragDrop          ""
+        ForeColor         "<default>"
+        BackColor         "<default>"
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "DT_1"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        Query             ""
+        QueryColumns      ""
+    END
+    BEGIN         VRTransparentText
+        Left              "120"
+        Top               "2650"
+        Width             "3806"
+        Height            "554"
+        Justification     "Centered"
+        VertJustification "Top"
+        WrapText          "1"
+        SizeToText        "0"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           "Text"
+        ForeColor         "DarkPink"
+        ClipSiblings      "1"
+        TabIndex          "5"
+        Font              "<default>"
+        Click             ""
+        ContextMenu       ""
+        Name              "TT_2"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        Query             ""
+        QueryColumns      ""
+    END
+END
+/*:VRX         Main
+*/
+/*  Main
+~nokeywords~
+*/
+Main:
+/*  Process the arguments.
+    Get the parent window.
+*/
+    PARSE SOURCE . Calledas .
+    Parent = ""
+    Argcount = ARG()
+    Argoff = 0
+    IF( Calledas \= "COMMAND" )THEN DO
+        IF Argcount >= 1 THEN DO
+            Parent = ARG(1)
+            Argcount = Argcount - 1
+            Argoff = 1
+        END
+    END
+        ELSE DO
+            CALL Vroptions 'ImplicitNames'
+            CALL Vroptions 'NoEchoQuit'
+        END
+    Initargs.0 = Argcount
+    IF( Argcount > 0 )THEN DO I = 1 TO Argcount
+        Initargs.i = ARG( I + Argoff )
+    END
+    DROP Calledas Argcount Argoff
+
+/*  Load the windows
+*/
+    CALL Vrinit
+    PARSE SOURCE . . Spec
+    _vreprimarywindowpath = ,
+        Vrparsefilename( Spec, "dpn" ) || ".VRW"
+    _vreprimarywindow = ,
+        Vrload( Parent, _vreprimarywindowpath )
+    DROP Parent Spec
+    IF( _vreprimarywindow == "" )THEN DO
+        CALL Vrmessage "", "Cannot load window: " Vrerror(), , " Error! "
+        _vrereturnvalue = 32000
+        SIGNAL _vreleavemain
+    END
+
+/*  Process events
+*/
+    CALL Init
+    SIGNAL ON HALT
+    DO While( \ Vrget( _vreprimarywindow, "Shutdown" ) )
+        _vreevent = Vrevent()
+        INTERPRET _vreevent
+    END
+_vrehalt:
+    _vrereturnvalue = Fini()
+    CALL Vrdestroy _vreprimarywindow
+_vreleavemain:
+    CALL Vrfini
+    EXIT _vrereturnvalue
+
+Vrloadsecondary:
+    __vrlswait = ABBREV( 'WAIT', TRANSLATE(ARG(2)), 1 )
+    IF __vrlswait THEN DO
+        CALL Vrflush
+    END
+    __vrlshwnd = Vrload( Vrwindow(), Vrwindowpath(), ARG(1) )
+    IF __vrlshwnd = '' THEN SIGNAL __vrlsdone
+    IF __vrlswait \= 1 THEN SIGNAL __vrlsdone
+    CALL Vrset __vrlshwnd, 'WindowMode', 'Modal'
+    __vrlstmp = __vrlswindows.0
+    IF( DATATYPE(__vrlstmp) \= 'NUM' ) THEN DO
+        __vrlstmp = 1
+    END
+        ELSE DO
+            __vrlstmp = __vrlstmp + 1
+        END
+    __vrlswindows.__vrlstmp = Vrwindow( __vrlshwnd )
+    __vrlswindows.0 = __vrlstmp
+    DO While( Vrisvalidobject( Vrwindow() ) = 1 )
+        __vrlsevent = Vrevent()
+        INTERPRET __vrlsevent
+    END
+    __vrlstmp = __vrlswindows.0
+    __vrlswindows.0 = __vrlstmp - 1
+    CALL Vrwindow __vrlswindows.__vrlstmp
+    __vrlshwnd = ''
+__vrlsdone:
+RETURN __vrlshwnd
+
+/*:VRX         Fini
+*/
+Fini:
+    Window = Vrwindow()
+    CALL Vrset Window, "Visible", 0
+    DROP Window
+RETURN 0
+
+/*:VRX         Halt
+*/
+Halt:
+    SIGNAL _vrehalt
+RETURN
+
+/*:VRX         HatCounterTimer_Trigger
+*/
+Hatcountertimer_trigger:
+    Time = Time + 1
+    Ok = Vrset("Working", "SiblingOrder", 1)
+    Ok = Vrset( "TT_1", "Caption", Time )
+    IF Time = 1 THEN DO
+        Ok = Vrmethod("Application", "PostQueue", 0, 1, "call HatReady" )
+    END
+RETURN
+
+/*:VRX         INFHelp
+*/
+Infhelp:
+    ADDRESS Cmd 'start view kr2.inf' Vrget(ARG(1), "UserData")
+RETURN
+
+/*:VRX         Init
+*/
+Init:
+    Ok = RXFUNCADD("VLLoadFuncs", "VLMSG", "VLLoadFuncs")/* do not modify or move this line! It must be on line #2 of this function */
+    CALL Vlloadfuncs/* do not modify or move this line! It must be on line #3 of this function */
+
+    Ok = Vrredirectstdio("On", "keyring2.err")
+    Appname = Initargs.2
+    Ininame = Initargs.3
+    Langname = Initargs.4
+
+    IF Langname = "" THEN DO
+        Langname = "ENGLISH.MSG"
+    END
+    Ok = Vlopenlang(Langname, Langname)
+    CALL Working_langinit
+
+    /* check registration mode */
+    if KRFN3(2) = 1 then do
+        /* if demo mode then display warning message with days remaining */
+        ok = VRSet( "TT_2", "Caption", VLSMsg(366) /* This database file will expire in  */|| KRGetPageIndex() ||VLSMsg(367) /*  days! */ )
+    end
+    else do
+        ok = VRSet( "TT_2", "Caption", "" )
+    end
+
+    Window = Vrwindow()
+    CALL Vrmethod Window, "CenterWindow"
+    CALL Vrset Window, "Visible", 1
+    CALL Vrmethod Window, "Activate"
+    Ok = Vrset(Window, "SiblingOrder", 1)
+
+    DROP Window
+    Time=0
+    Ok = Vrset( "HatCounterTimer", "Enabled", 1 )
+RETURN
+
+/*:VRX         Quit
+*/
+Quit:
+    Ok = Vrset( "HatCounterTimer", "Enabled", 0)
+    Window = Vrwindow()
+    CALL Vrset Window, "Shutdown", 1
+    DROP Window
+RETURN
+
+/*:VRX         Working_Close
+*/
+Working_close:
+    CALL Quit
+RETURN
+
+/*:VRX         Working_Help
+*/
+Working_help:
+    CALL Infhelp(Vrinfo("Source"))
+RETURN
+
+
+
+/*:VRX         Working_LangException
+*/
+Working_LangException: 
+
+return
+
+/*:VRX         Working_LangInit
+*/
+Working_LangInit:
+
+    /* ------------------------------------------------ */
+    /* Language internationalization code autogenerated */
+    /* by VXNation v1.0, Copyright 1999, IDK, Inc.      */
+    /*          http://www.idk-inc.com                  */
+    /* Autogenerated: 03/06/2000 19:27:15             */
+    /* ------------------------------------------------ */
+    /* Warning! This code gets overwritten by VXNation! */
+    /* Do not make modifications here!                  */
+    /* ------------------------------------------------ */
+
+    /* KeyRing/2 Working */
+    Ok = VRSet("Working", "WindowListTitle", VLSMsg(175))
+
+    /* Encrypting/Decrypting... */
+    Ok = VRSet("Working", "Caption", VLSMsg(176))
+
+    /* Timer */
+    Ok = VRSet("HatCounterTimer", "Caption", VLSMsg(66))
+
+    /* 1 */
+    Ok = VRSet("TT_1", "Caption", VLSMsg(177))
+
+    /* Working... */
+    Ok = VRSet("DT_1", "Caption", VLSMsg(178))
+
+    /* Text */
+    Ok = VRSet("TT_2", "Caption", VLSMsg(365))
+
+    call Working_LangException
+    DROP Ok
+
+RETURN
+

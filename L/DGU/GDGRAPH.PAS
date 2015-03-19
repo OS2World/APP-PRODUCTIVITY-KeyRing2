@@ -1,0 +1,2067 @@
+{***************************************************************************
+* Filename: ~modname~
+* Version:  ~version~
+* Date:     ~date~ @ ~time~
+* Group:    ~group~
+* Release:  ~release~
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* Version   Date     Time    Programmer   Description
+* 1.0       2/1/2003 18:32   K. McCoy     Virgin
+* ~log~
+*
+*
+* ~notes~
+* Description
+* -----------
+* Parent class for all GD descendent high level graph classes
+* By Kevin G. McCoy, IDK, Inc. 2 Feb, 2003
+*
+* ~notesend~
+*
+***************************************************************************
+
+}
+{$A+,B-,D+,E+,F+,G+,I+,L+,N+,O+,P+,Q+,R+,S+,T-,V-,X+,Y+}
+
+UNIT GDGRAPH;
+
+INTERFACE
+USES
+    CLASSES,
+    GD;
+TYPE
+    JustT          = (ELEFT,      {left justify para}
+                      ECENTER,    {center justify para}
+                      ERIGHT);     {right justify para}
+
+    {dont change order or add anything before ETOP!}
+    JustVT         = (EBOT, EVCENTER, ETOP);
+
+CONST
+    MINDOUBLE = 2.23e-308;
+    MAXDOUBLE = 1.79e308;
+    MINEXTENDED = 3.37e-4932;
+    MAXEXTENDED = 1.18e4932;
+
+TYPE
+    // used for multiple graphs in the same extents
+    TgdQuad = (gdFullPage,
+               gdUpperLeft,
+               gdUpperRight,
+               gdLowerLeft,
+               gdLowerRight,
+               gdUpperHalf,
+               gdLowerHalf,
+               gdLeftHalf,
+               gdRightHalf);
+
+    TgdMarker = (
+                  gdNoMarker,
+                  gdCircle,
+                  gdSquare,
+                  gdTriangle,
+                  gdInvertedTriangle,
+                  gdStar
+                  );
+
+    // Individual plot pens
+    TPlotChannel   = (ECh1,
+                      ECh2,
+                      ECh3,
+                      ECh4,
+                      ECh5,
+                      ECh6,
+                      ECh7,
+                      ECh8,
+                      ECh9,
+                      ECh10,
+                      ECh11,
+                      ECh12);
+
+    // A plot point in user units
+    TPlotCoord     = RECORD
+                         X,
+                         Y              : EXTENDED;
+                     END;
+
+    // a plot point in pixels
+    TPoint  =        RECORD
+                         X,
+                         Y : LONGINT;
+                     END;
+
+    // used to hold graph sizes
+    TExtentRange = TPoint;
+
+    // Used for viewports
+    TExtentRect    = RECORD
+                         X1,  // Upper left
+                         Y1,
+                         X2,  // Lower right
+                         Y2 : COMP;
+                     END;
+
+    {holds a single datapoint}
+    PPlotPoint     = ^TPlotPoint;
+    TPlotPoint     = CLASS(TObject)
+                         CONSTRUCTOR Create(XY : TPlotCoord);
+                         PROCEDURE GetVal(VAR XY : TPlotCoord);
+                         DESTRUCTOR Destroy;
+                     PRIVATE
+                         MyVal          : TPlotCoord;
+                     END;
+
+    PGDGraph          = ^TGDGraph;
+
+    {a list of PPlotPoints (single channel)}
+    TPlotDataList  = CLASS(TList)
+                         constructor Create;
+                         destructor Destroy; override;
+                         FUNCTION AddPoint(V : TPlotCoord) : BOOLEAN;
+                         FUNCTION FindMinX : DOUBLE;
+                         FUNCTION FindMaxX : DOUBLE;
+                         FUNCTION FindMinY : DOUBLE;
+                         FUNCTION FindMaxY : DOUBLE;
+                     END;
+
+    {panel regions of the graph}
+    TRegion        = (LeftYAxis,
+                      BotXAxis,
+                      RightYAxis,
+                      TopXAxis,
+                      Header,
+                      Footer,
+                      LeftKey,
+                      RightKey);
+
+
+    TLabelOrient   = (Ehoriz, EVert);
+
+    {a single label (header or footer line)}
+    Plabel         = ^TLabel;
+    TLabel         = CLASS(TObject)
+                         CONSTRUCTOR Create(Txt            : PCHAR;
+                                            Color          : TRGBColor;
+                                            Font           : PCHAR;
+                                            PointSize      : DOUBLE;
+                                            Orient         : TLabelOrient;
+                                            HJust          : JustT;
+                                            VJust          : JustVT;
+                                            Region         : TRegion;
+                                            VAR Im         : gdImagePtr;
+                                            Parent         : PGDGraph);
+                         DESTRUCTOR Destroy; VIRTUAL;
+                         PROCEDURE Draw;
+                         FUNCTION GetRegion : TRegion;
+                         FUNCTION GetWidth: LONGINT;
+                         FUNCTION GetHeight : LONGINT;
+                     PRIVATE
+                         MyLabelTxt     : PCHAR;
+                         MyColor        : LONGINT;
+                         MyFont         : PCHAR;
+                         MyPointSize    : DOUBLE;
+                         MyOrient       : TLabelOrient;
+                         MyIm           : gdImagePtr;
+                         MyRegion       : TRegion;
+                         MyHJust        : JustT;
+                         MyVJust        : JustVT;
+                         MyParent       : PGDGraph;
+                     END;
+
+    {list of header and footer text lines}
+    TTextRegionList = CLASS(TList)
+                          CONSTRUCTOR Create(VAR Im : gdImagePtr);
+                          FUNCTION AddText(Txt            : PCHAR;
+                                           Color          : TRGBColor;
+                                           Font           : PCHAR;
+                                           Orient         : TLabelOrient;
+                                           HJust          : JustT;
+                                           VJust          : JustVT;
+                                           PtSize         : DOUBLE;
+                                           Region         : TRegion;
+                                           Parent         : PGDGraph) : BOOLEAN;
+                          PROCEDURE Draw(Region : TRegion);
+                          FUNCTION GetHeight(Region:TRegion):LONGINT; // returns pixels
+                          FUNCTION GetWidth(Region:TRegion):LONGINT; // returns pixels
+                          DESTRUCTOR Destroy; OVERRIDE;
+                      PRIVATE
+                          MyIm           : gdImagePtr;
+                      END;
+
+    {record to handle a single data channel}
+    TChannelRec    = RECORD
+                         DL             : TPlotDataList;
+                         Color          : LONGINT;
+                         MkrLabel       : PCHAR;
+                         MkrVal         : DOUBLE;
+                         Style,
+                         Pattern,
+                         Thickness      : WORD;
+                     END;
+
+    {array of data channels}
+    TChannelArray  = ARRAY[TPlotChannel] OF TChannelRec;
+    TChannelSort = ARRAY[TPlotChannel] OF TPlotChannel;
+    TAutoScaleMode = (EASNONE, EASMIN, EASMAX, EASBOTH);
+    {The grid plotter object (main entry point)}
+    TGDGraph  = CLASS(TObject)
+                         PUBLISHED
+
+                         CONSTRUCTOR Create(FullExtent : TExtentRange); // i.e. 640x480
+                         PROCEDURE SetXScaleWidthPrecision(Width, Precision:BYTE);
+                         PROCEDURE SetYScaleWidthPrecision(Width, Precision:BYTE);
+
+                         PROCEDURE SetXMaxSc(MaxX : Extended);
+                         PROCEDURE SetXMinSc(MinX : Extended);
+
+                         PROCEDURE SetYMinSc(Miny : Extended);
+                         PROCEDURE SetYMaxSc(MaxY : Extended);
+
+                         PROCEDURE SetXScale(Enb:BOOLEAN);
+                         PROCEDURE SetYScale(Enb : BOOLEAN);
+
+                         PROCEDURE SetLabelFont(Font : PCHAR);
+
+                         FUNCTION ScaleFont(FontSize:DOUBLE):DOUBLE;
+
+                         PUBLIC
+
+                         MyData         : TChannelArray;
+                         MyMarkers     : TList;
+                         XScaleFormat,
+                         YScaleFormat : STRING[20];
+                         DoGrid,
+                         DoXScale,
+                         DoYScale,
+                         Virgin         : BOOLEAN;
+                         MyXScaleUnits,
+                         MyYScaleUnits  : PCHAR;
+                         MyFullExtent : TExtentRange;
+                         MyGridViewport, // just the grid
+                         MyFullViewport : TExtentRect; // grid + labels - legend
+                         MyCP : TPoint; // current graphics cursor location
+                         MyLabelHeight,
+                         XminPix,
+                         XMaxPix,
+                         YminPix,
+                         YMaxPix,
+                         XPixDif,
+                         YPixDif : LONGINT;
+                         MyBorderWidth3d : WORD;
+                         MyAutoScaleX,
+                         MyAutoScaleY   : TAutoScaleMode;
+                         MyLabelPointSize,
+                         YScaleDif,
+                         XScaleDif,
+                         MyXMinSc,
+                         MyYMinSc,
+                         MyXMaxSc,
+                         MyYMaxSc       : Extended;
+                         MyXTicks,
+                         MyYTicks       : WORD;
+                         MyIm           : gdImagePtr;
+                         MarkerScale   : WORD;
+                         MyPanelColor3d,
+                         MyPanelColorSunside3d,
+                         MyPanelColorShadowSide3d,
+                         MyPanelColorGridDropShadow,
+                         MyGridColor    : LONGINT;
+                         MyGridColorRGB : TRGBColor;
+                         HeaderHeight,
+                         FooterHeight,
+                         White,
+                         Black          : LONGINT;
+                         MyTextRegions  : TTextRegionList;
+                         MyLabelFont,
+                         LastErrorMsg   : PCHAR;
+                         MySelf         : TGDGraph;
+                         FPointScale    : WORD;
+
+                         PROPERTY XMaxSc:Extended read MyXMaxSc write MyXMaxSc;
+                         PROPERTY XMinSc:Extended read MyXMinSc write SetXMinSc;
+                         PROPERTY YMinSc:Extended read MyYMinSc write MyYMinSc;
+                         PROPERTY YMaxSc:Extended read MyYMaxSc write MyYMaxSc;
+
+                         PROPERTY EnableXScale:BOOLEAN read DoXScale write SetXScale;
+                         PROPERTY EnableYScale:BOOLEAN read DoYScale write SetYScale;
+
+                         PROPERTY ViewPort:TExtentRect read MyFullViewport write MyFullViewport;
+                         PROPERTY LabelFont : PCHAR read MyLabelFont write SetLabelFont;
+                         PROPERTY XScaleUnits : PCHAR read MyXScaleUnits write MyXScaleUnits;
+                         PROPERTY YScaleUnits : PCHAR read MyYScaleUnits write MyYScaleUnits;
+                         PROPERTY GridColor : TRGBColor read MyGridColorRGB write MyGridColorRGB; {color of grid}
+                         PROPERTY GDImage : gdImagePtr read MyIm write MyIm; {pointer to current GD canvas; NIL if we should create it here}
+                         // All scales pertain to grid viewport
+                         PROPERTY AutoScaleX:TAutoScaleMode read MyAutoScaleX write MyAutoScaleX default EASNONE;
+                         PROPERTY AutoScaleY:TAutoScaleMode read MyAutoScaleY write MyAutoScaleY default EASNONE;
+                         PROPERTY XTickCount:WORD read MyXTicks write MyXTicks default 10;
+                         PROPERTY YTickCount:WORD read MyYTicks write MyYTicks default 10;
+                         PROPERTY BorderWidth3d:WORD read MyBorderWidth3d write MyBorderWidth3d default 4;
+                         PROPERTY LabelPointsize : Extended read MyLabelPointSize write MyLabelPointSize;
+                         PROPERTY DrawGrid : BOOLEAN read DoGrid write DoGrid; {If True, draw the grid, else just plot the data}
+                         PROPERTY PointScale : WORD read FPointScale write FPointScale default 5;
+                         PROCEDURE SetGridColor(Color : TRGBColor);
+                         PROCEDURE SetPanelColor3d(Color:TRGBColor);
+                         PROCEDURE SetPanelColorSunside3d(Color:TRGBColor);
+                         PROCEDURE SetPanelColorShadowSide3d(Color:TRGBColor);
+                         PROCEDURE SetPanelColorGridDropShadow(Color:TRGBColor);
+
+
+                         DESTRUCTOR Destroy; override;
+                         {plot data, grid, labels, headers and Markers (markers) to canvas}
+                         PROCEDURE RenderGraph; virtual;
+                         {write PNG file}
+                         FUNCTION WritePNG(Filename : PCHAR):BOOLEAN;
+                         PROCEDURE Draw3dPanel;
+                         PROCEDURE DrawMarkers;
+                             {really primative stuff}
+                             {move pen to new loc}
+                         PROCEDURE MoveTo(X, Y : DOUBLE);
+                             {drop pen and move to new location, drawing}
+                         PROCEDURE PlotBar(X, Y, Width : DOUBLE; Color : LONGINT);
+                             {move pen to new location, drop pen and draw to second location}
+                         PROCEDURE DrawLine(xs, YS, XE, Ye : DOUBLE; Color : LONGINT);
+                             {draw graph scale units and markings}
+                         PROCEDURE DrawScales; virtual;
+
+                             {add a single data point for plotting later}
+                         FUNCTION AddPoint(Ch : TPlotChannel; XY : TPlotCoord) : BOOLEAN;
+                             {add a marker}
+                         FUNCTION AddMarker(Style : TgdMarker; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE) : BOOLEAN;
+                             {blow off data point lists}
+                         PROCEDURE ClearData;
+
+                             {add a text label to header or footer}
+                         FUNCTION AddLabel(MyLabel        : PCHAR; {label}
+                                           Region         : TRegion; {header or footer?}
+                                           Orient         : TLabelOrient; {not implemented - use horiz only!}
+                                           HJust          : JustT; {horizontal justification}
+                                           VJust          : JustVT; {vertical justification}
+                                           MyColor        : TRGBColor; {label color}
+                                           MyFont         : PCHAR; {TTF font filename to use for label}
+                                           MyPtSize       : DOUBLE) : BOOLEAN; {point size}
+
+                             {setup a channel (pen) for saving data}
+                         PROCEDURE SetChanPen(Ch             : TPlotChannel; {channel to set}
+                                              Color          : TRGBColor; {data color}
+                                              Style, {line Style - not implimented}
+                                              Pattern, {pattern, if custom Style - not implimented}
+                                              Thickness      : WORD); {line thickness - not implimented}
+
+
+                             {calc pixel location from user units}
+                         FUNCTION TranslateX(X : DOUBLE) : COMP;
+                         FUNCTION TranslateY(Y : DOUBLE) : COMP;
+                         FUNCTION TranslateXY(X, Y : DOUBLE; VAR Pt:TPoint):BOOLEAN;
+                             {draw the grid and or plotbox}
+                         PROCEDURE Draw; VIRTUAL; ABSTRACT;
+
+                             {draw headers and footers}
+                         PROCEDURE DrawTextRegions;
+
+                         FUNCTION GetXScaleWidth  : LONGINT;
+                         FUNCTION GetYScaleHeight : LONGINT;
+                         FUNCTION GetYScaleWidth : LONGINT;
+                         PROCEDURE AutoscaleXYAxis;
+                            {create GD palette handle from enumerated standard color}
+                         FUNCTION MakeColor(Color:TgdColors):LONGINT;
+                    END;
+
+                     {parent class for all Markers (markers)}
+    TMarker       = CLASS(TObject)
+                        CONSTRUCTOR Create;
+                        PROCEDURE Draw; VIRTUAL; ABSTRACT;
+                        PRIVATE
+                            MyColor     : LONGINT;
+                            MyXY        : TPlotCoord;
+                            MyParent    : TGDGraph;
+                            MyPointSize : DOUBLE;
+                     END;
+
+                        {some polymorphic Marker objects}
+    TTriangleMarker=   CLASS(TMarker)
+                            CONSTRUCTOR Create(Parent : TgdGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+                            PROCEDURE Draw; OVERRIDE;
+                        END;
+
+    TSquareMarker=     CLASS(TMarker)
+                            CONSTRUCTOR Create(Parent : TgdGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+                            PROCEDURE Draw; OVERRIDE;
+                        END;
+
+    TCircleMarker=     CLASS(TMarker)
+                            CONSTRUCTOR Create(Parent : TgdGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+                            PROCEDURE Draw; OVERRIDE;
+                        END;
+
+    TInvertedTriangleMarker=   CLASS(TMarker)
+                                    CONSTRUCTOR Create(Parent : TgdGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+                                    PROCEDURE Draw; OVERRIDE;
+                                END;
+
+    TStarMarker=       CLASS(TMarker)
+                            CONSTRUCTOR Create(Parent : TgdGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+                            PROCEDURE Draw; OVERRIDE;
+                        END;
+
+    PROCEDURE CalcExtents(Location : TgdQuad; FullSize : TExtentRange; VAR NewExtents : TExtentRect);
+
+IMPLEMENTATION
+USES
+    Strings,
+    Math,
+    SysUtils,
+    VPUTILS;
+CONST
+    DPIFACTOR = 72;
+    BadReal = 9.9E300;
+    LEADING = 1.1;
+
+    {------------}
+
+    // set X scale label numeric width and precision
+    PROCEDURE TGDGraph.SetXScaleWidthPrecision(Width, Precision:BYTE);
+    BEGIN
+        XScaleFormat := '%' + IntToStr(Width) + '.' + IntToStr(Precision) + 'f';
+    END;
+
+    //-------------
+
+    // set Y scale label numeric width and precision
+    PROCEDURE TGDGraph.SetYScaleWidthPrecision(Width, Precision:BYTE);
+    BEGIN
+        YScaleFormat := '%' + IntToStr(Width) + '.' + IntToStr(Precision) + 'f';;
+    END;
+
+    //-------------
+
+    // set color of background grid
+    PROCEDURE TGDGraph.SetGridColor(Color : TRGBColor);
+    BEGIN
+        MyGridColor :=gdImageColorResolve(MyIm, Color.R, Color.G, Color.B);
+    END;
+
+    //-------------
+
+    // color of background panel
+    PROCEDURE TGDGraph.SetPanelColor3d(Color:TRGBColor);
+    BEGIN
+        MyPanelColor3d :=gdImageColorResolve(MyIm, Color.R, Color.G, Color.B);
+    END;
+
+    //-------------
+
+    // set sunny side (high left) edge color of 3d background panel
+    PROCEDURE TGDGraph.SetPanelColorSunside3d(Color:TRGBColor);
+    BEGIN
+        MyPanelColorSunside3d := gdImageColorResolve(MyIm, Color.R, Color.G, Color.B);
+    END;
+
+    //-------------
+
+    // set shadow side (lower right) edge color of 3d background panel
+    PROCEDURE TGDGraph.SetPanelColorShadowSide3d(Color:TRGBColor);
+    BEGIN
+        MyPanelColorShadowSide3d := gdImageColorResolve(MyIm, Color.R, Color.G, Color.B);
+    END;
+
+    //-------------
+
+    // set dropshadow color of outer edge of grid - not implemented yet
+    PROCEDURE TGDGraph.SetPanelColorGridDropShadow(Color:TRGBColor);
+    BEGIN
+        MyPanelColorGridDropShadow := gdImageColorResolve(MyIm, Color.R, Color.G, Color.B);
+    END;
+
+    //-------------
+
+    {instantiate a grid plotter object}
+    CONSTRUCTOR TGDGraph.Create(FullExtent : TExtentRange); // i.e. 640x480
+    VAR
+        RGBBlack       : TRGBColor;
+        Im           : gdImagePtr;
+    BEGIN
+        FILLCHAR(MyData, SIZEOF(MyData), #0);
+        FILLCHAR(RGBBlack, SIZEOF(RGBBlack), #0);
+        MyIm:=gdImageCreateTrueColor(FullExtent.X, FullExtent.Y);
+        //gdImageInterlace(MyIm, 1); // unrem this if you need interlaced graphics for webpages
+        MyMarkers := TList.Create;
+
+        Black:=gdImageColorResolve(MyIm, 0, 0, 0);
+        White:=gdImageColorResolve(MyIm, 255, 255, 255);
+
+        // 3D beveled look metrics & defaults
+        MyBorderWidth3d := 4;
+        MyPanelColor3d := gdImageColorResolve(MyIm, gdColorLUT[gdMedGray].R, gdColorLUT[gdMedGray].G, gdColorLUT[gdMedGray].B);
+        MyPanelColorSunside3d := White;
+        MyPanelColorShadowSide3d := gdImageColorResolve(MyIm, gdColorLUT[gdDkGray].R, gdColorLUT[gdDkGray].G, gdColorLUT[gdDkGray].B);
+        MyPanelColorGridDropShadow := Black;
+
+        XScaleFormat := '%f';
+        YScaleFormat := '%f';
+
+        MyTextRegions := TTextRegionList.Create(MyIm);
+
+        IF MyTextRegions = NIL THEN
+            FAIL;
+
+        MyFullExtent := FullExtent;
+        MyFullViewport := ViewPort;
+
+        MyGridViewport := ViewPort;
+
+        MyAutoScaleX := AutoScaleX;
+        MyAutoScaleY := AutoScaleY;
+
+        MyXMinSc := 0;       {in user units - defaults}
+        MyYMinSc := 0;
+        MyXMaxSc := 100;
+        MyYMaxSc := 100;
+
+        DoXScale := TRUE;
+        DoYScale := TRUE;
+
+        MyXScaleUnits := 'Units';
+        MyYScaleUnits := 'Units';
+
+        Virgin := TRUE;
+
+        XScaleDif := MyXMaxSc - MyXMinSc; {in user units}
+        YScaleDif := MyYMaxSc - MyYMinSc;
+
+        MyGridColor := White;
+
+        DoGrid := TRUE;
+        MyXTicks := 10;
+        MyYTicks := 10;
+
+        MyLabelFont := StrNew('tahoma.ttf');
+        MyLabelPointSize := LabelPointSize;
+
+        MySelf := Self;
+
+    END;
+
+    {------------}
+
+    // Look up color in lookup table, create palette entry if not already allocated
+    // return handle to palette color
+    FUNCTION TGDGraph.MakeColor(Color:TgdColors):LONGINT;
+    BEGIN
+        Result := gdImageColorResolve(MyIm, gdColorLUT[Color].R, gdColorLUT[Color].G, gdColorLUT[Color].B);
+    END;
+
+    {------------}
+
+    // common viewport math for all descendent objects goes here
+    PROCEDURE TGDGraph.RenderGraph;
+    BEGIN
+        // MyFullViewPort is the subsection of the PNG that we will be plotting to; It may be the entire canvas if you like
+        // MyGridViewport is the active plotting data area
+
+        // Calc MyGridViewPort - give enough room for labels, headers, footers, etc.
+
+        // how tall is the current header?
+        HeaderHeight := (ROUND(MyTextRegions.GetHeight(Header) * LEADING)) + MyBorderWidth3d;
+        MyGridViewPort.Y1 := MyFullViewPort.Y1 + HeaderHeight+2; // move top down for title, if any
+
+        // push the left side to the right, to make room for the Y-Axis markings and label
+        MyGridViewPort.X1 := MyFullViewPort.X1 + (ROUND(MyTextRegions.GetWidth(LeftYAxis) * LEADING)) + MyBorderWidth3d; // move left side to right for xunits and xscale
+
+        // how tall is the footer and X-Axis labels?
+        FooterHeight := ROUND((MyTextRegions.GetHeight(Footer) + (GetYScaleHeight*3)) * LEADING);
+
+        // move bottom up for yunits, yscale and footer (if any)
+        MyGridViewPort.Y2 := MyFullViewPort.Y2 - FooterHeight - MyBorderWidth3d;
+
+        // fudge the right side a bit, in case the rightmost X-axis marking slops over the edge of the grid
+        MyGridViewPort.X2 := MyFullViewPort.X2 - CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, '000') - MyBorderWidth3d; // Give a little room for far right scale
+
+        // now that MyGridViewPort has been adjusted, we can autoscale the X and Y axis to match the data
+        IF (MyAutoScaleX > EASNONE) OR (MyAutoScaleY > EASNONE) THEN
+            AutoscaleXYAxis;
+        MyGridViewPort.X1 := MyGridViewport.X1 + GetYScaleWidth; // zzzz
+    END;
+
+    {------------}
+
+    // Kill all the dynamically allocated memory
+    // Not tested - there may be leaks here KGM 2-2003
+    DESTRUCTOR TGDGraph.Destroy;
+    BEGIN
+        ClearData;
+        MyTextRegions.Free;
+        MyMarkers.Free;
+        FILLCHAR(MyData, SIZEOF(MyData), #0);
+        gdImageDestroy(MyIm);
+        StrDispose(MyLabelFont);
+        MyIm := NIL;
+    END;
+
+    {------------}
+
+    // Turn on the X-Axis markings
+    PROCEDURE TGDGraph.SetXScale(Enb:BOOLEAN);
+    BEGIN
+        DoXScale := Enb;
+
+        IF DoXScale THEN
+            MyTextRegions.AddText(XScaleUnits,
+                                   GridColor,
+                                   LabelFont,
+                                   EHoriz,
+                                   ECENTER,
+                                   ETOP,
+                                   6,
+                                   BotXAxis,
+                                   @Self);
+    END;
+
+    {------------}
+
+    // Turn on the Y-Axis markings
+    PROCEDURE TGDGraph.SetYScale(Enb:BOOLEAN);
+    BEGIN
+        DoYScale := Enb;
+        IF DoYScale THEN
+            MyTextRegions.AddText(YScaleUnits,
+                                   GridColor,
+                                   LabelFont,
+                                   EVert,
+                                   ECENTER,
+                                   ETOP,
+                                   6,
+                                   LeftYAxis,
+                                   @Self);
+    END;
+
+    {------------}
+
+    // Set the label (X/Y axis) font
+    PROCEDURE TGDGraph.SetLabelFont(Font:PCHAR);
+    BEGIN
+        StrDispose(MyLabelFont);
+        MyLabelFont := StrNew(Font);
+        MyLabelHeight := CalcStringHeight(MyLabelFont, LabelPointSize, 0.0, 'H');
+    END;
+
+    {------------}
+
+    // this function allows us to change resolution without changing font sizes manually
+    FUNCTION TGDGraph.ScaleFont(FontSize:DOUBLE):DOUBLE;
+    VAR
+        Ratio : DOUBLE;
+        L1,
+        L2 : LONGINT;
+    BEGIN
+        L1 := ROUND(MyFullViewPort.X2 - MyFullViewPort.X1);
+        L2 :=ROUND(MyFullViewPort.Y2 - MyFullViewPort.Y1);
+        Ratio := MAX(L1, L2) / 640.0;
+        Result := Ratio * FontSize;
+    END;
+
+    {------------}
+
+    {calc x position from viewport and user value}
+    FUNCTION TGDGraph.TranslateX(X : DOUBLE) : COMP;
+    VAR
+        T              : COMP;
+    BEGIN
+        T := MyGridViewPort.X1 + ROUND(((MyGridViewPort.X2 - MyGridViewPort.X1) * ((X - MyXMinSc) / XScaleDif)));
+
+        IF T > MyGridViewPort.X2 THEN
+            T := MyGridViewPort.X2;
+        IF T < MyGridViewPort.X1 THEN
+            T := MyGridViewPort.X1;
+
+        TranslateX := T;
+    END;
+
+    {------------}
+
+    {calc y position from viewport and user value}
+    FUNCTION TGDGraph.TranslateY(Y : DOUBLE) : COMP;
+    VAR
+        T,
+        SI,
+        YMS,
+        YSD,
+        T1              : DOUBLE;
+    BEGIN
+        YMS := MyYMaxSc;
+        YSD := YScaleDif;
+        if ysd < 1e-300 then
+            ysd := 1.0;
+        SI :=  - (Y - YMS) / YSD;
+        T1 := (MyGridViewPort.Y2 - MyGridViewPort.Y1);
+        T1 := T1 * SI;
+        T := MyGridViewPort.Y1 + T1;
+
+        IF T > MyGridViewPort.Y2 THEN
+            T := MyGridViewPort.Y2;
+        IF T < MyGridViewPort.Y1 THEN
+            T := MyGridViewPort.Y1;
+
+        Result := ROUND(T);
+    END;
+
+    {------------}
+
+    // calc XY position in pixel units, mapped into MyGridViewport area
+    // using X & Y User units
+    FUNCTION TGDGraph.TranslateXY(X, Y : DOUBLE; VAR Pt:TPoint):BOOLEAN;
+    BEGIN
+        Result := TRUE;
+        Pt.X := ROUND(TranslateX(X));
+        Pt.Y := ROUND(TranslateY(Y));
+
+        IF Pt.X > MyGridViewPort.X2 THEN BEGIN
+            Result := FALSE; // clip
+            EXIT;
+        END;
+
+        IF Pt.X < MyGridViewPort.X1 THEN BEGIN
+            Result := FALSE; // clip
+            EXIT;
+        END;
+
+        IF Pt.Y > MyGridViewPort.Y2 THEN BEGIN
+            Result := FALSE; // clip
+            EXIT;
+        END;
+
+        IF Pt.Y < MyGridViewPort.Y1 THEN BEGIN
+            Result := FALSE; // clip
+            EXIT;
+        END;
+    END;
+
+    {------------}
+
+    PROCEDURE TGDGraph.PlotBar(X, Y, Width : DOUBLE; Color : LONGINT);
+    VAR
+        Pt1,
+        Pt2 : TPoint;
+    BEGIN
+        TranslateXY(X, Y, Pt1);
+        TranslateXY(X + Width, MyYMinSc, Pt2);
+        gdImageFilledRectangle(MyIm, Pt1.X, Pt1.Y, Pt2.X, Pt2.Y, Color); // draw the bar
+        gdImageRectangle(MyIm, Pt1.X, Pt1.Y, Pt2.X, Pt2.Y, Black);       // outline it in black
+    END;
+
+    {------------}
+
+    PROCEDURE TGDGraph.DrawLine(xs, YS, XE, Ye : DOUBLE; Color : LONGINT);
+    VAR
+        Pt1,
+        Pt2:TPoint;
+    BEGIN
+        TranslateXY(Xs, Ys, Pt1); // start
+        TranslateXY(Xe, Ye, Pt2); // end
+
+        gdImageLine(MyIm, Pt1.X, Pt1.Y, Pt2.X, Pt2.Y, Color);
+        MyCP := Pt2;
+        Virgin := FALSE;
+    END;
+
+    {------------}
+
+    PROCEDURE TGDGraph.MoveTo(X, Y : DOUBLE);
+    BEGIN
+        TranslateXY(X,Y,MyCP); // Just move the pen but dont draw (pen up)
+    END;
+
+    {------------}
+
+    {add a text label}
+    FUNCTION TGDGraph.AddLabel(MyLabel        : PCHAR;
+                            Region         : TRegion;
+                            Orient         : TLabelOrient;
+                            HJust          : JustT;
+                            VJust          : JustVT;
+                            MyColor        : TRGBColor;
+                            MyFont         : PCHAR;
+                            MyPtSize       : DOUBLE) : BOOLEAN;
+    BEGIN
+        AddLabel := MyTextRegions.AddText(MyLabel,
+                                           MyColor,
+                                           MyFont,
+                                           Orient,
+                                           HJust,
+                                           VJust,
+                                           MyPtSize,
+                                           Region,
+                                           @MySelf);
+    END;
+
+    {------------}
+
+    // add a datapoint to the graph
+    FUNCTION TGDGraph.AddPoint(Ch : TPlotChannel; XY : TPlotCoord) : BOOLEAN;
+    BEGIN
+        AddPoint := FALSE;
+        IF MyData[Ch].DL = NIL THEN BEGIN
+            {instantiate a new channel}
+            MyData[Ch].DL := TPlotDataList.Create;
+            IF MyData[Ch].DL = NIL THEN
+                EXIT;
+        END;
+        {attempt to add the point to the channel}
+        AddPoint := MyData[Ch].DL.AddPoint(XY);
+    END;
+
+    {------------}
+
+    // Add a marker to the graph where:
+    // Style = the shape of the marker (self explanitory)
+    // XY is the location in user units
+    // Color = the color of the marker dingbat - make sure it contrasts with the background and data color
+    // Pointsize = the size of the marker; A 10 point marker is the same size (relative height) as a 10 Pt label
+    FUNCTION TGDGraph.AddMarker(Style : TgdMarker; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE) : BOOLEAN;
+    VAR
+        D : TMarker;
+    BEGIN
+        Result := FALSE;
+
+        CASE Style OF
+            gdNoMarker:
+                BEGIN
+                    Result := TRUE;
+                    EXIT;
+                END;
+            gdCircle:
+                D := TCircleMarker.Create(MySelf, XY, Color, PointSize);
+            gdSquare:
+                D := TSquareMarker.Create(MySelf, XY, Color, PointSize);
+            gdTriangle:
+                D := TTriangleMarker.Create(MySelf, XY, Color, PointSize);
+            gdInvertedTriangle:
+                D := TInvertedTriangleMarker.Create(MySelf, XY, Color, PointSize);
+            gdStar:
+                D := TStarMarker.Create(MySelf, XY, Color, PointSize);
+        END;
+
+        IF D = NIL THEN
+            EXIT;
+
+        MyMarkers.Add(D);
+
+        Result := TRUE;
+    END;
+
+    {------------}
+
+    // Blow off the data
+    PROCEDURE TGDGraph.ClearData;
+    VAR
+        Ch : TPlotChannel;
+        i : LONGINT;
+    BEGIN
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+            IF MyData[Ch].DL <> NIL THEN BEGIN
+                for i := 0 to MyData[Ch].DL.Count -1 do
+                    TPlotPoint(MyData[Ch].DL.Items[i]).Free;
+                MyData[Ch].DL.Clear;
+                i := MyData[Ch].DL.Count;
+                MyData[Ch].DL.Free;
+                MyData[Ch].DL := NIL;
+            END;
+        END;
+    END;
+
+    {------------}
+
+    // munge through the data and find the min/max values
+    // reset the X and Y scale if the user wants autoscaling for
+    // a given axis
+    PROCEDURE TGDGraph.AutoscaleXYAxis;
+    VAR
+        Ch : TPlotChannel;
+        MinVal,
+        MaxVal,
+        XY      : TPlotCoord;
+        I       : LONGINT;
+    BEGIN
+        MinVal.X := MAXEXTENDED;
+        MinVal.Y := MAXEXTENDED;
+        MaxVal.X := -MAXEXTENDED;
+        MaxVal.Y := -MAXEXTENDED;
+
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+            IF MyData[Ch].DL = NIL THEN
+                CONTINUE;
+
+            FOR I := 0 to MyData[Ch].DL.Count-1 DO BEGIN
+                TPlotPoint(MyData[Ch].DL.Items[I]).GetVal(XY);
+                IF XY.X > MaxVal.X THEN
+                    MaxVal.X := XY.X;
+                IF XY.Y > MaxVal.Y THEN
+                    MaxVal.Y := XY.Y;
+                IF XY.X < MinVal.X THEN
+                    MinVal.X := XY.X;
+                IF XY.Y < MinVal.Y THEN
+                    MinVal.Y := XY.Y;
+            END;
+        END;
+
+        case MyAutoScaleX of
+            EASNONE:;
+            EASMIN:
+                MyXMinSc := MinVal.X;
+            EASMAX:
+                MyXMaxSc := MaxVal.X;
+            EASBOTH:
+                BEGIN
+                    MyXMinSc := MinVal.X;
+                    MyXMaxSc := MaxVal.X;
+                END;
+        end;
+        XScaleDif := MyXMaxSc - MyXMinSc;
+
+        case MyAutoScaleY of
+            EASNONE:;
+            EASMIN:
+                MyYMinSc := MinVal.Y;
+            EASMAX:
+                MyYMaxSc := MaxVal.Y;
+            EASBOTH:
+                BEGIN
+                    MyYMinSc := MinVal.Y;
+                    MyYMaxSc := MaxVal.Y;
+                END;
+        end;
+
+        YScaleDif := MyYMaxSc - MyYMinSc;
+
+        if MyAutoScaleY > EASNONE THEN BEGIN
+            if YScaleDif < 1e-99 then begin
+                if abs(MyYMaxSc) > 1e-99 then begin
+                    YScaleDif := Sqrt(Abs(MyYMaxSc));
+                    if (MyAutoScaleY = EASMAX) or (MyAutoScaleY = EASBOTH) then
+                        MyYMaxSc := MyYMaxSc + (YScaleDif / 2.0);
+                    if (MyAutoScaleY = EASMIN) or (MyAutoScaleY = EASBOTH) then
+                        MyYMinSc := MyYMinSc - (YScaleDif / 2.0);
+                end
+                else begin
+                    YScaleDif := 1.0;
+                    if (MyAutoScaleY = EASMAX) or (MyAutoScaleY = EASBOTH) then
+                        MyYMaxSc := MyYMaxSc + (YScaleDif / 2.0);
+                    if (MyAutoScaleY = EASMIN) or (MyAutoScaleY = EASBOTH) then
+                        MyYMinSc := MyYMinSc - (YScaleDif / 2.0);
+                end;
+            end;
+        end;
+    END;
+
+    {------------}
+
+    // draw beveled background panel
+    PROCEDURE TGDGraph.Draw3dPanel;
+    VAR
+        I : WORD;
+        Edge : ARRAY[1..4] OF gdPoint;
+    BEGIN
+        // draw filled rectangle the size of the entire viewport
+        gdImageFilledRectangle(MyIm, round(MyFullViewPort.X1), round(MyFullViewPort.Y1), round(MyFullViewPort.X2), round(MyFullViewPort.Y2), MyPanelColor3d);
+
+        // fill top area with sunside color lines, MyBorderWidth3d tall, bevel right edge
+        Edge[1].X := round(MyFullViewPort.X1);  // top left
+        Edge[1].Y := round(MyFullViewPort.Y1);
+
+        Edge[2].X := round(MyFullViewPort.X2);  // top right
+        Edge[2].Y := round(MyFullViewPort.Y1);
+
+        Edge[3].X := round(MyFullViewPort.X2-MyBorderWidth3d); // right bevel
+        Edge[3].Y := round(MyFullViewPort.Y1+MyBorderWidth3d);
+
+        Edge[4].X := round(MyFullViewPort.X1);                 // bottom left
+        Edge[4].Y := round(MyFullViewPort.Y1+MyBorderWidth3d);
+
+        gdImageFilledPolygon(MyIm, @Edge, 4, MyPanelColorSunside3d);
+
+        // fill left area with sunside color lines, MyBorderWidth3d wide, bevel bottom edge
+        Edge[1].X := round(MyFullViewPort.X1);  // top left
+        Edge[1].Y := round(MyFullViewPort.Y1);
+
+        Edge[2].X := round(MyFullViewPort.X1+MyBorderWidth3d);  // top right
+        Edge[2].Y := round(MyFullViewPort.Y1);
+
+        Edge[3].X := round(MyFullViewPort.X1+MyBorderWidth3d); // right bevel
+        Edge[3].Y := round(MyFullViewPort.Y2-MyBorderWidth3d);
+
+        Edge[4].X := round(MyFullViewPort.X1);                 // bottom left
+        Edge[4].Y := round(MyFullViewPort.Y2);
+
+        gdImageFilledPolygon(MyIm, @Edge, 4, MyPanelColorSunside3d);
+
+        // top left edge bevel line
+        gdImageLine(MyIm, round(MyFullViewPort.X1), round(MyFullViewPort.Y1), round(MyFullViewPort.X1) + round(MyBorderWidth3d), round(MyFullViewPort.Y1) + round(MyBorderWidth3d), MyPanelColorShadowSide3d);
+
+        // fill bottom area with shadow color lines, MyBorderWidth3d tall, bevel left edge
+        Edge[1].X := round(MyFullViewPort.X1+MyBorderWidth3d);  // top left
+        Edge[1].Y := round(MyFullViewPort.Y2-MyBorderWidth3d);
+
+        Edge[2].X := round(MyFullViewPort.X2);  // top right
+        Edge[2].Y := round(MyFullViewPort.Y2-MyBorderWidth3d);
+
+        Edge[3].X := round(MyFullViewPort.X2); // bottom right
+        Edge[3].Y := round(MyFullViewPort.Y2);
+
+        Edge[4].X := round(MyFullViewPort.X1); // bottom left
+        Edge[4].Y := round(MyFullViewPort.Y2);
+
+        gdImageFilledPolygon(MyIm, @Edge, 4, MyPanelColorShadowSide3d);
+
+        // do edge twinkle, lower left
+        gdImageLine(MyIm, round(MyFullViewPort.X1+3), round(MyFullViewPort.Y2-1), round(MyFullViewPort.X1+MyBorderWidth3d+1), round(MyFullViewPort.Y2-MyBorderWidth3d+1), White);
+
+        // fill right area with shadow color lines, MyBorderWidth3d wide, bevel top edge
+        Edge[1].X := round(MyFullViewPort.X2-MyBorderWidth3d);  // top left
+        Edge[1].Y := round(MyFullViewPort.Y1+MyBorderWidth3d);
+
+        Edge[2].X := round(MyFullViewPort.X2);  // top right
+        Edge[2].Y := round(MyFullViewPort.Y1);
+
+        Edge[3].X := round(MyFullViewPort.X2); // bottom right
+        Edge[3].Y := round(MyFullViewPort.Y2);
+
+        Edge[4].X := round(MyFullViewPort.X2-MyBorderWidth3d); // bottom left
+        Edge[4].Y := round(MyFullViewPort.Y2);
+
+        gdImageFilledPolygon(MyIm, @Edge, 4, MyPanelColorShadowSide3d);
+
+        // do edge twinkle, upper right
+        gdImageLine(MyIm, round(MyFullViewPort.X2-MyBorderWidth3d+1), round(MyFullViewPort.Y1+MyBorderWidth3d), round(MyFullViewPort.X2-1), round(MyFullViewPort.Y1+2), White);
+
+        // bottom right edge bevel line
+        gdImageLine(MyIm, round(MyFullViewPort.X2 - MyBorderWidth3d), round(MyFullViewPort.Y2 - MyBorderWidth3d), round(MyFullViewPort.X2), round(MyFullViewPort.Y2), Black);
+    END;
+
+    {------------}
+
+    // draw headers and footers (if any)
+    PROCEDURE TGDGraph.DrawTextRegions;
+    BEGIN
+        MyTextRegions.Draw(Header);
+        MyTextRegions.Draw(Footer);
+    END;
+
+    //--------------
+
+    // plot the memory image to a PNG file
+    FUNCTION TGDGraph.WritePNG(Filename : PCHAR):BOOLEAN;
+    VAR
+        F              : pFile;
+    BEGIN
+        F:=fopen(FileName, 'wb');
+
+        if (F=nil) then
+            writeln('Help, the file pointer is nil');
+
+        gdImagePng(MyIm, F);
+
+        fclose(F);
+    END;
+
+    {------------}
+
+    // calculate the width in pixels of the widest X Axis label
+    FUNCTION TGDGraph.GetXScaleWidth  : LONGINT;
+    VAR
+        Strg : STRING;
+        Ch   : TPlotChannel;
+        T,
+        W,
+        I : LONGINT;
+        XY : TPlotCoord;
+        PP : TPlotPoint;
+        BRect          : TBoundingRect;
+    BEGIN
+        W := 0;
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+            IF MyData[Ch].DL = NIL THEN
+                CONTINUE;
+
+            FOR I := 0 to MyData[Ch].DL.Count-1 DO BEGIN
+                TPlotPoint(MyData[Ch].DL.Items[I]).GetVal(XY);
+                Strg := Format(XScaleFormat, [XY.X]) + #0;
+                gdImageStringFT(NIL, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, 10, 10, @Strg[1]);
+                T := BRect.URX - BRect.ULY;
+                IF T > W THEN
+                    W := T;
+            END;
+        END;
+        Result := W;
+    END;
+
+    {------------}
+
+    // calculate the width in pixels of the widest X Axis label
+    FUNCTION TGDGraph.GetYScaleWidth  : LONGINT;
+    VAR
+        R    : DOUBLE;
+        Strg : STRING;
+        Ch   : TPlotChannel;
+        T,
+        W,
+        I : LONGINT;
+        XY : TPlotCoord;
+        PP : TPlotPoint;
+        BRect          : TBoundingRect;
+    BEGIN
+        R := MyYMinSc;
+        W := 0;
+        WHILE R < MyYMaxSc DO BEGIN
+            Strg := Format(YScaleFormat, [R]) + #0;
+            gdImageStringFT(NIL, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, 10, 10, @Strg[1]);
+            T := BRect.URX - BRect.ULY;
+            IF T > W THEN
+                W := T;
+            R := R + (YScaleDif / 10.0)
+        END;
+        Result := W;
+    END;
+
+    {------------}
+
+    // Draw the markers, if any
+    PROCEDURE TGDGraph.DrawMarkers;
+    VAR
+        I : LONGINT;
+    BEGIN
+        FOR I := 0 TO MyMarkers.Count-1 DO
+            TMarker(MyMarkers.Items[I]).Draw;
+    END;
+
+    {------------}
+
+    // calculate the height of a single Y axis scale marking
+    FUNCTION TGDGraph.GetYScaleHeight : LONGINT;
+    BEGIN
+        Result := CalcStringHeight(MyLabelFont, MyLabelPointSize, 0.0, 'H');
+    END;
+
+    {------------}
+
+    // Set a channel pen attributes
+    {note: Only the last setting for a given channel is used}
+    PROCEDURE TGDGraph.SetChanPen(Ch             : TPlotChannel;
+                               Color          : TRGBColor;
+                               Style,
+                               Pattern,
+                               Thickness      : WORD);
+    BEGIN
+        MyData[Ch].Color := gdImageColorResolve(MyIm, Color.R, Color.G, Color.B);
+        MyData[Ch].Style := Style;
+        MyData[Ch].Pattern := Pattern;
+        MyData[Ch].Thickness := Thickness;
+    END;
+
+    {------------}
+
+    // manually set the left X Axis value
+    PROCEDURE TGDGraph.SetXMinSc(MinX : Extended);
+    BEGIN
+        MyXMinSc := MinX;
+        XScaleDif := MyXMaxSc - MyXMinSc; {in user units}
+    END;
+
+    {------------}
+
+    // manually set the Bottom Y Axis value
+    PROCEDURE TGDGraph.SetYMinSc(MinY : Extended);
+    BEGIN
+        MyYMinSc := MinY;
+        YScaleDif := MyYMaxSc - MyYMinSc; {in user units}
+    END;
+
+    {------------}
+
+    // manually set the Top Y Axis value
+    PROCEDURE TGDGraph.SetYMaxSc(MaxY : Extended);
+    BEGIN
+        MyYMaxSc := MaxY;
+        YScaleDif := MyYMaxSc - MyYMinSc; {in user units}
+    END;
+
+    {------------}
+
+    // manually set the Right X Axis value
+    PROCEDURE TGDGraph.SetXMaxSc(MaxX : Extended);
+    BEGIN
+        MyXMaxSc := MaxX;
+        XScaleDif := MyXMaxSc - MyXMinSc; {in user units}
+    END;
+
+    {------------}
+
+    // Instantiate a datapoint
+    CONSTRUCTOR TPlotPoint.Create(XY : TPlotCoord);
+    BEGIN
+        inherited Create;
+        MyVal := XY;
+    END;
+
+    {------------}
+
+    DESTRUCTOR TPlotPoint.Destroy;
+    begin
+        inherited destroy;
+    end;
+
+    // query a datapoint value
+    PROCEDURE TPlotPoint.GetVal(VAR XY : TPlotCoord);
+    BEGIN
+        XY := MyVal;
+    END;
+
+    {------------}
+
+    CONSTRUCTOR TPlotDataList.Create;
+    BEGIN
+        inherited Create;
+    END;
+
+    {------------}
+
+    destructor TPlotDataList.Destroy;
+    var
+        i : word;
+    begin
+        if count > 0 then begin
+        for i := 0 to count-1 do
+            TPlotPoint(Items[i]).Free;
+        end;
+        inherited Destroy;
+    end;
+
+    {------------}
+
+    // add a datapoint to the list - uses user units
+    FUNCTION TPlotDataList.AddPoint(V : TPlotCoord) : BOOLEAN;
+    VAR
+        PPP            : TPlotPoint;
+    BEGIN
+        AddPoint := FALSE;
+        PPP := TPlotPoint.Create(V);
+        Add(PPP);
+        AddPoint := TRUE;
+    END;
+
+    {------------}
+
+    // duh...
+    FUNCTION MinReal(A, B : DOUBLE):DOUBLE;
+    BEGIN
+        IF A < B THEN
+            Result := A
+        ELSE
+            Result := B;
+    END;
+
+    {------------}
+
+    // method method on the wall, whos the highest datapoint of all?
+    FUNCTION TPlotDataList.FindMinX : DOUBLE;
+    VAR
+        V              : TPlotCoord;
+        MinVal         : DOUBLE;
+        I              : LONGINT;
+    BEGIN
+        Result := 0.0;
+        MinVal := -9.9e300;
+
+        FOR I := 1 to Count DO BEGIN
+            PPlotPoint(Items[I])^.GetVal(V);
+            MinVal := MinReal(V.X, MinVal);
+        END;
+
+        FindMinX := MinVal;
+    END;
+
+    {------------}
+
+    FUNCTION MaxReal(A, B:DOUBLE):DOUBLE;
+    BEGIN
+        IF A > B THEN
+            Result := A
+        ELSE
+            Result := B;
+    END;
+
+    {------------}
+
+    FUNCTION TPlotDataList.FindMaxX : DOUBLE;
+    VAR
+        V              : TPlotCoord;
+        MaxVal         : DOUBLE;
+        I              : LONGINT;
+    BEGIN
+        MaxVal := -BadReal;
+
+        FOR I:=1 to Count DO BEGIN
+            PPlotPoint(Items[I])^.GetVal(V);
+            MaxVal := MaxReal(V.X, MaxVal);
+        END;
+
+        Result := MaxVal;
+    END;
+
+    {------------}
+
+    FUNCTION TPlotDataList.FindMinY : DOUBLE;
+    VAR
+        V              : TPlotCoord;
+        MinVal         : DOUBLE;
+        I              : LONGINT;
+    BEGIN
+        MinVal := BadReal;
+
+        FOR I:=1 to Count DO BEGIN
+            PPlotPoint(Items[I])^.GetVal(V);
+            MinVal := MinReal(V.Y, MinVal);
+        END;
+
+        Result := MinVal;
+    END;
+
+    {------------}
+
+    FUNCTION TPlotDataList.FindMaxY : DOUBLE;
+    VAR
+        V              : TPlotCoord;
+        MaxVal         : DOUBLE;
+        I              : LONGINT;
+    BEGIN
+        MaxVal := BadReal;
+
+        FOR I:=1 to Count DO BEGIN
+            PPlotPoint(Items[I])^.GetVal(V);
+            MaxVal := MaxReal(V.Y, MaxVal);
+        END;
+
+        Result := MaxVal;
+    END;
+
+    {------------}
+
+    // add a units label to the graph - most of the parameters are not implemented yet KGM 2-2003
+    CONSTRUCTOR TLabel.Create(Txt            : PCHAR;
+                            Color          : TRGBColor;
+                            Font           : PCHAR;
+                            PointSize      : DOUBLE;
+                            Orient         : TLabelOrient;
+                            HJust          : JustT;
+                            VJust          : JustVT;
+                            Region         : TRegion;
+                            VAR Im         : gdImagePtr;
+                            Parent         : PGDGraph);
+    BEGIN
+        MyIm := Im;
+        MyLabelTxt := StrNew(Txt);
+
+        MyColor := gdImageColorResolve(MyIm, Color.R, Color.G, Color.B);
+        MyFont := Font;
+        MyOrient := Orient;
+        MyRegion := Region;
+        MyHJust := HJust;
+        MyVJust := VJust;
+        MyPointSize := PointSize;
+        MyParent := Parent;
+    END;
+
+    {------------}
+
+    DESTRUCTOR TLabel.Destroy;
+    VAR
+        I : LONGINT;
+    BEGIN
+        StrDispose(MyLabelTxt);
+        INHERITED Destroy;
+    END;
+
+    {------------}
+
+    // returns the location (region) of the label
+    FUNCTION TLabel.GetRegion : TRegion;
+    BEGIN
+        GetRegion := MyRegion;
+    END;
+
+    {------------}
+
+    // returns a single label width
+    FUNCTION TLabel.GetWidth: LONGINT;
+    VAR
+        BRect          : TBoundingRect;
+    BEGIN
+        if MyOrient = EHoriz THEN BEGIN
+            gdImageStringFT(NIL, @BRect, MyColor, MyFont, MyPointSize, 0.0, 10, 10, MyLabelTxt);
+            Result := ABS(BRect.LRX - BRect.LLX);
+        END
+        else BEGIN
+            gdImageStringFT(NIL, @BRect, MyColor, MyFont, MyPointSize, DegToRad(90.0), 10, 10, MyLabelTxt);
+            Result := ABS(BRect.URY - BRect.ULY);
+        END;
+
+    END;
+
+    {------------}
+
+    // returns a single label height
+    FUNCTION TLabel.GetHeight : LONGINT;
+    VAR
+        BRect          : TBoundingRect;
+    BEGIN
+        if MyOrient = EHoriz THEN
+            gdImageStringFT(NIL, @BRect, MyColor, MyFont, MyPointSize, 0.0, 10, 10, MyLabelTxt)
+        else
+            gdImageStringFT(NIL, @BRect, MyColor, MyFont, MyPointSize, DegToRad(90.0), 10, 10, MyLabelTxt);
+
+        Result := BRect.LLY - BRect.ULY;
+    END;
+
+    {------------}
+
+    // draw a single label
+    PROCEDURE TLabel.Draw;
+    VAR
+        X,
+        Y              : LONGINT;
+        BRect          : TBoundingRect;
+    BEGIN
+        IF MyOrient = Ehoriz THEN BEGIN
+            CASE MyHJust OF
+                ELEFT :
+                    X := round(MyParent^.MyGridViewPort.X1);
+                ECENTER :
+                    X := round(MyParent^.MyGridViewPort.X1) + ROUND((MyParent^.MyGridViewPort.X2 - MyParent^.MyGridViewPort.X1) / 2.0) - ROUND(GetWidth / 2);
+                ERIGHT :
+                    X := round(MyParent^.MyGridViewPort.X2) - GetWidth;
+            END;
+        END;
+
+        CASE MyRegion OF
+            Header :
+                Y := round(MyParent^.MyFullViewPort.Y1) + round(MyParent^.HeaderHeight); //- ROUND(MyParent^.HeaderHeight * 0.1);
+            Footer :
+                Y := round(MyParent^.MyFullViewPort.Y2-5-MyParent^.MyBorderWidth3d); // - ROUND(GetHeight * LEADING);
+        END;
+
+        if MyOrient = EHoriz THEN
+            MyParent^.LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyColor, MyFont, MyPointSize, 0.0, X, Y, MyLabelTxt)
+        ELSE
+            MyParent^.LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyColor, MyFont, MyPointSize, DegToRad(90.0), X, Y, MyLabelTxt);
+
+    END;
+
+    {------------}
+
+    // Create a list of label regions
+    CONSTRUCTOR TTextRegionList.Create(VAR Im : gdImagePtr);
+    BEGIN
+        MyIm := Im;
+    END;
+
+    {------------}
+
+    // Draw all the labels found in Region
+    PROCEDURE TTextRegionList.Draw(Region : TRegion);
+    VAR
+        I              : LONGINT;
+        TL : TLabel;
+    BEGIN
+        CASE Region OF
+            Header :
+                BEGIN
+                    {go through list forwards}
+                    FOR I:=0 TO Count-1 DO BEGIN
+                        TL := Items[i];
+                        IF TL.GetRegion = Region THEN
+                            TLabel(Items[i]).Draw;
+                    END;
+                END;
+            Footer :
+                BEGIN
+                    {go through list backwards}
+                    // going backwards used to make sense in another project that printed text on laser printers
+                    // not sure we need to go to the trouble anymore KGM 2-2003
+                    FOR I := Count-1 DOWNTO 0 DO BEGIN
+                        IF TLabel(Items[i]).GetRegion = Region THEN
+                            TLabel(Items[i]).Draw;
+                    END;
+                END;
+        END;
+    END;
+
+    {------------}
+
+     // returns max label height in pixels for a region
+    FUNCTION TTextRegionList.GetHeight(Region:TRegion):LONGINT;
+    VAR
+        I,
+        Hyt : LONGINT;
+        TL : TLabel;
+    BEGIN
+        Hyt := 0;
+        FOR I:= 0 TO Count -1 DO BEGIN
+            IF TLabel(Items[i]).GetRegion = Region THEN
+                Hyt := Max(Hyt, TLabel(Items[i]).GetHeight)
+        END;
+        Result := Hyt;
+    END;
+
+
+    {------------}
+
+    // returns max label width in pixels for Region
+    FUNCTION TTextRegionList.GetWidth(Region:TRegion):LONGINT;
+    VAR
+        I,
+        Wid : LONGINT;
+        TL : TLabel;
+    BEGIN
+        Wid := 0;
+        FOR I:= 0 TO Count -1 DO BEGIN
+            IF TLabel(Items[i]).GetRegion = Region THEN
+                Wid := Max(Wid, TLabel(Items[i]).GetWidth);
+        END;
+        Result := Wid;
+    END;
+
+    {------------}
+
+    // death to the lable list!
+    DESTRUCTOR TTextRegionList.Destroy;
+    VAR
+        I : LONGINT;
+    BEGIN
+        FOR I:= 0 TO Count -1 DO
+            TLabel(Items[i]).Destroy;
+        Clear;
+    END;
+
+    {------------}
+
+    // create and append a label to the list
+    FUNCTION TTextRegionList.AddText(Txt            : PCHAR;
+                                     Color          : TRGBColor;
+                                     Font           : PCHAR;
+                                     Orient         : TLabelOrient;
+                                     HJust          : JustT;
+                                     VJust          : JustVT;
+                                     PtSize         : DOUBLE;
+                                     Region         : TRegion;
+                                     Parent         : PGDGraph) : BOOLEAN;
+    VAR
+        L              : Tlabel;
+    BEGIN
+        AddText := FALSE;
+        L := TLabel.Create( Txt,
+                            Color,
+                            Font,
+                            PtSize,
+                            Orient,
+                            HJust,
+                            VJust,
+                            Region,
+                            MyIm,
+                            Parent);
+        Add(L);
+
+        AddText := TRUE;
+    END;
+
+    {------------}
+
+    // Use this function to break a graph into multiple quadrants or halves
+    PROCEDURE CalcExtents(Location : TgdQuad; FullSize : TExtentRange; VAR NewExtents : TExtentRect);
+    BEGIN
+        CASE Location OF
+            gdFullPage: // use the entire PNG for a single graph
+            BEGIN
+                NewExtents.X1 := 0;
+                NewExtents.X2 := FullSize.X;
+                NewExtents.Y1 := 0;
+                NewExtents.Y2 := FullSize.Y;
+            END;
+            gdUpperLeft: // plot the graph in the upper left quadrant of the PNG
+            BEGIN
+                NewExtents.X1 := 0;
+                NewExtents.X2 := FullSize.X DIV 2;
+                NewExtents.Y1 := 0;
+                NewExtents.Y2 := FullSize.Y DIV 2;
+            END;
+            gdUpperRight: // and so on...
+            BEGIN
+                NewExtents.X1 := FullSize.X DIV 2;
+                NewExtents.X2 := FullSize.X;
+                NewExtents.Y1 := 0;
+                NewExtents.Y2 := FullSize.Y DIV 2;
+            END;
+            gdLowerLeft:
+            BEGIN
+                NewExtents.X1 := 0;
+                NewExtents.X2 := FullSize.X DIV 2;
+                NewExtents.Y1 := FullSize.Y DIV 2;
+                NewExtents.Y2 := FullSize.Y;
+            END;
+            gdLowerRight:
+            BEGIN
+                NewExtents.X1 := FullSize.X DIV 2;
+                NewExtents.X2 := FullSize.X;
+                NewExtents.Y1 := FullSize.Y DIV 2;
+                NewExtents.Y2 := FullSize.Y;
+            END;
+            gdUpperHalf: // plot in the upper half
+            BEGIN
+                NewExtents.X1 := 0;
+                NewExtents.X2 := FullSize.X;
+                NewExtents.Y1 := 0;
+                NewExtents.Y2 := FullSize.Y DIV 2;
+            END;
+            gdLowerHalf: // and so on...
+            BEGIN
+                NewExtents.X1 := 0;
+                NewExtents.X2 := FullSize.X;
+                NewExtents.Y1 := FullSize.Y DIV 2;
+                NewExtents.Y2 := FullSize.Y;
+            END;
+            gdLeftHalf:
+            BEGIN
+                NewExtents.X1 := 0;
+                NewExtents.X2 := FullSize.X DIV 2;
+                NewExtents.Y1 := 0;
+                NewExtents.Y2 := FullSize.Y;
+            END;
+            gdRightHalf:
+            BEGIN
+                NewExtents.X1 := FullSize.X DIV 2;
+                NewExtents.X2 := FullSize.X;
+                NewExtents.Y1 := 0;
+                NewExtents.Y2 := FullSize.Y;
+            END;
+        END;
+    END;
+
+    //--------------
+
+    // parent constructor for markers
+    CONSTRUCTOR TMarker.Create;
+    BEGIN
+        INHERITED Create;
+    END;
+
+    //--------------
+
+    // Create a marker that belongs to graph object Parent at location XY, using GD colorhandle Color; The size of
+    // the marker should match the size of an "H" in the current label font and PointSize. PointSize autoscales to match
+    // changes in the graph resolution (a given graph at 640x480 looks the same as the same graph at 1280x1024 - just "jaggier")
+    CONSTRUCTOR TTriangleMarker.Create(Parent : TGDGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+    BEGIN
+        INHERITED Create;
+        MyXY := XY;
+        MyParent := Parent;
+        MyColor := Color;
+        MyPointSize := MyParent.ScaleFont(PointSize);
+    END;
+
+    //--------------
+
+    PROCEDURE TTriangleMarker.Draw;
+    VAR
+        Points : ARRAY[0..2] OF TPoint;
+        H,
+        T,
+        X,
+        Y : LONGINT;
+    BEGIN
+        H := CalcStringHeight(MyParent.MyLabelFont, MyPointSize, 0.0, 'H');
+        X := ROUND(MyParent.TranslateX(MyXY.X));
+        Y := round(MyParent.TranslateY(MyXY.Y));
+        T := round(H DIV 2);
+        Points[0].X := X;
+        Points[0].Y := Y - T;
+
+        Points[1].X := X - T;
+        Points[1].Y := Y + T;
+
+        Points[2].X := X + T;
+        Points[2].Y := Y + T;
+        gdImagePolygon(MyParent.MyIm, @Points, 3, MyColor);
+    END;
+
+    //--------------
+
+    CONSTRUCTOR TSquareMarker.Create(Parent : TGDGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+    BEGIN
+        INHERITED Create;
+        MyXY := XY;
+        MyParent := Parent;
+        MyColor := Color;
+        MyPointSize := MyParent.ScaleFont(PointSize);
+    END;
+
+    //--------------
+
+    PROCEDURE TSquareMarker.Draw;
+    VAR
+        Points : ARRAY[1..4] OF TPoint;
+        H,
+        X,
+        Y : LONGINT;
+    BEGIN
+        H := CalcStringHeight(MyParent.MyLabelFont, MyPointSize, 0.0, 'H') DIV 2;
+        X := round(MyParent.TranslateX(MyXY.X));
+        Y := round(MyParent.TranslateY(MyXY.Y));
+        Points[1].x := X-H;
+        Points[1].y := Y-H;
+        Points[2].x := X-H;
+        Points[2].y := Y+H;
+        Points[3].x := X+H;
+        Points[3].y := Y+H;
+        Points[4].x := X+H;
+        Points[4].y := Y-H;
+        gdImagePolygon(MyParent.MyIm, @Points, 4, MyColor);
+    END;
+
+    //--------------
+
+    CONSTRUCTOR TCircleMarker.Create(Parent : TGDGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+    BEGIN
+        INHERITED Create;
+        MyXY := XY;
+        MyParent := Parent;
+        MyColor := Color;
+        MyPointSize := MyParent.ScaleFont(PointSize);
+    END;
+
+    //--------------
+
+    PROCEDURE TCircleMarker.Draw;
+    VAR
+        H : LONGINT;
+    BEGIN
+        H := CalcStringHeight(MyParent.MyLabelFont, MyPointSize, 0.0, 'H');
+        //H := H DIV 2;
+        gdImageArc(MyParent.MyIm, round(MyParent.TranslateX(MyXY.X)), round(MyParent.TranslateY(MyXY.Y)), H, H, 0, 360, MyColor);
+    END;
+
+    //--------------
+
+    CONSTRUCTOR TInvertedTriangleMarker.Create(Parent : TGDGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+    BEGIN
+        INHERITED Create;
+        MyXY := XY;
+        MyParent := Parent;
+        MyColor := Color;
+        MyPointSize := MyParent.ScaleFont(PointSize);
+    END;
+
+    //--------------
+
+    PROCEDURE TInvertedTriangleMarker.Draw;
+    VAR
+        Points : ARRAY[1..3] OF TPoint;
+        H,
+        X,
+        Y : LONGINT;
+    BEGIN
+        H := CalcStringHeight(MyParent.MyLabelFont, MyPointSize, 0.0, 'H') DIV 2;
+        X := round(MyParent.TranslateX(MyXY.X));
+        Y := round(MyParent.TranslateY(MyXY.Y));
+        Points[1].x := X-H;
+        Points[1].y := Y-H;
+        Points[2].x := X;
+        Points[2].y := Y+H;
+        Points[3].x := X+H;
+        Points[3].y := Y-H;
+        gdImagePolygon(MyParent.MyIm, @Points, 3, MyColor);
+    END;
+
+    //--------------
+
+    CONSTRUCTOR TStarMarker.Create(Parent : TGDGraph; XY : TPlotCoord; Color : LONGINT; PointSize : DOUBLE);
+    BEGIN
+        INHERITED Create;
+        MyXY := XY;
+        MyParent := Parent;
+        MyColor := Color;
+        MyPointSize := MyParent.ScaleFont(PointSize);
+    END;
+
+    //--------------
+
+    PROCEDURE TStarMarker.Draw;
+    VAR
+        Points : ARRAY[1..10] OF TPoint;
+        H,
+        X,
+        Y : LONGINT;
+    BEGIN
+        H := CalcStringHeight(MyParent.MyLabelFont, MyPointSize, 0.0, 'H');
+        X := round(MyParent.TranslateX(MyXY.X));
+        Y := round(MyParent.TranslateY(MyXY.Y));
+        Points[1].x := X;
+        Points[1].y := Y-ROUND(0.5*H);
+        Points[2].x := X-ROUND(0.1*H);
+        Points[2].y := Y-ROUND(0.1*H);
+        Points[3].x := X-ROUND(0.5*H);
+        Points[3].y := Y-ROUND(0.1*H);
+        Points[4].x := X-ROUND(0.2*H);
+        Points[4].y := Y+ROUND(0.1*H);
+        Points[5].x := X-ROUND(0.4*H);
+        Points[5].y := Y+ROUND(0.5*H);
+        Points[6].x := X;
+        Points[6].y := Y+ROUND(0.2*H);
+        Points[7].x := X+ROUND(0.4*H);
+        Points[7].y := Y+ROUND(0.5*H);
+        Points[8].x := X+ROUND(0.2*H);
+        Points[8].y := Y+ROUND(0.1*H);
+        Points[9].x := X+ROUND(0.5*H);
+        Points[9].y := Y-ROUND(0.1*H);
+        Points[10].x := X+ROUND(0.1*H);
+        Points[10].y := Y-ROUND(0.1*H);
+        gdImagePolygon(MyParent.MyIm, @Points, 10, MyColor);
+    END;
+
+    //--------------
+
+    CONST
+        BreakPoints         : ARRAY[1..3] OF WORD =  (1, 2, 5);
+
+    {draw the x/y scales, if necessary}
+    PROCEDURE TGDGraph.DrawScales;
+    VAR
+        St             : WORD;
+        H,
+        L,
+        R              : DOUBLE;
+        Y,
+        X,
+        T,
+        TH,
+        XTickHyt,
+        TW,
+        XWidth,
+        YMax,
+        XMax           : LONGINT;
+        Strg           : STRING;
+        BRect          : TBoundingRect;
+        P              : PCHAR;
+        ScaleReversed  : BOOLEAN;
+        BreakPt,
+        N,
+        D              : Extended;
+    BEGIN
+        {use current viewport for the grid area}
+        // calc location of yaxis units label
+        Y := round(MyGridViewPort.Y1) + ((round(MyGridViewPort.Y2) - round(MyGridViewPort.Y1)) DIV 2);
+
+        {first the Y units label, IF any}
+        IF DoYScale THEN BEGIN
+            IF MyYScaleUnits <> NIL THEN BEGIN
+                {draw the Y units label}
+                TH := ROUND(CalcStringHeight(MyLabelFont, MyLabelPointSize, 0, MyYScaleUnits) * LEADING);
+                LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, DegToRad(90.0), round(MyFullViewport.X1+TH+MyBorderWidth3d), Y, MyYScaleUnits);
+            END;
+        END;
+
+        IF abs(YScaleDif) < 1e-300 then
+            YScaleDif := 1.0;
+
+        {find optimum breakpoints}
+        D := Log10(YScaleDif);
+        D := ROUND(D);
+        REPEAT
+            L := Power(10.0, D);
+            {find optimum breakpoints}
+            St := 1;
+            WHILE (St <= High(BreakPoints)) DO BEGIN
+                N := (ABS(YScaleDif) / (BreakPoints[St]*L));
+                IF N <= 15.0 THEN
+                    BREAK;
+                INC(St);
+            END;
+            IF N <= 4 THEN
+                D := D-1.0;
+        UNTIL N > 4;
+        BreakPt := BreakPoints[St]*L;
+
+        XMax := 0;
+        XWidth := 0;
+
+        ScaleReversed := MyYMaxSc < MyYMinSc;
+
+        {label the y axis}
+        {label the y axis}
+        IF DoYScale THEN BEGIN
+            IF NOT ScaleReversed THEN BEGIN
+                if (MyYMaxSc / BreakPt) < 1e5 then
+                    R := BreakPt
+                else
+                    R := MyYMaxSc;
+
+                WHILE R < MyYMaxSc DO BEGIN
+                    R := R + BreakPt;
+                END;
+                MyYMaxSc := R;
+
+                R := MyYMaxSc;
+
+                WHILE (R > MyYMinSc) and (abs(R - MyYMinSc) > 1e-9) DO BEGIN
+                    R := R - BreakPt;
+                END;
+                MyYMinSc := R;
+                H := MyYMaxSc;
+                L := MyYMinSc;
+            END
+            ELSE BEGIN
+                R := BreakPt;
+                WHILE R < MyYMinSc DO BEGIN
+                    R := R + BreakPt;
+                END;
+                MyYMinSc := R;
+
+                WHILE R > MyYMaxSc DO BEGIN
+                    R := R - BreakPt;
+                END;
+                MyYMaxSc := R;
+                L := MyYMaxSc;
+                H := MyYMinSc;
+            END;
+
+            {calc max label width}
+            R := L;
+            WHILE R <= H DO BEGIN
+                Strg := Format(YScaleFormat, [R]) + #0;
+                P := @Strg[1];
+                XWidth := Max(XWidth, CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, P));
+                R := R + BreakPt;
+            END;
+
+            YScaleDif := MyYMaxSc - MyYMinSc;
+
+            {draw the yaxis label}
+            TW := CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, 'H') DIV 2; {tick length}
+            TH := CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, 'H') DIV 2; {LabelHyt/2}
+            R := L;
+            WHILE R <= H DO BEGIN
+                Y := round(TranslateY(R));
+                gdImageLine(MyIm, round(MyGridViewport.X1- TW), Y, round(MyGridViewport.X1), Y, MyGridColor); {tick}
+                {draw the axis label}
+                Strg := Format(YScaleFormat, [R]) + #0;
+                T := CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, @Strg[1]);
+                LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, round(MyGridViewport.X1-T-TH), Y+TH, @Strg[1]);
+                {plot X grid lines as user scale values}
+                gdImageLine(MyIm, round(MyGridViewport.X1-TW), Y, round(MyGridViewPort.X2), Y, MyGridColor);
+                R := R + BreakPt;
+            END;
+
+        END;
+
+        ScaleReversed := MyXMaxSc < MyXMinSc;
+
+        if abs(XScaleDif) < 1e-300 then
+            XScaleDif := 1;
+
+        D := Log10(XScaleDif);
+        D := ROUND(D);
+        REPEAT
+            L := Power(10.0, D);
+            {find optimum breakpoints}
+            St := 1;
+            WHILE (St <= High(BreakPoints)) DO BEGIN
+                N := (ABS(XScaleDif) / (BreakPoints[St]*L));
+                IF N <= 15.0 THEN
+                    BREAK;
+                INC(St);
+            END;
+            IF N <= 4 THEN
+                D := D-1.0;
+        UNTIL N > 4;
+        BreakPt := BreakPoints[St]*L;
+        YMax := 0;
+        XWidth := 0;
+
+        ScaleReversed := MyXMaxSc < MyXMinSc;
+
+        {label the x axis}
+        IF DoXScale THEN BEGIN
+            IF NOT ScaleReversed THEN BEGIN
+                R := BreakPt;
+                WHILE R < MyXMaxSc DO BEGIN
+                    R := R + BreakPt;
+                END;
+                MyXMaxSc := R;
+
+                R := MyXMaxSc;
+
+                WHILE R > MyXMinSc DO BEGIN
+                    R := R - BreakPt;
+                END;
+                MyXMinSc := R;
+                H := MyXMaxSc;
+                L := MyXMinSc;
+            END
+            ELSE BEGIN
+                R := BreakPt;
+                WHILE R < MyXMinSc DO BEGIN
+                    R := R + BreakPt;
+                END;
+                MyXMinSc := R;
+
+                WHILE R > MyXMaxSc DO BEGIN
+                    R := R - BreakPt;
+                END;
+                MyXMaxSc := R;
+                L := MyXMaxSc;
+                H := MyXMinSc;
+            END;
+
+
+
+            {calc max label width}
+            R := L;
+            WHILE R <= H DO BEGIN
+                Strg := Format(XScaleFormat, [R]) + #0;
+                P := @Strg[1];
+                XWidth := Max(XWidth, CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, P));
+                R := R + BreakPt;
+            END;
+
+            XScaleDif := MyXMaxSc - MyXMinSc;
+
+            T := CalcStringHeight(MyLabelFont, MyLabelPointSize, 0.0, 'H'); {tick height}
+            XTickHyt := T DIV 2;
+
+            R := L;
+            WHILE R <= H DO BEGIN
+                X := round(TranslateX(R));
+                gdImageLine(MyIm, X, round(MyGridViewport.Y1), X, round(MyGridViewport.Y2+XTickHyt), MyGridColor);
+                Strg := Format(XScaleFormat, [R]) + #0;
+                TW := CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, @Strg[1]); {Label width}
+                LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, X-(TW DIV 2), round(MyGridViewport.Y2 + T + XTickHyt + 1), @Strg[1]);
+                //gdImageLine(MyIm, MyGridViewport.X1- TW, Y, MyGridViewport.X1, Y, MyGridColor); {tick}
+                R := R + BreakPt;
+            END;
+
+            IF MyXScaleUnits <> NIL THEN BEGIN
+                X := round(round(MyGridViewPort.X1) + round(((MyGridViewPort.X2 - MyGridViewPort.X1))) DIV 2) - (CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, MyXScaleUnits) DIV 2);
+                TH := ROUND(CalcStringHeight(MyLabelFont, MyLabelPointSize, 0.0, MyXScaleUnits) * LEADING) + ROUND(XTickHyt*2*LEADING);
+                LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, X, round(MyGridViewPort.Y2 + TH), MyXScaleUnits);
+            END;
+        END;
+
+    END;
+
+
+END.
+
+    {------------}
+    {------------}
+

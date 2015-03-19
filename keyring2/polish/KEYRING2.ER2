@@ -1,0 +1,5 @@
+Line 57 of Init in MAIN.VRM:
++++     Window = Vrwindow();
+*** Error 4 Program interrupted
+Line 48 of Main in MAIN.VRM:
++++   Call Init;

@@ -1,0 +1,69 @@
+
+ KeyRing/2 
+ Registration Hints
+
+ ษออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออป
+ บฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ WHY REGISTER Keyring/2 ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑบ
+ ศออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผ
+
+   1. Because, as registered user, you:
+
+   1) Encourage the author to further develop and improve KeyRing/2,
+      making possible new KeyRing/2 releases;
+                           
+   2) May use KeyRing/2 in commercial and other environments;
+
+   3) Gain access to the full feature set of KeyRing/2.
+
+   4) Access support and assistance, via E-mail and telephone.
+
+   5) Gain the right to use maintenance releases of KeyRing/2 with
+      your old registration number.
+
+ ษออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออป
+ บฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ  What you need to register  ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑบ
+ ศออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผ
+
+   If you wish to become a registered KeyRing/2 user, all you need do is make 
+   a payment to the author, via one of the local registration sites listed
+   in the registration form. Many registration sites will accept credit
+   cards, all will accept cash or cashier's check.
+
+   Please see the file ORDER.FRM for details and pricing.
+
+ ษออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออป
+ บฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑ  Registration procedure  ฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑฑบ
+ ศออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออผ
+
+   Upon receipt of your registration fee with the completed registration
+   form you will receive a Registration Key which will correspond to the
+   registration string given in the registration form.
+
+   Upon receipt of your registration key you should start KeyRing/2
+   with no command line parameters, and click on the Help menu item.
+
+   Next, use the mouse to click on the Product Information menu item.
+
+   Type in your First and Last Name EXACTLY as found on your Registration 
+   Key form.
+
+   Type in the Serial Number and Registration number from the
+   Registration Key form.
+   
+   If you typed in all the fields correctly, KeyRing/2 will add a
+   small entry to your OS2.INI file to hold the current registration
+   info.  You are now registered, and can access all the features of
+   KeyRing/2!
+
+   We strongly suggest you put a copy your Registration Key
+   information in a safe place.  If your OS2.INI file is tweaked,
+   restored from an old backup, or if you reinstall OS/2, it is possible 
+   for KeyRing/2 to revert to "Demo" mode, with certain limitations
+   on use.
+
+   It is possible, depending upon the facilities available at your local
+   registration site, to have the key delivered to your computer system,
+   to have it made available for pickup by you or to have it delivered
+   by your local postal service.
+
+

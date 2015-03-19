@@ -1,0 +1,408 @@
+{***************************************************************************
+* Filename: ~modname~
+* Version:  ~version~
+* Date:     ~date~ @ ~time~
+* Group:    ~group~
+* Release:  ~release~
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* Version   Date     Time    Programmer   Description
+* ~log~
+*
+*
+* ~notes~
+* Description
+* -----------
+* Generic functions for REXX DLLs.
+* By Kevin G. McCoy, IDK, Inc.
+* Released to public domain, 11-2000
+* Please send changes to kgmccoy@idk-inc.com
+*
+* Thanks to Aaron Lawrence (aaronl@consultant.com) for the SetRexxVariable and GetRexxVariable
+* idea.
+*
+* ~notesend~
+* ~nokeywords~
+*
+****************************************************************************
+
+}
+UNIT UREXX;
+INTERFACE
+{$I OPDEFINE.INC}
+{$Delphi+}
+USES
+    OpString,
+    OS2DEF,
+    OS2REXX,
+    Strings;
+CONST
+    MAXREXXPARAMCOUNT = $FFFF;
+TYPE
+    TStemArray = array[0..$FFFF] of AnsiString;
+    PRexxParamList = ^TRexxParamList;
+    TRexxParamList = array[0..MAXREXXPARAMCOUNT] of PRxString;
+
+    {set REXX function return value (ret) to the string in Strg}
+PROCEDURE SetRet(Strg : AnsiString; VAR Ret : RxString);
+    {set REXX function return value (ret) to the string in Strg, using separate buffer}
+PROCEDURE SetRetBuff(Strg : AnsiString; VAR Buffer : AnsiString; VAR Ret : RxString);
+    {simple debug tool for DLLs}
+PROCEDURE LogIt(FName, Line : AnsiString);
+
+    {get REXX function arguments in various formats}
+FUNCTION GetNthArgString(Args : pRxString; N : WORD) : STRING;
+FUNCTION GetNthArgLong(Args : pRxString; N : WORD) : LONGINT;
+FUNCTION GetNthArgBool(Args : pRxString; N : WORD) : BOOLEAN;
+FUNCTION GetNthArgReal(Args : pRxString; N : WORD) : Float;
+
+FUNCTION CreateRexxParamBuff(MaxArgs:LONGINT):PRexxParamList;
+PROCEDURE DestroyRexxParamBuff(RBuff:PRexxParamList);
+FUNCTION PushArgString(RBuff:PRexxParamList; Arg : AnsiString) : BOOLEAN;
+FUNCTION PushArgLong(Buff:PRexxParamList; Arg : LONGINT) : BOOLEAN;
+FUNCTION PushArgBool(Buff:PRexxParamList; Arg : BOOLEAN) : BOOLEAN;
+FUNCTION PushArgReal(Buff:PRexxParamList; Arg : FLOAT) : BOOLEAN;
+
+FUNCTION SetRexxVariable(Name:STRING; SubName:STRING; Value:AnsiSTRING): INTEGER;
+FUNCTION FetchRexxVariable(Name:STRING; SubName:STRING; VAR Value : AnsiString): INTEGER;
+procedure StemToArray(StemName:STRING; VAR SArray; ArraySize : WORD);
+procedure ArrayToStem(StemName:STRING; VAR SArray; ArraySize : WORD);
+
+    {--------------}
+
+IMPLEMENTATION
+
+USES
+    DGLIB,
+    UTTIMDAT;
+
+VAR
+    Buff           : AnsiString;
+
+    {set REXX function return value (ret) to the string in Strg}
+    PROCEDURE SetRet(Strg : AnsiString; VAR Ret : RxString);
+    BEGIN
+        Ret.StrLength := LENGTH(Strg);
+        IF Strg = NIL THEN
+            Buff := #0
+        ELSE
+            Buff := Strg + #0;
+
+        Ret.StrPtr := PCHAR(Buff);
+    END;
+
+    {--------------}
+
+    {set REXX function return value (ret) to the string in Strg, using separate buffer}
+    PROCEDURE SetRetBuff(Strg : AnsiString; VAR Buffer : AnsiString; VAR Ret : RxString);
+    BEGIN
+        Ret.StrLength := LENGTH(Strg);
+        IF Strg = NIL THEN
+            Buffer := #0
+        ELSE
+            Buffer := Strg + #0;
+
+        Ret.StrPtr := PCHAR(Buffer);
+    END;
+
+    {--------------}
+
+    {set REXX function return value (ret) to the string in Strg, using separate buffer}
+    PROCEDURE SetRetPBuff(Strg : AnsiString; Buffer : PCHAR; VAR Ret : RxString);
+    BEGIN
+        Ret.StrLength := LENGTH(Strg);
+        IF Strg = NIL THEN
+            Buffer[0] := #0
+        ELSE
+            strcopy(Buffer, PCHAR(Strg));
+
+        Ret.StrPtr := Buffer;
+    END;
+
+    {--------------}
+
+    {simple debug tool for DLLs}
+    PROCEDURE LogIt(FName, Line : AnsiString);
+    VAR
+        T              : TEXT;
+    BEGIN
+        IF CreateOrAppendTxt(FName, T) THEN BEGIN
+            WRITELN(T, CharStr('-', 10));
+            WRITELN(T, NowStringDeluxe(TRUE, TRUE));
+            WRITELN(T, Line);
+            CLOSE(T);
+        END;
+    END;
+
+    {--------------}
+
+    {get REXX function arguments in various formats}
+    FUNCTION GetNthArgString(Args : pRxString; N : WORD) : STRING;
+    BEGIN
+        INC(Args, N - 1);
+        Result := StrPas(Args^.StrPtr);
+    END;
+
+    {--------------}
+
+    FUNCTION GetNthArgLong(Args : pRxString; N : WORD) : LONGINT;
+    VAR
+        BadSpot : LONGINT;
+    BEGIN
+        Str2Long(GetNthArgString(Args, N), Result);
+    END;
+
+    {--------------}
+
+    FUNCTION GetNthArgBool(Args : pRxString; N : WORD) : BOOLEAN;
+    VAR
+        T              : LONGINT;
+        BadSpot : LONGINT;
+    BEGIN
+        Str2Long(GetNthArgString(Args, N), T);
+        Result := T <> 0;
+    END;
+
+    {--------------}
+
+    FUNCTION GetNthArgReal(Args : pRxString; N : WORD) : Float;
+    VAR
+        R       : Float;
+        BadSpot : LONGINT;
+    BEGIN
+        Str2Real(GetNthArgString(Args, N), R);
+        Result := R;
+    END;
+
+    {--------------}
+
+    FUNCTION CreateRexxParamBuff(MaxArgs:LONGINT):PRexxParamList;
+    VAR
+        P : PRexxParamList;
+    BEGIN
+        GETMEM(P, MaxArgs * SIZEOF(POINTER));
+        Result := P;
+    END;
+
+    {--------------}
+
+    PROCEDURE DestroyRexxParamBuff(RBuff:PRexxParamList);
+    VAR
+        P : PRxString;
+        I : ULONG;
+    BEGIN
+        FOR I := 0 TO MAXREXXPARAMCOUNT DO BEGIN
+            P := RBuff^[I];
+            IF P <> NIL THEN
+                FREEMEM(P, P^.strlength+SIZEOF(ULONG))
+            ELSE
+                BREAK;
+        END;
+    END;
+
+    {--------------}
+
+    FUNCTION PushArgString(RBuff:PRexxParamList; Arg : AnsiString) : BOOLEAN;
+    VAR
+        P : PRxString;
+        I : ULONG;
+        T : POINTER;
+        R : PRxString;
+        PC : PCHAR;
+    BEGIN
+        FOR I := 0 TO MAXREXXPARAMCOUNT DO BEGIN
+            P := RBuff^[i];
+            if P = NIL THEN
+                BREAK;
+        END;
+        // I is buffer slot to use
+
+        // allocate some memory for the new parameter
+        GETMEM(R, LENGTH(Arg)+sizeof(ULONG));
+        R.strlength := LENGTH(Arg);
+        strcopy(R.Strptr, PCHAR(Arg));
+        RBuff^[i] := R;
+    END;
+
+    {--------------}
+
+    FUNCTION PushArgLong(Buff:PRexxParamList; Arg : LONGINT) : BOOLEAN;
+    BEGIN
+        Result := PushArgString(Buff, Long2Str(Arg));
+    END;
+
+    {--------------}
+
+    FUNCTION PushArgBool(Buff:PRexxParamList; Arg : BOOLEAN) : BOOLEAN;
+    VAR
+        Strg : AnsiString;
+    BEGIN
+        IF Arg THEN
+            Strg := '1'
+        ELSE
+            Strg := '0';
+
+        Result := PushArgString(Buff, Strg);
+    END;
+
+    {--------------}
+
+    FUNCTION PushArgReal(Buff:PRexxParamList; Arg : FLOAT) : BOOLEAN;
+    VAR
+        Strg : AnsiString;
+    BEGIN
+        str(Arg, Strg);
+        Result := PushArgString(Buff, Strg);
+    END;
+
+    {--------------}
+
+    FUNCTION PasStr(Strg : STRING) : PCHAR;
+    VAR
+        A              : ARRAY[0..$FF] OF CHAR ABSOLUTE Strg;
+    BEGIN
+        A[LENGTH(Strg) + 1] := #0; {this is a potential stack muncher}
+        PasStr := @A[1];
+    END;
+
+    {--------------}
+
+    FUNCTION SetRexxVariable(Name : STRING; SubName : STRING; Value : AnsiSTRING): INTEGER;
+    var
+        Block : ShvBlock;
+        RxStrg  : RxString;
+        nBuffer,
+        vBuffer : AnsiString;
+    BEGIN
+        Block.shvcode := RXSHV_SYSET;   // make a symbolic set operation
+        Block.shvret := 0;              // clear return code field
+        Block.shvnext := NIL;             // no next block
+        SetRetBuff(Name + '.' +SubName, nBuffer, Block.shvname); // set variable name string
+        SetRetBuff(Value, vBuffer, Block.shvvalue);         // set value
+        Block.shvvaluelen := length(Value);    // set value length
+        Result := RexxVariablePool(Block);     // update the var pool
+   END;
+
+    {--------------}
+CONST BIGBUFF = $FFFF;
+
+    FUNCTION FetchRexxVariableOld(Name:STRING; SubName:STRING; VAR Value : AnsiString): INTEGER;
+    var
+        Block : ShvBlock;
+        RxStrg  : RxString;
+        nBuffer,
+        vBuffer : PCHAR;
+    BEGIN
+        Logit('junk.tmp', 'incoming Value = '+Value);
+        getmem(nBuffer, BIGBUFF);
+        getmem(vBuffer, BIGBUFF);
+        Block.shvcode := RXSHV_SYFET;   // make a symbolic set operation
+        Block.shvret := 0;              // clear return code field
+        Block.shvnext := NIL;             // no next block
+
+        SetRetPBuff(Name + '.' + SubName, nBuffer, Block.shvname); // set variable name string
+        logit('junk.tmp', 'nbuff =' + strpas(nbuffer));
+
+//        Value := '';
+        SetRetPBuff(Value, vBuffer, Block.shvvalue);    // this does not look right...
+        logit('junk.tmp', 'vbuff1 = ' + strpas(vbuffer));
+        Block.shvvaluelen := $FFFF;       // set value length
+
+        Result := RexxVariablePool(Block);
+
+        Block.Shvvalue.strptr[block.shvvaluelen] := #0;
+        Value := Block.Shvvalue.strptr;
+        logit('junk.tmp', 'shvvaluelen = '+ long2str(block.shvvaluelen));
+        logit('junk.tmp', 'fetched value = ' + Value);
+        Freemem(nBuffer, BIGBUFF);
+        Freemem(vBuffer, BIGBUFF);
+    END;
+
+    {--------------}
+
+    FUNCTION AllocRxString(VAR S : RxString; MaxSize : WORD): BOOLEAN;
+    BEGIN
+        Result := TRUE;
+        S.StrLength := 0;
+        GETMEM(S.StrPtr, MaxSize);
+        if S.StrPtr = NIL THEN BEGIN
+            Result := FALSE;
+            EXIT;
+        END;
+        S.StrPtr[0] := #0;
+    END;
+
+    {--------------}
+
+    PROCEDURE DeAllocRxString(VAR S : RxString; MaxSize : WORD);
+    BEGIN
+        S.StrLength := 0;
+        if S.StrPtr = NIL THEN
+            EXIT;
+
+        FREEMEM(S.StrPtr, MaxSize);
+        S.StrPtr := NIL;
+    END;
+
+    {--------------}
+
+    FUNCTION FetchRexxVariable(Name:STRING; SubName:STRING; VAR Value : AnsiString): INTEGER;
+    var
+        Block : ShvBlock;
+        RxStrg  : RxString;
+    BEGIN
+        Logit('junk.tmp', 'incoming Value = '+Value);
+        Block.shvcode := RXSHV_SYFET;   // make a symbolic set operation
+        Block.shvret := 0;              // clear return code field
+        Block.shvnext := NIL;             // no next block
+        AllocRxString(Block.ShvName, BIGBUFF);
+        AllocRxString(Block.ShvValue, BIGBUFF);
+
+        SetRet(Name + '.' + SubName, Block.shvname); // set variable name string
+        logit('junk.tmp', 'nbuff =' + strpas(Block.ShvName.StrPtr));
+
+        SetRet(Value, Block.shvvalue);    // this does not look right...
+        logit('junk.tmp', 'Newval = ' + strpas(Block.shvvalue.StrPtr));
+        Block.shvvaluelen := BIGBUFF;       // set value length
+
+        Result := RexxVariablePool(Block);
+
+        Block.Shvvalue.strptr[block.shvvaluelen] := #0;
+        Value := Block.Shvvalue.strptr;
+        logit('junk.tmp', 'shvvaluelen = '+ long2str(block.shvvaluelen));
+        logit('junk.tmp', 'fetched value = ' + Value);
+        DeallocRxString(Block.ShvName, BIGBUFF);
+        DeallocRxString(Block.ShvValue, BIGBUFF);
+    END;
+
+    {--------------}
+
+    procedure ArrayToStem(StemName:STRING; VAR SArray; ArraySize : WORD);
+    var
+        StemVals : TStemArray absolute SArray;
+        I : WORD;
+    begin
+        for I := 0 to ArraySize-1 do begin
+            SetRexxVariable(StemName, Long2Str(I), StemVals[I]);
+        end;
+    end;
+
+    {--------------}
+
+    procedure StemToArray(StemName:STRING; VAR SArray; ArraySize : WORD);
+    var
+        StemVals : TStemArray absolute SArray;
+        I : WORD;
+    begin
+        for I := 0 to ArraySize-1 do begin
+            FetchRexxVariable(StemName, Long2Str(I), StemVals[I]);
+        end;
+    end;
+
+    {--------------}
+
+END.
+

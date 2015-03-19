@@ -1,0 +1,700 @@
+/*:VRW
+*/
+VRX   OS/2 v2.14 B3
+BEGIN     Window
+    Visible           "0"
+    Enabled           "1"
+    SystemMenu        "1"
+    Create            ""
+    MinimizeButton    "1"
+    MaximizeButton    "1"
+    BorderType        "sizeable"
+    WindowMode        "Modal"
+    MoveWithParent    "1"
+    LayoutStyle       "None"
+    HideButton        "0"
+    TitleBar          "1"
+    DBCSConversionBar "1"
+    WindowListTitle   "Expired Records"
+    Height            "4661"
+    Left              "145"
+    Top               "976"
+    Width             "7502"
+    EventList         binary lines 0 checksum 0
+    HorizGridSpacing  "60"
+    VertGridSpacing   "60"
+    GridVisible       "1"
+    GridAlign         "1"
+    Close             "CALL Expired_Close"
+    DoubleClick       ""
+    Destroy           ""
+    Resize            "CALL Expired_Resize"
+    Activate          ""
+    Deactivate        ""
+    Caption           "KeyRing/2 Expired Records"
+    Font              "<default>"
+    BackColor         "<default>"
+    PicturePath       ""
+    HelpFile          ""
+    HelpTitle         ""
+    StatusArea        "Bottom"
+    ShowHints         "1"
+    StatusFont        "8.Helv"
+    WindowIcon        "$1"
+    Help              "CALL Expired_Help"
+    Click             ""
+    DragDrop          ""
+    KeyPress          ""
+    ForeColor         "<default>"
+    ContextMenu       ""
+    DragTarget        "All"
+    AllowDrag         "0"
+    DragStart         ""
+    DragIcon          ""
+    DragDiscard       ""
+    DragPrint         ""
+    Name              "Expired"
+    UserData          binary lines 0 checksum 0
+    HelpText          ""
+    HelpTag           ""
+    HintText          ""
+    BEGIN         VRGroupBox
+        BorderType        "Lowered"
+        Height            "3324"
+        Left              "60"
+        Top               "60"
+        Width             "7299"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           ""
+        BackColor         "<default>"
+        ForeColor         "<default>"
+        DoubleClick       ""
+        LayoutStyle       "None"
+        Font              "<default>"
+        Click             ""
+        DragDrop          ""
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "GB_1"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        BEGIN             VRContainer
+            AutoPosition      "1"
+            ReadOnly          "0"
+            ExtendSelect      "1"
+            MultiSelect       "1"
+            KeptRecords       "0"
+            Height            "3084"
+            Left              "120"
+            Top               "108"
+            Width             "7058"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            View              "Icon"
+            Flowed            "1"
+            TreeIndent        "-1"
+            TreeLine          "-1"
+            Caption           "Expired Passwords"
+            ShowCaption       "1"
+            CaptionSeparator  "1"
+            Justification     "Center"
+            ShowTitles        "1"
+            BeginEdit         ""
+            DragDrop          ""
+            CollapseTree      ""
+            ContextMenu       ""
+            EndEdit           ""
+            DoubleClick       "CALL IconContainer_DoubleClick"
+            ExpandTree        ""
+            ShowTreeLine      "1"
+            MiniIcons         "0"
+            AutoSort          "1"
+            Sort              "Ascending"
+            MoveRecord        ""
+            DragPrint         ""
+            DragDiscard       ""
+            CheckHandles      "1"
+            DragTarget        "All"
+            PicturePath       "G:\\keyring2\\graphics\\58.bmp"
+            AllowDrag         "1"
+            DragFile          ""
+            DragStart         ""
+            GuardRecords      "0"
+            Guard             ""
+            AutoEdit          "0"
+            DefaultIcon       ""
+            MoveDBCursor      "0"
+            BackColor         "SystemWindow"
+            ForeColor         "SystemWindowText"
+            TabGroup          "0"
+            ClipSiblings      "1"
+            TabIndex          "1"
+            Font              "8.Helv"
+            Click             ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            Name              "IconContainer"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          "Double click on records to edit their expiration dates"
+            Query             ""
+            QueryColumns      ""
+        END
+    END
+    BEGIN         VRGroupBox
+        BorderType        "Lowered"
+        Height            "494"
+        Left              "60"
+        Top               "3481"
+        Width             "7299"
+        Visible           "1"
+        Enabled           "1"
+        EventList         binary lines 0 checksum 0
+        Caption           ""
+        BackColor         "<default>"
+        ForeColor         "<default>"
+        DoubleClick       ""
+        LayoutStyle       "None"
+        Font              "<default>"
+        Click             ""
+        DragDrop          ""
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "GB_2"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+        BEGIN             VRPushButton
+            Default           "0"
+            Border            "1"
+            NoPointerFocus    "0"
+            Height            "289"
+            Left              "60"
+            Top               "96"
+            Width             "590"
+            Visible           "1"
+            TabStop           "1"
+            Enabled           "1"
+            EventList         binary lines 0 checksum 0
+            Cancel            "0"
+            BorderColor       "<default>"
+            Autosize          "1"
+            Caption           "~Exit"
+            Font              "8.Helv"
+            TabGroup          "0"
+            ClipSiblings      "0"
+            TabIndex          "3"
+            Click             "CALL QuitButton_Click"
+            DragDrop          ""
+            GotFocus          ""
+            LostFocus         ""
+            KeyPress          ""
+            ForeColor         "<default>"
+            BackColor         "<default>"
+            ContextMenu       ""
+            DragTarget        "All"
+            AllowDrag         "0"
+            DragStart         ""
+            DragIcon          ""
+            DragDiscard       ""
+            DragPrint         ""
+            Name              "QuitButton"
+            UserData          binary lines 0 checksum 0
+            HelpText          ""
+            HelpTag           ""
+            HintText          ""
+        END
+    END
+    BEGIN         VRTimer
+        Delay             "1000"
+        Enabled           "0"
+        Justification     "Left"
+        VertJustification "Top"
+        WordBreak         "1"
+        Height            "265"
+        Left              "3625"
+        Top               "1241"
+        Width             "759"
+        Visible           "0"
+        EventList         binary lines 0 checksum 0
+        Trigger           "CALL FlashTimer_Trigger"
+        Autosize          "1"
+        Caption           "Timer"
+        Font              "<default>"
+        ClipSiblings      "0"
+        TabIndex          "2"
+        DragDrop          ""
+        ForeColor         "<default>"
+        BackColor         "<default>"
+        ContextMenu       ""
+        DragTarget        "All"
+        AllowDrag         "0"
+        DragStart         ""
+        DragIcon          ""
+        DragDiscard       ""
+        DragPrint         ""
+        Name              "FlashTimer"
+        UserData          binary lines 0 checksum 0
+        HelpText          ""
+        HelpTag           ""
+        HintText          ""
+    END
+END
+/*:VRX         Main
+*/
+/*  Main
+*/
+Main:
+/*  Process the arguments.
+    Get the parent window.
+*/
+    PARSE SOURCE . Calledas .
+    Parent = ""
+    Argcount = ARG()
+    Argoff = 0
+    IF( Calledas \= "COMMAND" )THEN DO
+        IF Argcount >= 1 THEN DO
+            Parent = ARG(1)
+            Argcount = Argcount - 1
+            Argoff = 1
+        END
+    END
+        ELSE DO
+            CALL Vroptions 'ImplicitNames'
+            CALL Vroptions 'NoEchoQuit'
+        END
+    Initargs.0 = Argcount
+    IF( Argcount > 0 )THEN DO I = 1 TO Argcount
+        Initargs.i = ARG( I + Argoff )
+    END
+    DROP Calledas Argcount Argoff
+
+/*  Load the windows
+*/
+    CALL Vrinit
+    PARSE SOURCE . . Spec
+    _vreprimarywindowpath = ,
+        Vrparsefilename( Spec, "dpn" ) || ".VRW"
+    _vreprimarywindow = ,
+        Vrload( Parent, _vreprimarywindowpath )
+    DROP Parent Spec
+    IF( _vreprimarywindow == "" )THEN DO
+        CALL Vrmessage "", "Cannot load window:" Vrerror(), ,
+            "Error!"
+        _vrereturnvalue = 32000
+        SIGNAL _vreleavemain
+    END
+
+/*  Process events
+*/
+    CALL Init
+    SIGNAL ON HALT
+    DO While( \ Vrget( _vreprimarywindow, "Shutdown" ) )
+        _vreevent = Vrevent()
+        INTERPRET _vreevent
+    END
+_vrehalt:
+    _vrereturnvalue = Fini()
+    CALL Vrdestroy _vreprimarywindow
+_vreleavemain:
+    CALL Vrfini
+    EXIT _vrereturnvalue
+
+Vrloadsecondary:
+    __vrlswait = ABBREV( 'WAIT', TRANSLATE(ARG(2)), 1 )
+    IF __vrlswait THEN DO
+        CALL Vrflush
+    END
+    __vrlshwnd = Vrload( Vrwindow(), Vrwindowpath(), ARG(1) )
+    IF __vrlshwnd = '' THEN SIGNAL __vrlsdone
+    IF __vrlswait \= 1 THEN SIGNAL __vrlsdone
+    CALL Vrset __vrlshwnd, 'WindowMode', 'Modal'
+    __vrlstmp = __vrlswindows.0
+    IF( DATATYPE(__vrlstmp) \= 'NUM' ) THEN DO
+        __vrlstmp = 1
+    END
+        ELSE DO
+            __vrlstmp = __vrlstmp + 1
+        END
+    __vrlswindows.__vrlstmp = Vrwindow( __vrlshwnd )
+    __vrlswindows.0 = __vrlstmp
+    DO While( Vrisvalidobject( Vrwindow() ) = 1 )
+        __vrlsevent = Vrevent()
+        INTERPRET __vrlsevent
+    END
+    __vrlstmp = __vrlswindows.0
+    __vrlswindows.0 = __vrlstmp - 1
+    CALL Vrwindow __vrlswindows.__vrlstmp
+    __vrlshwnd = ''
+__vrlsdone:
+RETURN __vrlshwnd
+
+/*:VRX         Expired_Close
+*/
+Expired_close:
+    CALL Quit
+RETURN
+
+/*:VRX         Expired_Help
+*/
+Expired_help:
+    CALL Infhelp(Vrinfo("Source"))
+RETURN
+
+
+/*:VRX         Expired_LangException
+*/
+Expired_LangException: 
+
+return
+
+/*:VRX         Expired_LangInit
+*/
+Expired_LangInit:
+
+    /* ------------------------------------------------ */
+    /* Language internationalization code autogenerated */
+    /* by VXNation v1.0, Copyright 1999, IDK, Inc.      */
+    /*          http://www.idk-inc.com                  */
+    /* Autogenerated: 03/06/2000 19:22:29             */
+    /* ------------------------------------------------ */
+    /* Warning! This code gets overwritten by VXNation! */
+    /* Do not make modifications here!                  */
+    /* ------------------------------------------------ */
+
+    /* Expired Records */
+    Ok = VRSet("Expired", "WindowListTitle", VLSMsg(288))
+
+    /* KeyRing/2 Expired Records */
+    Ok = VRSet("Expired", "Caption", VLSMsg(289))
+
+    /* Expired Passwords */
+    Ok = VRSet("IconContainer", "Caption", VLSMsg(290))
+
+    /* Double click on records to edit their expiration dates */
+    Ok = VRSet("IconContainer", "HintText", VLSMsg(291))
+
+    /* ~Exit */
+    Ok = VRSet("QuitButton", "Caption", VLSMsg(269))
+
+    /* Timer */
+    Ok = VRSet("FlashTimer", "Caption", VLSMsg(66))
+
+    call Expired_LangException
+    DROP Ok
+
+RETURN
+
+/*:VRX         Expired_Resize
+*/
+Expired_resize:
+    Ok = Vrset( "FlashTimer", "Delay", 1000 )
+    Ok = Vrset( "FlashTimer", "Enabled", 1)
+    Ok = Vrset("GB_1", "Visible", 0)
+    Ok = Vrset("GB_2", "Visible", 0)
+
+    Width = Vrget( "Expired", "Width" )
+    Height = Vrget( "Expired", "Height" )
+
+    IF Height > 3600 THEN DO
+        Gbtop = Height - 1228
+        Ok = Vrset("GB_2", "Top", Gbtop)
+        Gb1hyt = Height - 1400
+        Ok = Vrset( "GB_1", "Height", Gb1hyt )
+        Ok = Vrset( "IconContainer", "Height", Gb1hyt-241 )
+    END
+
+    IF Width > 2244 THEN DO
+        Gb1w = Width - 217
+        Ok = Vrset( "GB_1", "Width", Gb1w )
+        Ok = Vrset("GB_2", "Width", Gb1w)
+        Ok = Vrset( "IconContainer", "Width", Gb1w - 241 )
+    END
+
+    IF Lasthyt <> Height THEN DO
+        Ok = Vrmethod( "IconContainer", "Arrange" )
+    END
+        ELSE DO
+            IF Lastwid <> Width THEN DO
+                Ok = Vrmethod( "IconContainer", "Arrange" )
+            END
+        END
+
+    Lasthyt = Height
+    Lastwid = Width
+RETURN
+
+/*:VRX         Fini
+*/
+Fini:
+    Window = Vrwindow()
+    CALL Vrset Window, "Visible", 0
+    DROP Window
+RETURN 0
+
+/*:VRX         FlashTimer_Trigger
+*/
+Flashtimer_trigger:
+    Ok = Vrset("GB_1", "Visible", 1)
+    Ok = Vrset("GB_2", "Visible", 1)
+    Ok = Vrset( "FlashTimer", "Enabled", 0)
+RETURN
+
+/*:VRX         GetColumnName
+*/
+Getcolumnname:
+    Value = Krgetcolumnname(ARG(2), ARG(3))
+    IF Value = "" THEN DO
+        Value = Vlsmsg(ARG(1))
+    END
+RETURN Value
+
+/*:VRX         Halt
+*/
+Halt:
+    SIGNAL _vrehalt
+RETURN
+
+/*:VRX         IconContainer_DoubleClick
+*/
+Iconcontainer_doubleclick: PROCEDURE EXPOSE Appname Ininame
+    /* get selected item(s) and edit them in-turn */
+    Ok = Vrmethod("IconContainer", "GetRecordList", "SourceOrSelected", Selectedrecs. )
+
+    IF Selectedrecs.0 > 0 THEN DO
+        DO Indx = 1 TO Selectedrecs.0
+            Contindex = Vrmethod( "IconContainer", "GetFieldData", Selectedrecs.indx, "PgField" )
+            /* Ok = VRMethod( "IconContainer", "RemoveRecord", "SelectedRecs.Indx" ) */
+            Ok = Editrec(Vrwindow(), Vrget("IconContainer", "Self" ), Selectedrecs.indx, Contindx, Appname, Ininame)
+            CALL Updatetree
+        END
+    END
+        ELSE DO
+            Buttons.1 = Vlsmsg(80)                              /* Ok */
+            Buttons.0 = 1
+            Id = Vrmessage( Vrwindow(), Vlsmsg(110) /* You must first select one or more items. */, Vlsmsg(111) /* Information */, "Information", "Buttons.", , )
+            DROP Selectedrecs Id Buttons
+        END
+    CALL Updatetree
+RETURN
+
+/*:VRX         INFHelp
+*/
+Infhelp:
+    ADDRESS Cmd 'start view kr2.inf' Vrget(ARG(1), "UserData")
+RETURN
+
+/*:VRX         Init
+*/
+Init:
+    Ok = RXFUNCADD("VLLoadFuncs", "VLMSG", "VLLoadFuncs")/* do not modify or move this line! It must be on line #2 of this function */
+    CALL Vlloadfuncs/* do not modify or move this line! It must be on line #3 of this function */
+    Ok = Vrredirectstdio("On", "keyring2.err")
+
+    Ok = RXFUNCADD("KRILoadFuncs", "KRINI", "KRILoadFuncs")
+    CALL Kriloadfuncs
+
+    Appname = Initargs.1
+    Ininame = Initargs.2
+
+    Window = Vrwindow()
+
+    Appname = "KR2"
+    Ininame = "KR2.INI"
+
+    Langname = Vrgetini( Appname, "LANGUAGE", Ininame, "NOCLOSE" )
+    IF Langname = "" THEN DO
+        Langname = "ENGLISH.MSG"
+    END
+    Ok = Vlopenlang(Langname, Langname)
+
+    CALL Waitmouse
+    CALL Expired_langinit
+
+    Value = Vrgetini( Appname, "EXPTOP", Ininame )
+    IF Value = "" THEN DO
+        Value = 1200
+	END
+    Exptop = Value
+
+    Value = Vrgetini( Appname, "EXPLEFT", Ininame )
+    IF Value = "" THEN DO
+        Value =1100
+	end
+    Expleft = Value
+
+    Value = Vrgetini( Appname, "EXPHYT", Ininame )
+    IF Value = "" THEN do
+        Value = 4661
+	end
+    Exphyt = Value
+
+    Value = Vrgetini( Appname, "EXPWID", Ininame )
+    IF Value = "" THEN do
+        Value = 7502
+	end
+    Expwidth = Value
+
+    Ok = Vrset( "Expired", "Top", Exptop )
+    Ok = Vrset( "Expired", "Left", Expleft )
+    Ok = Vrset( "Expired", "Height", Exphyt )
+    Ok = Vrset( "Expired", "Width", Expwidth )
+    Conttype = 1
+    DO I = 1 TO 9
+        Colstr = Krgetcolumnenable(Conttype, I)
+        PARSE VAR Colstr Enb "þ" Flag "þ" Hint
+        IF Flag = "I" THEN DO
+            Style = "Icon"
+        END
+            ELSE DO
+                Style = "String"
+            END
+        /* create a new column, using either a custom column name or the default from the English file */
+        Fieldnames.i = "F" || I
+        Fieldid.i = Vrmethod(Iconcontainer, "AddField", Style, Getcolumnname(98+I, Conttype, I), Fieldnames.i)
+    END
+    Fieldid.10 = Vrmethod(Iconcontainer, "AddField", "String", "Order", "OrdField")
+    Fieldid.11 = Vrmethod(Iconcontainer, "AddField", "String", "Pg", "PgField")
+    Fieldid.12 = Vrmethod(Iconcontainer, "AddField", "String", "Indx", "IndxField")
+    Fieldid.0 = 12
+
+    CALL Populatecontainer
+
+    CALL Vrset Window, "Visible", 1
+    CALL Vrmethod Window, "Activate"
+    DROP Window
+    CALL NormalMouse
+RETURN
+
+/*:VRX         NormalMouse
+*/
+NormalMouse: 
+    CALL Vrset Vrwindow(), "Pointer", "<default>"/* show "Busy" mouse pointer */
+return
+
+/*:VRX         PopulateContainer
+*/
+Populatecontainer: PROCEDURE
+    Ok = Vrmethod( "IconContainer", "GetFieldList", "FieldID." )
+    Items.0 = 0
+    I = 1
+    Order = Krgetdefaultorder()
+    Value = Krgetexpiredrec(1,,
+        Order,,
+        Fieldid.1,,
+        Fieldid.2,,
+        Fieldid.3,,
+        Fieldid.4,,
+        Fieldid.5,,
+        Fieldid.6,,
+        Fieldid.7,,
+        Fieldid.8,,
+        Fieldid.9,,
+        Fieldid.10,,
+        Fieldid.11,,
+        Fieldid.12)
+
+    IF Value = "0" THEN DO
+        RETURN
+    END
+
+    Items.i = Value
+
+    DO FOREVER
+        I = I + 1
+        Items.i = Krgetexpiredrec(0,,
+            Order,,
+            Fieldid.1,,
+            Fieldid.2,,
+            Fieldid.3,,
+            Fieldid.4,,
+            Fieldid.5,,
+            Fieldid.6,,
+            Fieldid.7,,
+            Fieldid.8,,
+            Fieldid.9,,
+            Fieldid.10,,
+            Fieldid.11,,
+            Fieldid.12)
+        IF Items.i = "0" THEN LEAVE
+    END
+
+    Items.0 = I-1
+    Ok = Vrmethod( "IconContainer", "AddRecordList", , "Last", "Items.")
+    Ok = Vrmethod( "IconContainer", "GetRecordList", "All", "AllRecs." )
+RETURN
+
+/*:VRX         Quit
+*/
+Quit:
+    Ok = Vrsetini( Appname, "EXPTOP", Vrget("Expired", "Top" ), Ininame)
+    Ok = Vrsetini( Appname, "EXPLEFT", Vrget("Expired", "Left" ), Ininame)
+    Ok = Vrsetini( Appname, "EXPHYT", Vrget("Expired", "Height" ), Ininame)
+    Ok = Vrsetini( Appname, "EXPWID", Vrget("Expired", "Width" ), Ininame)
+
+    Window = Vrwindow()
+    CALL Vrset Window, "Shutdown", 1
+    DROP Window
+RETURN
+
+/*:VRX         QuitButton_Click
+*/
+Quitbutton_click:
+    CALL Quit
+RETURN
+
+/*:VRX         UpdateTree
+*/
+Updatetree: PROCEDURE
+    Ok = Vrset( "IconContainer", "Visible", 0 )
+
+    /* get all container item(s) */
+    Ok = Vrmethod( "IconContainer", "GetRecordList", "All", Reclist. )
+
+    IF Reclist.0 > 0 THEN DO
+        /* step through all records in container */
+        DO I = 1 TO Reclist.0
+            /* get all field values for current record */
+            Ok = Vrmethod( "IconContainer", "GetFieldData", Reclist.i, Fieldvals. )
+            /* overwrite tree records with container field data */
+            Ok = Krputrec(Fieldvals.11, Fieldvals.12, Fieldvals.10, Fieldvals.1, Fieldvals.2, Fieldvals.3, Fieldvals.4, Fieldvals.5, Fieldvals.6, Fieldvals.7, Fieldvals.8, Fieldvals.9)
+
+            /* Erase this record from the container */
+            Ok = Vrmethod( "IconContainer", "RemoveRecord", Reclist.i )
+        END
+        DROP Selectedrecs I
+    END
+
+    /* re-populate the container with any remaining expired records */
+    CALL Populatecontainer
+
+    Ok = Vrset( "IconContainer", "Visible", 1)
+RETURN
+
+
+/*:VRX         Waitmouse
+*/
+Waitmouse: 
+    CALL Vrset Vrwindow(), "Pointer", "Wait"/* show "Busy" mouse pointer */
+
+return
+

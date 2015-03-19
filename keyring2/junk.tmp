@@ -1,0 +1,150 @@
+
+G:\KEYRING2\MAIN.VRX(220) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(311) 19
+/*:VRX         AppEditItem_Click
+
+G:\KEYRING2\MAIN.VRX(313) 4
+AppEditItem_Click:
+
+G:\KEYRING2\MAIN.VRX(314) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(523) 20
+    Ok = VRSet("AppEditItem", "Caption", VLSMsg(56))
+
+G:\KEYRING2\MAIN.VRX(526) 20
+    Ok = VRSet("AppEditItem", "Accelerator", VLSMsg(57))
+
+G:\KEYRING2\MAIN.VRX(1016) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(1106) 21
+/*:VRX         ComboEditItem_Click
+
+G:\KEYRING2\MAIN.VRX(1108) 6
+ComboEditItem_Click: 
+
+G:\KEYRING2\MAIN.VRX(1109) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(1310) 22
+    Ok = VRSet("ComboEditItem", "Caption", VLSMsg(56))
+
+G:\KEYRING2\MAIN.VRX(1313) 22
+    Ok = VRSet("ComboEditItem", "Accelerator", VLSMsg(57))
+
+G:\KEYRING2\MAIN.VRX(1675) 16
+/*:VRX         EditItem
+
+G:\KEYRING2\MAIN.VRX(1677) 1
+Edititem: PROCEDURE EXPOSE Contnames. Appname Ininame DirtyFlag
+
+G:\KEYRING2\MAIN.VRX(2787) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(2878) 22
+/*:VRX         Other1EditItem_Click
+
+G:\KEYRING2\MAIN.VRX(2880) 7
+Other1EditItem_Click: 
+
+G:\KEYRING2\MAIN.VRX(2881) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(3083) 23
+    Ok = VRSet("Other1EditItem", "Caption", VLSMsg(56))
+
+G:\KEYRING2\MAIN.VRX(3086) 23
+    Ok = VRSet("Other1EditItem", "Accelerator", VLSMsg(57))
+
+G:\KEYRING2\MAIN.VRX(3207) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(3298) 22
+/*:VRX         Other2EditItem_Click
+
+G:\KEYRING2\MAIN.VRX(3300) 7
+Other2EditItem_Click: 
+
+G:\KEYRING2\MAIN.VRX(3502) 23
+    Ok = VRSet("Other2EditItem", "Caption", VLSMsg(56))
+
+G:\KEYRING2\MAIN.VRX(3505) 23
+    Ok = VRSet("Other2EditItem", "Accelerator", VLSMsg(57))
+
+G:\KEYRING2\MAIN.VRX(3780) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(3870) 19
+/*:VRX         PINEditItem_Click
+
+G:\KEYRING2\MAIN.VRX(3872) 4
+PINEditItem_Click: 
+
+G:\KEYRING2\MAIN.VRX(3873) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(4076) 20
+    Ok = VRSet("PINEditItem", "Caption", VLSMsg(56))
+
+G:\KEYRING2\MAIN.VRX(4079) 20
+    Ok = VRSet("PINEditItem", "Accelerator", VLSMsg(57))
+
+G:\KEYRING2\MAIN.VRX(4567) 10
+    CALL Edititem
+
+G:\KEYRING2\MAIN.VRX(4664) 19
+/*:VRX         WWWEditItem_Click
+
+G:\KEYRING2\MAIN.VRX(4666) 4
+WWWEditItem_Click: 
+
+G:\KEYRING2\MAIN.VRX(4667) 10
+    call EditItem
+
+G:\KEYRING2\MAIN.VRX(4863) 20
+    Ok = VRSet("WWWEditItem", "Caption", VLSMsg(56))
+
+G:\KEYRING2\MAIN.VRX(4866) 20
+    Ok = VRSet("WWWEditItem", "Accelerator", VLSMsg(57))
+
+G:\KEYRING2\MAINGOOD.VRX(166) 10
+    CALL Edititem
+
+G:\KEYRING2\MAINGOOD.VRX(215) 19
+/*:VRX         AppEditItemClick_Click
+
+G:\KEYRING2\MAINGOOD.VRX(217) 4
+Appedititemclick_click:
+
+G:\KEYRING2\MAINGOOD.VRX(218) 10
+    CALL Edititem
+
+G:\KEYRING2\MAINGOOD.VRX(392) 20
+    Ok = VRSet("AppEditItemClick", "Caption", VLSMsg(56))
+
+G:\KEYRING2\MAINGOOD.VRX(395) 20
+    Ok = VRSet("AppEditItemClick", "Accelerator", VLSMsg(57))
+
+G:\KEYRING2\MAINGOOD.VRX(811) 10
+    CALL Edititem
+
+G:\KEYRING2\MAINGOOD.VRX(1400) 16
+/*:VRX         EditItem
+
+G:\KEYRING2\MAINGOOD.VRX(1402) 1
+Edititem: PROCEDURE EXPOSE Contnames. Appname Ininame DirtyFlag
+
+G:\KEYRING2\MAINGOOD.VRX(2514) 10
+    CALL Edititem
+
+G:\KEYRING2\MAINGOOD.VRX(2761) 10
+    CALL Edititem
+
+G:\KEYRING2\MAINGOOD.VRX(3180) 10
+    CALL Edititem
+
+G:\KEYRING2\MAINGOOD.VRX(3954) 10
+    CALL Edititem

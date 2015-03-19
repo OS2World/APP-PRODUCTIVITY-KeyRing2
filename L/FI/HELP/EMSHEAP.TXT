@@ -1,0 +1,234 @@
+;
+;-------------------------------------------------------------------
+!TOPIC 368 EMSHeap
+EMSHeap is a unit for general-purpose management of EMS memory.
+In many ways it works the same as Turbo Pascal's built-in heap
+manager. It offers the following identifiers:
+
+  0376Declarations                    0375EMSMaxAvail
+  0374EMSMemAvail                     0387ExitEMSHeap
+  0373FreeEMSMem                      0372GetEMSMem
+  0386InitEMSHeap                     0369MapEMSPtr
+  0371RestoreEMSCtxt                  0370SaveEMSCtxt
+;
+;-------------------------------------------------------------------
+!TOPIC 369 MapEMSPtr
+!NOINDEX
+function 0368EMSHeap.MapEMSPtr(EPtr : EMSPointer) : Pointer;
+
+Convert a logical pointer allocated by GetEMSMem into a
+physical pointer that may be used in normal Pascal
+expressions.
+
+See also:  0372GetEMSMem
+;
+;-------------------------------------------------------------------
+!TOPIC 370 SaveEMSCtxt
+!NOINDEX
+function 0368EMSHeap.SaveEMSCtxt : Byte;
+
+Save the current state of the page frame to prevent disturbing
+another procedure or application. Returns a handle index that
+identifies the particular save condition.
+
+See also:  0371RestoreEMSCtxt
+;
+;-------------------------------------------------------------------
+!TOPIC 371 RestoreEMSCtxt
+!NOINDEX
+procedure 0368EMSHeap.RestoreEMSCtxt(HandleInd : Byte);
+
+Restores the EMS page frame to the state it had when
+SaveEMSCtxt was called.
+
+See also:  0370SaveEMSCtxt
+;
+;-------------------------------------------------------------------
+!TOPIC 372 GetEMSMem
+!NOINDEX
+procedure 0368EMSHeap.GetEMSMem(var EPtr : EMSPointer; Size : Word);
+
+Allocates EMS memory, returning a logical pointer. Smallest
+acceptable size is 1 byte and largest is 32768. Allocation
+granularity is 64 bytes. Returns a nil pointer if inadequate
+free space is available.
+
+See also:  0378EMSHeapErrorFuncPtr  0373FreeEMSMem  0369MapEMSPtr
+;
+;-------------------------------------------------------------------
+!TOPIC 373 FreeEMSMem
+!NOINDEX
+procedure 0368EMSHeap.FreeEMSMem(EPtr : EMSPointer; Size : Word);
+
+Frees EMS memory previously allocated by GetEMSMem. Size must
+exactly match the value specified for the original allocation.
+
+See also:  0372GetEMSMem
+;
+;-------------------------------------------------------------------
+!TOPIC 374 EMSMemAvail
+!NOINDEX
+function 0368EMSHeap.EMSMemAvail : LongInt;
+
+Returns the total amount of EMS memory that is managed by
+EMSHeap and currently free.
+
+See also:  0375EMSMaxAvail
+;
+;-------------------------------------------------------------------
+!TOPIC 375 EMSMaxAvail
+!NOINDEX
+function 0368EMSHeap.EMSMaxAvail : Word;
+
+Returns the largest block of EMS memory that is currently
+free. Never larger than 32768.
+
+See also:  0374EMSMemAvail
+;
+;-------------------------------------------------------------------
+!TOPIC 376 Declarations,EMSHeap
+!NOINDEX
+!NOSEARCH
+EMSHeap defines the following constants, types, and
+variables:
+
+  0385DoManualInitEMSHeap             0377EMSHardErrorFuncPtr
+  0378EMSHeapErrorFuncPtr             0379EMSHeapInitialized
+  0380EMSPointer                      0381HandlesToUseForAlloc
+  0382MaxEMSHeapPages                 0383MinEMSHeapPages
+  0384ToLetFreePages
+;
+;-------------------------------------------------------------------
+!TOPIC 377 EMSHardErrorFuncPtr
+!NOINDEX
+const
+  EMSHardErrorFuncPtr : Pointer = Nil;
+
+Points to a user-defined routine that will be called when a hard
+error occurs within EMSHeap. The routine must be global, be
+compiled under the far model, and be declared as follows:
+
+  {$F+}
+  function MyHardErrorFunc(Error : Word) : Boolean;
+
+Error is the EMS error number. The function should return True to
+abort the program, or False to continue.
+;
+;-------------------------------------------------------------------
+!TOPIC 378 EMSHeapErrorFuncPtr
+!NOINDEX
+const
+  EMSHeapErrorFuncPtr : Pointer = Nil;
+
+Points to a user-defined routine that will be called when the
+application attempts to allocate more EMS memory than is
+available. The routine must be global, be compiled under the far
+model, and be declared as follows:
+
+  {$F+}
+  function MyHeapErrorFunc(Size : Word) : Integer;
+
+Size is the number of bytes that EMSHeap needs to allocate. The
+function returns one of three values:
+
+  0  Call the hard error function
+  1  Return a Nil pointer
+  2  Retry the operation
+;
+;-------------------------------------------------------------------
+!TOPIC 379 EMSHeapInitialized
+!NOINDEX
+var
+  EMSHeapInitialized : Boolean;
+
+The initialization block of EMSHeap sets this variable to True
+if an EMS driver is detected, sufficient EMS memory is available,
+and EMSHeap initialization actions occur successfully. The
+other functions of EMSHeap may be called only if
+EMSHeapInitialized is True.
+;
+;-------------------------------------------------------------------
+!TOPIC 380 EMSPointer
+!NOINDEX
+type
+  EMSPointer = Pointer;
+
+0372GetEMSMem returns a logical pointer of this type. A call
+to 0369MapEMSPtr converts it to a pointer within the physical
+page frame.
+;
+;-------------------------------------------------------------------
+!TOPIC 381 HandlesToUseForAlloc
+!NOINDEX
+const
+  HandlesToUseForAlloc = 8;
+
+Specifies how many EMS handles EMSHeap will use. This controls
+the maximum number of EMS pages it can allocate and also the
+number of page frame context mappings it can store.
+;
+;-------------------------------------------------------------------
+!TOPIC 382 MaxEMSHeapPages
+!NOINDEX
+const
+  MaxEMSHeapPages = 2048;
+
+Specifies the maximum number of EMS pages EMSHeap can manage.
+
+See also:  0383MinEMSHeapPages
+;
+;-------------------------------------------------------------------
+!TOPIC 383 MinEMSHeapPages
+!NOINDEX
+const
+  MinEMSHeapPages = 0381HandlesToUseForAlloc;
+
+Specifies the minimum number of EMS pages that must be available
+for EMSHeap to set 0379EMSHeapInitialized to True.
+
+See also:  0382MaxEMSHeapPages
+;
+;-------------------------------------------------------------------
+!TOPIC 384 ToLetFreePages
+!NOINDEX
+const
+  ToLetFreePages = 0;
+
+Specifies the number of EMS pages that EMSHeap will leave free
+after initialization.
+
+See also:  0382MaxEMSHeapPages
+;
+;-------------------------------------------------------------------
+!TOPIC 385 DoManualInitEMSHeap
+!NOINDEX
+const
+  DoManualInitEMSHeap =
+    {$IFDEF ManualInitEMSHeap}
+      True;
+    {$ELSE}
+      False;
+    {$ENDIF}
+
+Is True if the EMS pages for the EMS heap must be allocated manually.
+;
+;-------------------------------------------------------------------
+!TOPIC 386 InitEMSHeap
+!NOINDEX
+procedure 0368EMSHeap.InitEMSHeap(FreePages : Word);
+
+Allocate EMS pages for the EMS heap, leaving FreePages pages of EMS
+free for other uses. Should be called only if
+0385DoManualInitEMSHeap is True.
+
+See also:  0387ExitEMSHeap
+;
+;-------------------------------------------------------------------
+!TOPIC 387 ExitEMSHeap
+!NOINDEX
+procedure 0368EMSHeap.ExitEMSHeap;
+
+Release all EMS pages associated with the EMS heap. Should be called
+only if 0385DoManualInitEMSHeap is True.
+
+See also:  0386InitEMSHeap

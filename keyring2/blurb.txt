@@ -1,0 +1,12 @@
+Thank you for choosing KeyRing/2!
+
+KeyRing/2 allows you to save all your passwords or other secrets under a single
+master password and manages them in a database. KeyRing/2 can communicate with 
+Netscape and other programs on your desktop.
+
+This installer will guide you through a simple procedure that unpacks the KeyRing/2 
+files into a directory you choose. It will also create a folder and icon on
+your desktop.
+
+Use the WarpIN icon to deinstall KeyRing/2.
+

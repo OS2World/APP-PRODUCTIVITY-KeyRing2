@@ -1,0 +1,62 @@
+;Help text for B-Tree Filer Online Reference Guide
+;Copyright (c) 1990-1995, TurboPower Software
+;All rights reserved
+;Version 5.51
+;
+;Help file was designed for a ScrollingHelpWindow
+!SCROLLING
+;
+;Full screen width is used to best display procedure headers
+;Actual width available after framing and padding is 75 characters
+!WIDTH 76
+;
+;The help text assumes that wrapping is on, except where it temporarily
+;turns wrapping off.
+!WRAP
+;
+;For best appearance, use an active help window height of at least 12 rows.
+;
+;Formatting conventions:
+; Char  Where used (usually)  Video attribute
+; ----  --------------------  ---------------------------
+;   -   normal help text      dim on a monochrome monitor
+;  ^A   not used              reverse video
+;  ^B   function headers      bold video                      (smiley face)
+;  ^C   emphasis              underlined bold video           (heart)
+;  ^D   unselected xref       underlined dim video            (diamond)
+;  ^E   selected xref         reverse video                   (club)
+;
+!INCLUDE BROWSER.TXT
+!INCLUDE DBIMPEXP.TXT
+!INCLUDE EMSHEAP.TXT
+!INCLUDE FILER.TXT
+!INCLUDE FIXTOVAR.TXT
+!INCLUDE ISAMTOOL.TXT
+!INCLUDE LOWBROWS.TXT
+!INCLUDE MSORT.TXT
+!INCLUDE MSORTP.TXT
+!INCLUDE NETBIOS.TXT
+!INCLUDE NWBASE.TXT
+!INCLUDE NWBIND.TXT
+!INCLUDE NWCONN.TXT
+!INCLUDE NWFILE.TXT
+!INCLUDE NWIPXSPX.TXT
+!INCLUDE NWMSG.TXT
+!INCLUDE NWPRINT.TXT
+!INCLUDE NWSEMA.TXT
+!INCLUDE NWTTS.TXT
+!INCLUDE NUMKEYS.TXT
+!INCLUDE OPBROW.TXT
+!INCLUDE REBUILD.TXT
+!INCLUDE REORG.TXT
+!INCLUDE RESTINX.TXT
+!INCLUDE SHARE.TXT
+!INCLUDE TPALLOC.TXT
+!INCLUDE TPCMD.TXT
+!INCLUDE TVBROWS.TXT
+!INCLUDE VREBUILD.TXT
+!INCLUDE VREC.TXT
+!INCLUDE VREORG.TXT
+!INCLUDE WBROWSER.TXT
+;
+;last topic number used is 3950

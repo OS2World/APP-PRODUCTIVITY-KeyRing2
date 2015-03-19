@@ -1,0 +1,950 @@
+(**************************************************************)
+(*     B-Tree Isam dBASE III & IV Import / Export Ver 5.51    *)
+(*         C-BTree Isam DLL Ver 3.5 Pascal Interface          *)
+(*        Copyright (C) 1993/94 ENZ EDV-Beratung GmbH         *)
+(*                All rights reserved                         *)
+(*   Modified and used under license by TurboPower Software   *)
+(**************************************************************)
+
+(***Moved to DBIMPEXP.PAS***  !!.TP
+{--Conditional defines and compiler options}
+  {$I BTDefine.Inc}
+  {$IFDEF UseSymFlex}
+    {$I DDDefine.Inc}
+  {$ENDIF}
+  {$F-,V-,B-,S-,I-,R-,X+,A-,N+}
+  {$IFDEF CanSetOvrflowCheck}
+    {$Q-}
+  {$ENDIF}
+  {$IFDEF DPMI}
+    {$K+}
+  {$ENDIF}
+
+Unit DBImpExp;
+ ***)
+
+Interface
+
+Uses
+{$IFDEF Windows}
+  WinTypes,
+  WinProcs,
+{$ENDIF}
+  Strings,
+  Filer;     {!!.TP}
+
+
+{--Definition of possible languages for error messages of DBaseErrorMessage}
+  (**************************************************************************)
+  (*******************)  {$DEFINE DBaseGermanMessage}   (********************)
+  (*******************)  { $DEFINE DBaseEnglishMessage}  (********************)
+  (**************************************************************************)
+  {-Adding a space before the $ sign of the DEFINE deactivates the error
+    messages of this language}
+
+
+Const
+{--Interfaced constants}
+  DBFieldNameLen         = 10;
+  AutoRelName            = '_AutoRel';
+  DelMarkName            = '_DelMark';
+
+{--FType}
+  DelMarkFType           = #0;
+    {-Not a dBASE field type, but describes the 1st byte of a dBASE record}
+  DateFType              = 'D';
+  CharFType              = 'C';
+  LogicFType             = 'L';
+  NumerFType             = 'N';
+  FloatFType             = 'F';
+  MemoFType              = 'M';
+
+{$IFNDEF UseSymFlex}
+{--CType}
+  ReservedCType   = 0;
+  BooleanCType    = 1;
+  CharCType       = 2;
+  ByteCType       = 3;
+  ShortIntCType   = 4;
+  IntegerCType    = 5;
+  WordCType       = 6;
+  LongIntCType    = 7;
+  CompCType       = 8;
+  RealCType       = 9;
+  SingleCType     = 10;
+  DoubleCType     = 11;
+  ExtendedCType   = 12;
+  StringCType     = 13;
+  ArrayCType      = 14;
+{$ENDIF}                                                        {!!.42}
+{$IFNDEF SymFlexGE20}                                           {!!.42}
+  AZStringCType   = 15;
+  DateCType       = 16;
+  TimeCType       = 17;
+{$ENDIF}
+
+{--DecideCase}
+  DCWrite = 0;
+  DCSkip  = 1;
+  DCAbort = 2;
+
+{--WorkStatus}
+  WSInit = 0;
+  WSWork = 1;
+  WSExit = 2;
+
+{--ErrorReaction}
+  ERAbort  = 0;
+  ERIgnore = 1;
+
+{--DBaseErrorNr}
+  DEZERO    =    0; {No error}
+  DEEOF     = 9011; {End of file}
+  DEOOM     = 9012; {Out of memory}
+  DEBV      = 9013; {Bad version or not a dBASE III/IV file}
+  DECMF     = 9014; {Corrupted memo file}
+  DERSTL    = 9015; {Record size to large}
+  DEWCT     = 9016; {Wrong CType}
+  DEEWTD    = 9017; {Error writing type definition file}
+  DEECF     = 9018; {Error converting field}
+  DELHNI    = 9019; {List header not initialized or bad part}
+  DETMF     = 9020; {Too many fields}
+  DEWFT     = 9021; {Wrong field type}
+  DEFWTL    = 9022; {Field width too large}
+  DETMD     = 9023; {Too many decimals}
+  DEFTVC    = 9024; {Field type version conflict}
+  DEARFNA   = 9025; {Auto relation field is not allowed here}
+  DEFCNMF   = 9026; {File contains no memo fields}
+  DEEODF    = 9027; {Error opening dump file}
+  DEEWDF    = 9028; {Error writing to dump file}
+  DEECDF    = 9029; {Error closing dump file}
+  DEPE      = 9030; {Programming error}
+  DEFNAE    = 9031; {Field name already exists}
+  DENFD     = 9032; {No field defined}
+  DELAST    = 9033; {Last error const, not an error}
+
+{--DBaseVersion}
+  DBVersion3X = $0300;
+  DBVersion4X = $0400;
+
+{--Private constants}
+  DB4MaxFields = 255;
+
+
+{--Interfaced types}
+Type
+  DBaseUsedErrorMessages = ( DBNoMsg, DBGerman, DBEnglish );
+
+  DBaseFieldName = Array [0 .. DBFieldNameLen] Of Char;
+    {-dBASE field name}
+
+  DBaseFieldNameStr = String [DBFieldNameLen];
+
+  DBaseFileName = IsamFileName;
+    {-DOS file name}
+
+  DBaseVersion = Integer;
+
+
+{--Private types}
+  DBaseFileField = Record
+    Name         : DBaseFieldName;
+    FType        : Char;
+    Address      : ^Char;
+    Width,
+    Decimals     : Byte;
+    Reserved1    : Array [0 .. 1] of Byte;
+    IDWorkReg    : Byte;
+    Reserved2    : Array [0 .. 1] of Byte;
+    SetFieldFlag : Byte;
+    Reserved3    : Array [0 .. 7] of Byte;
+  End;
+  PDBaseFileField = ^DBaseFileField;
+    {-dBASE file descriptor of a field}
+
+  DBaseFileDate = Record
+    Year,
+    Month,
+    Day    : Byte;
+  End;
+  PDBaseFileDate = ^DBaseFileDate;
+    {-dBASE date descriptor}
+
+  DBaseFileFieldArray = Array [0 .. DB4MaxFields-1] of DBaseFileField;
+  PDBaseFileFieldArray = ^DBaseFileFieldArray;
+    {-An array of dBASE descriptors}
+
+  DBaseFileHeader = Record
+    DBaseVer   : Byte;
+    LastChange : DBaseFileDate;
+    NrOfRecs   : Longint;
+    HeaderSize,
+    RecordSize : Word;
+  End;
+  PDBaseFileHeader = ^DBaseFileHeader;
+
+  DBaseFileFullHeader = Record
+    Part           : DBaseFileHeader;
+    Reserved1      : Array [0 .. 1] Of Char;
+    TransActionFlag,
+    EncryptionFlag : Byte;
+    Reserved2      : Array [0 .. 11] Of Char;
+    MDXFlag        : Byte;
+    Reserved3      : Array [0 .. 2] Of Char;
+  End;
+  PDBaseFileFullHeader = ^DBaseFileFullHeader;
+    {-dBASE file descriptor of '.DBF' file}
+
+  DBaseMemoHeader = Record
+    NextFree,
+    Dummy1   : Longint;
+    FileName : Array [0 .. 7] Of Char;
+    Valid    : Longint;
+    BlockSize,
+    Dummy2   : Word;
+  End;
+  PDBaseMemoHeader = ^DBaseMemoHeader;
+    {-dBASE descriptor of '.DBT' file}
+
+  DBaseMemoRecord = Record
+    Rec : Array [0 .. 511] Of Char;
+  End;
+  PDBaseMemoRecord = ^DBaseMemoRecord;
+
+  DBase4FirstMemoRec = Record
+    Valid,
+    Width : Longint;
+  End;
+  PDBase4FirstMemoRec = ^DBase4FirstMemoRec;
+
+  DBaseMemoRec = Record
+    Case Byte Of
+      1 : ( Header : DBaseMemoHeader; );
+      2 : ( Rec    : DBaseMemoRecord; );
+      3 : ( RecIV  : DBase4FirstMemoRec; );
+  End;
+  PDBaseMemoRec = ^DBaseMemoRec;
+
+  IsamField = Record
+    CType,
+    BufSize,
+    Offset   : Word;
+    Width,
+    Decimals : Integer;
+  End;
+  PIsamField = ^IsamField;
+
+  DBaseNormalField = Record
+    FType    : Char;
+    Width,
+    Decimals : Byte;
+    Offset   : Word;
+  End;
+  PDBaseNormalField = ^DBaseNormalField;
+
+  DBaseAutoRelField = Record
+    Relation : Longint;
+  End;
+  PDBaseAutoRelField = ^DBaseAutoRelField;
+
+  DBaseField = Record
+    Case NormalContents : Boolean Of
+      True  : ( Normal : DBaseNormalField; );
+      False : ( Auto   : DBaseAutoRelField; );
+  End;
+  PDBaseField = ^DBaseField;
+
+  PFieldNode = ^FieldNode;
+  FieldNode = Record
+    FieldName   : DBaseFieldNameStr;
+    ConvStatus  : Integer;
+    DBFieldPtr  : PDBaseField;
+    BTFieldPtr  : PIsamField;
+    NextPtr     : PFieldNode;
+  End;
+
+  IsamHeader = Record
+    DatSLen : Word;
+    FBPtr   : IsamFileBlockPtr;
+  End;
+  PIsamHeader = ^IsamHeader;
+
+  DBaseMemo = Record
+    IFile    : IsamFile;
+    Modified : Boolean;
+    Header   : DBaseMemoHeader;
+    MaxSize  : Word;
+  End;
+  PDBaseMemo = ^DBaseMemo;
+
+  DBaseHeader = Record
+    Header   : DBaseFileHeader;
+    DBVer    : DBaseVersion;
+    RefNr    : Longint;
+    Fields   : Byte;
+    IFile    : IsamFile;
+    Modified : Boolean;
+    MemoPtr  : PDBaseMemo;
+  End;
+  PDBaseHeader = ^DBaseHeader;
+
+  ListHeader = Record
+    DBSource    : Boolean;
+    ListPtr     : PFieldNode;
+    DBHeaderPtr : PDBaseHeader;
+    BTHeaderPtr : PIsamHeader;
+  End;
+
+{--Interfaced types}
+  PListHeader = ^ListHeader;
+
+  DecideCase = Integer;
+  EnumFct_DecideWrite = Function (     LHPtr  : PListHeader;
+                                       Errors : Integer;
+                                   Var BTBuf,
+                                       DBBuf ) : DecideCase;
+
+  WorkStatus = Integer;
+  IntFct_ReXUser = Function (     Status    : WorkStatus;
+                                  LHPtr     : PListHeader;
+                                  ReadRecs,
+                                  WriteRecs,
+                                  ErrorRecs : Longint;
+                              Var DatSBuf ) : Integer;
+
+  ErrorReaction = Integer;
+  DBaseErrorNr = Integer;
+  VoidFct_ErrorHandler = Procedure ( Reaction   : ErrorReaction;
+                                     IsamError  : Integer;
+                                     DBaseError : DBaseErrorNr );
+    {-Either DBaseError or IsamError is set}
+
+  IntFct_WriteTDef = Function ( LHPtr  : PListHeader;
+                                IFName : IsamFileName ) : Integer;
+
+  VoidFct_CharArrConvert = Procedure ( CArrPtr : Pointer;
+                                       Len     : Word );
+
+{--Interfaced routines}
+  Function DBaseErrorMessage ( ErrorNr : DBaseErrorNr ) : String;
+    {-Returns an error string}
+
+  Function CreateListHeaderUseDBaseFiles
+      ( Var LHPtr       : PListHeader;
+            DBFileName  : DBaseFileName;
+            MaxMemoSize : Word ) : Integer;
+    {-Opens an existing dBASE III/IV file and builds the source (dBASE)
+      part of the list}
+
+  Function CompleteDBaseList ( LHPtr : PListHeader;
+                               AZStrs,
+                               AutoRel : Boolean ) : Integer;
+    {-Builds the destination (B-Tree Isam) part of the list}
+
+  Function WriteNoTypeDef ( LHPtr  : PListHeader;
+                            IFName : IsamFileName ) : Integer;
+    {-Passed to DBaseImport to write no type definition}
+
+  Function WritePascalTypeDef ( LHPtr  : PListHeader;
+                                IFName : IsamFileName ) : Integer;
+    {-Passed to DBaseImport to write a Pascal type definition}
+
+  Function DBaseImport ( LHPtr            : PListHeader;
+                         IFBName          : IsamFileBlockName;
+                         FuncWriteTypeDef : IntFct_WriteTDef;
+                         FuncReXUser      : IntFct_ReXUser;
+                         ProcCArrConv     : VoidFct_CharArrConvert;
+                         FuncDecideWrite  : EnumFct_DecideWrite )
+                                                             : Integer;
+    {-Converts the dBASE file to a B-Tree Isam file}
+
+  Function CloseDBaseFiles ( LHPtr : PListHeader ) : Integer;
+    {-Closes dBASE file(s)}
+
+  Function CreateListHeaderOpenFileBlock ( BTFileName : IsamFileBlockName )
+                                                            : PListHeader;
+    {-Allocates a ListHeader and returns a pointer to it and opens the
+      B-Tree Isam Fileblock BTFileName; if an error occurs the error
+      handler is called and Nil is returned}
+
+  Function AddFieldNode ( Var LHPtr     : PListHeader;
+                              Name      : DBaseFieldNameStr;
+                              CType,
+                              BufSize,
+                              Offset    : Word;
+                              Width,
+                              Decimals  : Integer ) : Boolean;
+    {-Allocates a FieldNode and inserts it at the end of the list LHPtr^;
+      the B-Tree Isam part is allocated and filled with arguments;
+      if an error occurs the error handler is called, files are closed,
+      LHPtr is freed, and False is returned}
+
+  Function CompleteIsamList ( LHPtr : PListHeader;
+                              DBVer : DBaseVersion ) : Integer;
+    {-Builds the destination (dBASE) part of list}
+
+  Function DBaseExport ( LHPtr           : PListHeader;
+                         DBFName         : DBaseFileName;
+                         KeyNr           : Word;
+                         FuncReXUser     : IntFct_ReXUser;
+                         ProcCArrConv    : VoidFct_CharArrConvert;
+                         FuncDecideWrite : EnumFct_DecideWrite )
+                                                              : Integer;
+    {-Converts the B-Tree Isam Fileblock to a dBASE file}
+
+  Function CloseIsamFiles ( LHPtr : PListHeader ) : Integer;
+    {-Closes B-Tree Isam file(s)}
+
+  Procedure FreeListHeader ( Var LHPtr : PListHeader );
+    {-Deallocates the LHPtr and its structures}
+
+  Procedure NoErrorHandler ( Reaction   : ErrorReaction;
+                             IsamError  : Integer;
+                             DBaseError : DBaseErrorNr);
+    {-Assignable to ProcErrorHandler to install no error handler}
+
+  Function NoReXUser (     Status    : WorkStatus;
+                           LHPtr     : PListHeader;
+                           ReadRecs,
+                           WriteRecs,
+                           ErrorRecs : Longint;
+                       Var DatSBuf ) : Integer;
+    {-Should be passed to DBaseImport and DBaseExport in FuncReXUser
+      if no status infomations of import/export are needed.}
+
+  Procedure NoCArrConv ( CArrPtr : Pointer;
+                         Len     : Word );
+
+  Function StdDecideWrite (     LHPtr   : PListHeader;
+                                Errors  : Integer;
+                            Var BTBuf,
+                                DBBuf ) : DecideCase;
+    {-Decides whether the converted record is written or not}
+
+
+{--Interfaced typed constants and variables}
+Const
+{--Private variables}
+  ___DBValidSign         : LongInt = $DeadBeef;
+  ___DBOnHeap            : Boolean = False;
+  ___DBDummy             : Boolean = False;
+
+{--Interfaced variables}
+  DBDataExtension        : String [3] = 'DBF';
+  DBMemoExtension        : String [3] = 'DBT';
+  DumpExtension          : String [3] = 'DMP';
+  _CHeaderExtension      : String [3] = 'H';
+  PasIncExtension        : String [3] = 'INC';
+  StartAutoRel           : LongInt = 1;
+  CHErrorHandlerProcInst : Pointer = Nil;
+
+{--Private variables}
+  ___DBNegValidSign   : LongInt = 0 - $DeadBeef;
+
+
+Var
+  DBUseErrorMessage : DBaseUsedErrorMessages Absolute __UsedErrorMessage;
+
+Const
+  ProcErrorHandler : VoidFct_ErrorHandler = NoErrorHandler;
+
+
+Implementation {=========================================================}
+
+  Var
+    ExtDBaseProcessDataPtr,
+    CHInformUserProcInst,
+    CHCharArrConvertProcInst,
+    CHDecideWriteProcInst,
+    CHWriteTDefProcInst       : Pointer;
+
+
+  Procedure CallHookErrorHandler ( Reaction    : Word;
+                                   AIsamError  : LongInt;
+                                   ADBaseError : LongInt ); Export;
+
+  Begin
+    If @ProcErrorHandler <> Nil Then Begin
+      ProcErrorHandler ( ErrorReaction (Reaction), AIsamError And $FFFF,
+          DBaseErrorNr (ADBaseError And $FFFF) );
+    End;
+  End;
+
+
+  Procedure SetErrorHandlerHook;
+
+  Begin
+  {$IFDEF Windows}
+    If CHErrorHandlerProcInst <> Nil Then Begin
+      FreeProcInstance ( CHErrorHandlerProcInst );
+    End;
+    CHErrorHandlerProcInst := MakeProcInstance ( @CallHookErrorHandler,
+        HInstance );
+  {$ELSE}
+    CHErrorHandlerProcInst := @CallHookErrorHandler;
+  {$ENDIF}
+  End;
+
+
+  Function CallHookInformUser (     Status    : Word;
+                                    LHPtr     : PListHeader;
+                                    ReadRecs  : LongInt;
+                                    WriteRecs : LongInt;
+                                    ErrorRecs : LongInt;
+                                Var DatSBuf;
+                                    HookFunc  : IntFct_ReXUser ) : LongInt;
+                                                                   Export;
+
+  Begin
+    If @HookFunc <> Nil Then Begin
+      CallHookInformUser := HookFunc ( WorkStatus (Status), LHPtr,
+          ReadRecs, WriteRecs, ErrorRecs, DatSBuf );
+    End Else Begin
+      CallHookInformUser := 0;
+    End;
+  End;
+
+
+  Procedure CallHookCharArrConvert ( CArrPtr  : Pointer;
+                                     Len      : Word;
+                                     HookProc : VoidFct_CharArrConvert );
+                                                                  Export;
+
+  Begin
+    If @HookProc <> Nil Then Begin
+      HookProc ( CArrPtr, Len );
+    End;
+  End;
+
+
+  Function CallHookDecideWrite (    LHPtr    : PListHeader;
+                                    Errors   : Integer;
+                                Var BTBuf;
+                                Var DBBuf;
+                                    HookFunc : EnumFct_DecideWrite )
+                                                   : Word; Export;
+
+  Begin
+    If @HookFunc <> Nil Then Begin
+      CallHookDecideWrite := Word (HookFunc ( LHPtr, Errors, BTBuf,
+          DBBuf ));
+    End Else Begin
+      CallHookDecideWrite := 0;
+    End;
+  End;
+
+
+  Function CallHookWriteTDef ( ExtDBasePDP : Pointer;
+                               LHPtr       : PListHeader;
+                               IFName      : PChar;
+                               HookFunc    : IntFct_WriteTDef ) : LongInt;
+                                                                  Export;
+
+  Begin
+    If @HookFunc <> Nil Then Begin
+      CallHookWriteTDef := HookFunc ( LHPtr, StrPas (IFName) );
+    End Else Begin
+      CallHookWriteTDef := 0;
+    End;
+  End;
+
+
+  Const
+    DLLName = 'CBTLWDS';
+
+
+  Function BDEMakeDBaseProcessData ( EPDPtr  : Pointer;
+                                     IPDPtr  : Pointer;
+                                     DBPDPtr : Pointer ) : Pointer;
+      Far; External DLLName Index 2560;  {Name 'BDEMAKEDBASEPROCESSDATA';}
+
+  Function BDEFreeDBaseProcessData ( Var EPDPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 2561;  {Name 'BDEFREEDBASEPROCESSDATA';}
+
+  Function BDEDBaseErrorMessage ( EPDPtr  : Pointer;
+                                  ErrorNr : LongInt ) : PChar;
+      Far; External DLLName Index 2563;  {Name 'BDEDBASEERRORMESSAGE';}
+
+  Function BDECreateListHeaderUseDBaseFiles
+                             (     EPDPtr      : Pointer;
+                               Var LHPtr       : PListHeader;
+                                   DBFileName  : PChar;
+                                   MaxMemoSize : Word ) : LongInt;
+      Far; External DLLName Index 2564;
+                                {Name 'BDECREATELISTHEADERUSEDBASEFILES';}
+
+  Function BDECompleteDBaseList ( EPDPtr   : Pointer;
+                                  LHPtr    : PListHeader;
+                                  AZStrs   : Boolean;
+                                  AutoRel  : Boolean;
+                                  PasTypes : Boolean ) : LongInt;
+      Far; External DLLName Index 2565;  {Name 'BDECOMPLETEDBASELIST';}
+
+  Function BDEWritePascalTypeDef ( EPDPtr  : Pointer;
+                                   LHPtr   : PListHeader;
+                                   IFName  : PChar;
+                                   HookPtr : Pointer ) : LongInt;
+      Far; External DLLName Index 2567;  {Name 'BDEWRITEPASCALTYPEDEF';}
+
+  Function BDEDBaseImport ( EPDPtr           : Pointer;
+                            LHPtr            : PListHeader;
+                            IFBName          : PChar;
+                            WriteTypeDefFPtr,
+                            InformUserFPtr,
+                            CArrConvFPtr,
+                            DecideWriteFPtr,
+                            HookPtr          : Pointer ) : LongInt;
+      Far; External DLLName Index 2568;  {Name 'BDEDBASEIMPORT';}
+
+  Function BDECloseDBaseFiles ( EPDPtr : Pointer;
+                                LHPtr  : PListHeader ) : LongInt;
+      Far; External DLLName Index 2569;  {Name 'BDECLOSEDBASEFILES';}
+
+  Function BDECreateListHeaderOpenFileBlock ( EPDPtr     : Pointer;
+                                              BTFileName : PChar )
+                                                          : PListHeader;
+      Far; External DLLName Index 2570;
+                               {Name 'BDECREATELISTHEADEROPENFILEBLOCK';}
+
+  Function BDEAddFieldNode ( EPDPtr   : Pointer;
+                             LHPtr    : PListHeader;
+                             Name     : PChar;
+                             CType    : Word;
+                             BufSize  : Word;
+                             Offset   : Word;
+                             Width    : Integer;
+                             Decimals : Integer ) : Boolean;
+      Far; External DLLName Index 2571;  {Name 'BDEADDFIELDNODE';}
+
+  Function BDECompleteIsamList ( EPDPtr   : Pointer;
+                                 LHPtr    : PListHeader;
+                                 DBVer    : Word;
+                                 PasTypes : Boolean ) : LongInt;
+      Far; External DLLName Index 2572;  {Name 'BDECOMPLETEISAMLIST';}
+
+  Function BDEDBaseExport ( EPDPtr          : Pointer;
+                            LHPtr           : PListHeader;
+                            DBFName         : PChar;
+                            KeyNr           : Word;
+                            InformUserFPtr,
+                            CArrConvFPtr,
+                            DecideWriteFPtr,
+                            HookPtr         : Pointer ) : LongInt;
+      Far; External DLLName Index 2573;  {Name 'BDEDBASEEXPORT';}
+
+  Function BDECloseIsamFiles ( EPDPtr : Pointer;
+                               LHPtr  : PListHeader ) : LongInt;
+      Far; External DLLName Index 2574;  {Name 'BDECLOSEISAMFILES';}
+
+  Procedure BDEFreeListHeader (     EPDPtr : Pointer;
+                                Var LHPtr  : PListHeader );
+      Far; External DLLName Index 2575;  {Name 'BDEFREELISTHEADER';}
+
+  Function BDEStdDecideWrite (     LHPtr   : PListHeader;
+                                   Errors  : Integer;
+                               Var BTBuf,
+                                   DBBuf;
+                                   HookPtr : Pointer ) : Word;
+      Far; External DLLName Index 2576;  {Name 'BDESTDDECIDEWRITE';}
+
+
+
+  Function DBaseErrorMessage ( ErrorNr : DBaseErrorNr ) : String;
+
+  Var
+    ErrMsgPtr : PChar;
+
+  Begin
+    SetErrorHandlerHook;
+    ErrMsgPtr := BDEDBaseErrorMessage ( ExtDBaseProcessDataPtr, ErrorNr );
+    DBaseErrorMessage := StrPas ( ErrMsgPtr );
+  End;
+
+
+  Function CreateListHeaderUseDBaseFiles
+      ( Var LHPtr       : PListHeader;
+            DBFileName  : DBaseFileName;
+            MaxMemoSize : Word ) : Integer;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (DBaseFileName))] Of Char;
+
+  Begin
+    SetErrorHandlerHook;
+    StrPCopy ( FNameBuf, DBFileName );
+    CreateListHeaderUseDBaseFiles := BDECreateListHeaderUseDBaseFiles
+        ( ExtDBaseProcessDataPtr, LHPtr, FNameBuf, MaxMemoSize ) And $FFFF;
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function CompleteDBaseList ( LHPtr   : PListHeader;
+                               AZStrs,
+                               AutoRel : Boolean ) : Integer;
+
+  Begin
+    SetErrorHandlerHook;
+    CompleteDBaseList := BDECompleteDBaseList ( ExtDBaseProcessDataPtr,
+        LHPtr, AZStrs, AutoRel, True ) And $FFFF;
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function DBaseImport ( LHPtr            : PListHeader;
+                         IFBName          : IsamFileBlockName;
+                         FuncWriteTypeDef : IntFct_WriteTDef;
+                         FuncReXUser      : IntFct_ReXUser;
+                         ProcCArrConv     : VoidFct_CharArrConvert;
+                         FuncDecideWrite  : EnumFct_DecideWrite )
+                                                             : Integer;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+    HookArr  : Array [0..3] Of Pointer;
+
+  Begin
+    SetErrorHandlerHook;
+    StrPCopy ( FNameBuf, IFBName );
+    HookArr [0] := @FuncReXUser;
+    HookArr [1] := @ProcCArrConv;
+    HookArr [2] := @FuncDecideWrite;
+    HookArr [3] := @FuncWriteTypeDef;
+    DBaseImport := BDEDBaseImport ( ExtDBaseProcessDataPtr,
+        LHPtr, FNameBuf, CHWriteTDefProcInst, CHInformUserProcInst,
+        CHCharArrConvertProcInst, CHDecideWriteProcInst, @HookArr )
+        And $FFFF;
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function CloseDBaseFiles ( LHPtr : PListHeader ) : Integer;
+
+  Begin
+    SetErrorHandlerHook;
+    CloseDBaseFiles := BDECloseDBaseFiles ( ExtDBaseProcessDataPtr,
+        LHPtr ) And $FFFF;
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function CreateListHeaderOpenFileBlock ( BTFileName : IsamFileBlockName )
+                                                            : PListHeader;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+
+  Begin
+    SetErrorHandlerHook;
+    StrPCopy ( FNameBuf, BTFileName );
+    CreateListHeaderOpenFileBlock := BDECreateListHeaderOpenFileBlock (
+        ExtDBaseProcessDataPtr, FNameBuf );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function AddFieldNode ( Var LHPtr     : PListHeader;
+                              Name      : DBaseFieldNameStr;
+                              CType,
+                              BufSize,
+                              Offset    : Word;
+                              Width,
+                              Decimals  : Integer ) : Boolean;
+
+
+  Var
+    NameBuf : Array [0..Pred (SizeOf (DBaseFieldNameStr))] Of Char;
+
+  Begin
+    SetErrorHandlerHook;
+    StrPCopy ( NameBuf, Name );
+    AddFieldNode := BDEAddFieldNode ( ExtDBaseProcessDataPtr, LHPtr,
+        NameBuf, CType, BufSize, Offset, Width, Decimals );
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function CompleteIsamList ( LHPtr : PListHeader;
+                              DBVer : DBaseVersion ) : Integer;
+
+  Begin
+    SetErrorHandlerHook;
+    CompleteIsamList := BDECompleteIsamList ( ExtDBaseProcessDataPtr,
+        LHPtr, Word (DBVer), True ) And $FFFF;
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function DBaseExport ( LHPtr           : PListHeader;
+                         DBFName         : DBaseFileName;
+                         KeyNr           : Word;
+                         FuncReXUser     : IntFct_ReXUser;
+                         ProcCArrConv    : VoidFct_CharArrConvert;
+                         FuncDecideWrite : EnumFct_DecideWrite )
+                                                              : Integer;
+
+  Var
+    FNameBuf : Array [0..Pred (SizeOf (IsamFileBlockName))] Of Char;
+    HookArr  : Array [0..2] Of Pointer;
+
+  Begin
+    SetErrorHandlerHook;
+    StrPCopy ( FNameBuf, DBFName );
+    HookArr [0] := @FuncReXUser;
+    HookArr [1] := @ProcCArrConv;
+    HookArr [2] := @FuncDecideWrite;
+    DBaseExport := BDEDBaseExport ( ExtDBaseProcessDataPtr,
+        LHPtr, FNameBuf, KeyNr, CHInformUserProcInst,
+        CHCharArrConvertProcInst, CHDecideWriteProcInst, @HookArr )
+        And $FFFF;
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Function CloseIsamFiles ( LHPtr : PListHeader ) : Integer;
+
+  Begin
+    SetErrorHandlerHook;
+    CloseIsamFiles := BDECloseIsamFiles ( ExtDBaseProcessDataPtr,
+        LHPtr ) And $FFFF;
+    IsamOk := IsamError = 0;
+  End;
+
+
+  Procedure FreeListHeader ( Var LHPtr : PListHeader );
+
+  Begin
+    SetErrorHandlerHook;
+    BDEFreeListHeader ( ExtDBaseProcessDataPtr, LHPtr );
+  End;
+
+
+  Procedure NoErrorHandler ( Reaction   : ErrorReaction;
+                             IsamError  : Integer;
+                             DBaseError : DBaseErrorNr);
+
+  Begin
+  End;
+
+
+  Function NoReXUser (     Status    : WorkStatus;
+                           LHPtr     : PListHeader;
+                           ReadRecs,
+                           WriteRecs,
+                           ErrorRecs : Longint;
+                       Var DatSBuf ) : Integer;
+
+  Begin
+    NoReXUser := 0;
+  End;
+
+
+  Procedure NoCArrConv ( CArrPtr : Pointer;
+                         Len     : Word );
+
+  Begin
+  End;
+
+
+  Function StdDecideWrite (     LHPtr   : PListHeader;
+                                Errors  : Integer;
+                            Var BTBuf,
+                                DBBuf ) : DecideCase;
+
+  Begin
+    StdDecideWrite := DecideCase (BDEStdDecideWrite ( LHPtr, Errors,
+        BTBuf, DBBuf, Nil ));
+  End;
+
+
+  Function WriteNoTypeDef ( LHPtr  : PListHeader;
+                            IFName : IsamFileName ) : Integer;
+
+  Begin
+  End;
+
+
+  Function WritePascalTypeDef ( LHPtr  : PListHeader;
+                                IFName : IsamFileName ) : Integer;
+
+  Var
+    IFNameBuf : Array [0..Pred (SizeOf (IsamFileName))] Of Char;
+
+  Begin
+    StrPCopy ( IFNameBuf, IFName );
+    WritePascalTypeDef := BDEWritePascalTypeDef ( ExtDBaseProcessDataPtr,
+        LHPtr, IFNameBuf, Nil ) And $FFFF;
+  End;
+
+
+  Var
+    SaveExitProc : Pointer;
+
+  Procedure DBaseExitProc; Far;
+
+  Begin
+    ExitProc := SaveExitProc;
+
+  {$IFDEF Windows}
+    If CHErrorHandlerProcInst <> Nil Then Begin
+      FreeProcInstance ( CHErrorHandlerProcInst );
+    End;
+    FreeProcInstance ( CHInformUserProcInst );
+    FreeProcInstance ( CHCharArrConvertProcInst );
+    FreeProcInstance ( CHDecideWriteProcInst );
+    FreeProcInstance ( CHWriteTDefProcInst );
+  {$ENDIF}
+
+    If BDEFreeDBaseProcessData ( ExtDBaseProcessDataPtr ) <> 0 Then Begin
+      RunError ( 253 );
+    End;
+  End;
+
+
+  Procedure DBaseEntryProc;
+
+  Begin
+    DBUseErrorMessage :=
+  {$IFDEF EnglishMessage}
+    DBEnglish;
+  {$ELSE}
+    {$IFDEF GermanMessage}
+      DBGerman;
+    {$ELSE}
+      DBNoMsg;
+    {$ENDIF}
+  {$ENDIF}
+
+    ExtDBaseProcessDataPtr := BDEMakeDBaseProcessData ( Nil, @___ValidSign,
+        @___DBValidSign );
+    If ExtDBaseProcessDataPtr = Nil Then Begin
+      RunError ( 253 );
+    End;
+
+    SetErrorHandlerHook;
+
+  {$IFDEF Windows}
+    CHInformUserProcInst := MakeProcInstance ( @CallHookInformUser,
+        HInstance );
+    CHCharArrConvertProcInst := MakeProcInstance ( @CallHookCharArrConvert,
+        HInstance );
+    CHDecideWriteProcInst := MakeProcInstance ( @CallHookDecideWrite,
+        HInstance );
+    CHWriteTDefProcInst := MakeProcInstance ( @CallHookWriteTDef,
+        HInstance );
+  {$ELSE}
+    CHInformUserProcInst := @CallHookInformUser;
+    CHCharArrConvertProcInst := @CallHookCharArrConvert;
+    CHDecideWriteProcInst := @CallHookDecideWrite;
+    CHWriteTDefProcInst := @CallHookWriteTDef;
+  {$ENDIF}
+
+    SaveExitProc := ExitProc;
+    ExitProc := @DBaseExitProc;
+  End;
+
+
+(***Moved to DBIMPEXP.PAS***  !!.TP
+Begin
+  DBaseEntryProc;
+End.
+ ***)

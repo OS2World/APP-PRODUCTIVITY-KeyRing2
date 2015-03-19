@@ -1,0 +1,3 @@
+    50 +++     Do While ( \ Vrget(_vreprimarywindow, 'Shutdown') );
+
+Program has terminated.  Close window to exit.

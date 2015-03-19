@@ -1,0 +1,136 @@
+ Revision History   
+
+      v2.1 Sept 2001. This is a major rewrite. Fixed a problem in the 
+       2.0 beta release where dropping an icon file on the WWW page 
+       caused a program crash. Changed the record expiration date field 
+       to a DMY format. Now you can set an absolute expiration date for 
+       a record. Fixed a problem in Beta mode that expired database 
+       files older than 30 days even if you had a paid up license. Added 
+       a copy records feature. You can now copy records between 
+       notebook pages. Added more icons and an improved delivery 
+       method. The new icon graphics are not so great (grainy) but I can 
+       send out improved ones in a later release. Many major credit card 
+       icons have been added to the internal list. Send me any other 
+       logo graphics files you would like to see added. Added record 
+       copy feature to duplicate records to other pages. Removed record 
+       sort slider and replaced it with a popup menu item. The slider 
+       control was just not working out with most video adapter cards. 
+       The upside is that the sort mode names can be longer than 3 
+       characters. 
+
+      v2.0 Some major new features have been added! You may now 
+       move  records from page to page, and create multiline icon 
+       descriptions. KR2 now keeps track of your edits. If you make no 
+       changes to the database, KR2 will not re-encrypt the database. 
+       This should speed up shutdown of KR2 if you just took a quick 
+       peek at a record. Changed the import feature to merge the 
+       imported records with any existing ones previously loaded. You 
+       may now combine several databases by first exporting them and 
+       then importing them back into a single database. You may now 
+       drop OS/2 BMP files on the Boss page to change the background 
+       graphics. Some people did not like the groovy 1970's tiedye look. 
+       Added "Sticky Pages". KR2 remembers the last notebook page you 
+       used and jumps  to it when you restart. Added a new feature to 
+       registration keys that allows you to demo major upgrades (v1.x, 
+       v2.x). Your key will work without nag screens on the version you 
+       paid for and all previous versions. The nag screen will appear on 
+       major versions greater than the one you are licensed for. The 30 
+       day PWX lifetime limitation is removed if you have paid for *any* 
+       previous version. Note that minor version upgrades (v2.2, v2.3, ...) 
+       are always free. 
+
+      v1.15 Fixed bug that caused gradient background behind buttons 
+       to cover only half the window width when running under SDD and 
+       recent fixpacks. Added a new menu item to allow copying your 
+       username to the clipboard. Fixed a bug that truncated database 
+       field data containing an equal sign. This especially affected some 
+       complex URLs. 
+
+      v1.14 Added code to prevent tampering with encryption DLLs and 
+       use of Blowfish DLL by other programs. Dropped support for DES. 
+
+      v1.13 Added support for drag and drop of BMP file on to the 
+       columns in the Setup dialog. This changes the background graphic 
+       of the associated notebook page. 
+
+      v1.12 Fixed Import feature. Fixed icon drag and drop on record 
+       containers. Added drag/drop of PWX icons on Login screen. You 
+       may now drop a PWX file icon on the Database file field. Added 
+       file association between KEYRING.EXE and *.PW?. Now you can 
+       double click on a PWX file to launch KR2. Fixed some suspect 
+       looking portions of the WarpIN installation script. Adding Polish 
+       language file to release.   
+
+      v1.11 Internal release.   
+
+      v1.10 Fixed master password amnesia in DES mode. The robot ate 
+       my homework... The web page robot created invalid DLLs for DES 
+       users.   
+
+      v1.9 Fixed page icon crash bug. If you left-clicked on a page 
+       icon and selected cancel on the file dialog, KR2 would crash. 
+       Fixed. Added warning message when saving-as password is 
+       different from the old password. Added code to prevent orderly 
+       program shutdown when user fails to enter a password during 
+       Save-As. Fixed WarpIN problem where installing to a directory 
+       other than C:\KR2 caused a program crash. WarpIN was ignoring 
+       the path change and installing registration key files to C:\KR2 
+       instead of the correct user-specified path. The "missing" files 
+       caused the crash.   
+
+      v1.8 Added registration keyfile code.   
+
+      v1.7 Internal release. Changed hide button to minimize on main 
+       screen.   
+
+      v1.6 Added DES CBC  (Cypher Block Chaining) and Blowfish CBC 
+       support.  Cypher Block Chaining further encrypts the database file 
+       to remove repetitive blocks of encrypted characters. This makes 
+       the files a little harder to crack. Implemented new PWX file format 
+       that identifies the type of encryption used and the product version 
+       used to create it. This should simplify product improvements in 
+       the future. The new file format should be smaller, faster and 
+       harder to crack. KR2 can read the old format and will 
+       automatically translate the file to the new format. Fixed shutdown 
+       bug that caused an error message to pop up if Custom Fonts 
+       were turned on. Fixed problem with Record Editor that caused a 
+       file called ININAME to appear in the KR2 directory.   
+
+      v1.5 Added a sound file selector field in the Setup dialog. Now 
+       you can pick your own WAV or MID file.  We added a couple fun 
+       ones to the installer. Try TWILITZN.WAV. Added column name 
+       revert feature in Setup dialog. Fixed missing record editor field 
+       hints after creating a new PWX. Started work on Blowfish CBC 
+       mode and smart PWX file format.   
+
+      v1.4 Completely reworked vast portions of the program to allow 
+       further customization of page names and database columns. Now 
+       you can move columns around or hide them altogether. Fixed 
+       missing virtual language strings. Fixed a bunch of buglets and 
+       probably added a few more. Password expiration feature is now 
+       working. Added multimedia file play support. Switched to OS/2 
+       Netlabs WarpIN Installer.   
+
+      v1.3 Reworked the setup dialog to allow customization of the 
+       database column names, Notebook tab names, and page help 
+       hints.  Extended the database file to save the page customization. 
+       Added multigenerational database file backup. Removed extra task 
+       list entries.  Adding automatic record creation upon drag/drop of 
+       an icon into a container. Added icon replacement upon drag/drop 
+       of an icon on top of an existing record. Added save button to 
+       speedbar. Reworked Record Editor and added support for password 
+       expiration dates. This feature is not quite finished, so the clock 
+       button is temporarily shut off.   
+
+      v1.2 Added Import feature, autosize of controls based on 
+       font/language. Improved screen draws. Language selector menu 
+       item added. Record data font palette added. Fixed drag/drop fonts. 
+       Added custom font checkbox on the setup dialog to speed startup 
+       for folks who do not need custom fonts.   
+
+      v1.1 Fixed installer errors, misc small bugs including the 
+       edit-crash bug.   
+
+      v1.0 Virgin 
+    
+

@@ -1,0 +1,12 @@
+
+ Start  Stop   Length Name               Class
+
+ 00000H 01542H 01543H BindList           CODE
+ 01550H 01813H 002C4H NWConn             CODE
+ 01820H 01D25H 00506H NWBind             CODE
+ 01D30H 0238CH 0065DH NWBase             CODE
+ 02390H 02F53H 00BC4H System             CODE
+ 02F60H 0327BH 0031CH DATA               DATA
+ 03280H 13067H 0FDE8H STACK              STACK
+ 13070H 13070H 00000H HEAP               HEAP
+

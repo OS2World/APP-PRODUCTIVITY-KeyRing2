@@ -1,0 +1,922 @@
+{***************************************************************************
+* Filename: ~modname~
+* Version:  ~version~
+* Date:     ~date~ @ ~time~
+* Group:    ~group~
+* Release:  ~release~
+* ----------------------------
+*
+* Modifications
+* -------------
+*
+* Version   Date     Time    Programmer   Description
+* ~log~
+*
+*
+* ~notes~
+* Description
+* -----------
+* Generic graphics grid object using GD Library
+*
+*
+* ~notesend~
+*
+***************************************************************************
+
+}
+{$A+,B-,D+,E+,F+,G+,I+,L+,N+,O+,P+,Q+,R+,S+,T-,V-,X+,Y+}
+
+UNIT GDGRID;
+
+INTERFACE
+USES
+    CLASSES,
+    GD,
+    GDGRAPH,
+    GLOBTYPE,
+    LJVAR;
+
+
+TYPE
+    PGrid          = ^TXYGraph;
+
+    // XY Graph object
+    TXYGraph         = CLASS(TGDGraph)
+                         PRIVATE
+                         MySelf         : TXYGraph;
+
+                         PUBLIC
+
+                         CONSTRUCTOR Create(FullExtent : TExtentRange); // i.e. 640x480
+                         DESTRUCTOR Destroy; override;
+
+                             {really primative stuff}
+                             {move pen to new loc}
+                         PROCEDURE MoveTo(X, Y : DOUBLE);
+                             {drop pen and move to new location, drawing}
+                         PROCEDURE PlotLine(X, Y : DOUBLE; Color : LONGINT);
+                             {move pen to new location, drop pen and draw to second location}
+                         PROCEDURE DrawLine(xs, YS, XE, Ye : DOUBLE; Color : LONGINT);
+
+                             {draw dingbats}
+                             {relative methods use current user scale}
+                             {absolute methods use world coordinates}
+                         PROCEDURE PlotPoint(X, Y : DOUBLE; Color : LONGINT);
+                         PROCEDURE PlotPointAbs(X, Y : LONGINT; Color : LONGINT);
+
+                         PROCEDURE PlotTriangle(X, Y : DOUBLE; Color : LONGINT);
+                         PROCEDURE PlotTriangleAbs(X, Y : LONGINT; Color : LONGINT);
+                         PROCEDURE PlotInvertedTriangleAbs(X, Y : LONGINT; Color : LONGINT);
+
+                         PROCEDURE PlotSquare(X, Y : DOUBLE; Color : LONGINT);
+                         PROCEDURE PlotSquareAbs(X, Y : LONGINT; Color : LONGINT);
+
+                         PROCEDURE PlotStar(X, Y : DOUBLE; Color : LONGINT);
+                         PROCEDURE PlotStarAbs(X, Y : LONGINT; Color : LONGINT);
+
+                             {draw labels}
+                         PROCEDURE DrawScales;
+
+                             {add a single data point for plotting later}
+                         FUNCTION AddPoint(Ch : TPlotChannel; XY : TPlotCoord) : BOOLEAN;
+
+                             {add a marker or cursor line to the grid}
+                         PROCEDURE AddMarker(Ch             : TPlotChannel;
+                                             MyLabel        : PCHAR;
+                                             MyPos          : DOUBLE;
+                                             Orient         : TLabelOrient;
+                                             MyColor        : TRGBColor;
+                                             MyStyle,
+                                             MyPattern,
+                                             MyThickness    : WORD);
+
+
+                             {add a text label to header or footer}
+                         FUNCTION AddLabel(MyLabel        : PCHAR; {label}
+                                           Region         : TRegion; {header or footer?}
+                                           Orient         : TLabelOrient; {not implemented - use horiz only!}
+                                           HJust          : JustT; {horizontal justification}
+                                           VJust          : JustVT; {vertical justification}
+                                           MyColor        : TRGBColor; {label color}
+                                           MyFont         : PCHAR; {font to use for label}
+                                           MyPtSize       : DOUBLE) : BOOLEAN; {point size}
+
+                             {setup a channel (pen) for saving data}
+                         PROCEDURE SetChanPen(Ch             : TPlotChannel; {channel to set}
+                                              Color          : TRGBColor; {data color}
+                                              Style, {line Style}
+                                              Pattern, {pattern, if custom Style}
+                                              Thickness      : WORD); {line thickness}
+
+                             {plot data, grid, labels, headers and markers}
+                         PROCEDURE PlotSelfPNG(Filename:PCHAR; Im:gdImagePtr);
+
+                         PRIVATE
+
+                             {use current viewport and user scale to calc pixel location}
+                         FUNCTION TranslateX(X : DOUBLE) : LONGINT;
+                         FUNCTION TranslateY(Y : DOUBLE) : LONGINT;
+                         FUNCTION TranslateXY(X, Y : DOUBLE; VAR Pt:TPoint):BOOLEAN;
+                             {plot CHx marker}
+                         PROCEDURE PlotMarker(Ch : TPlotChannel);
+                             {check for user markers}
+                         FUNCTION HasMarkers : BOOLEAN;
+                             {draw the grid and or plotbox}
+                         PROCEDURE DrawGrid;
+
+                             {draw headers and footers}
+                         PROCEDURE DrawTextRegions;
+
+                         FUNCTION GetXScaleWidth  : LONGINT;
+                         FUNCTION GetYScaleHeight : LONGINT;
+                     END;
+
+IMPLEMENTATION
+USES
+    DGMath,
+    Strings,
+    Math,
+    SysUtils,
+    VPUTILS;
+CONST
+    DPIFACTOR = 72;
+    BadReal = 9.9E300;
+    LEADING = 1.1;
+    {------------}
+
+    FUNCTION InchesToDPI(Inches:DOUBLE) : LONGINT;
+    BEGIN
+        Result := ROUND(Inches / DPIFACTOR);
+    END;
+
+    FUNCTION Real2Str(V:DOUBLE; Width, Precision : BYTE):STRING;
+    BEGIN
+        STR(V:Width:Precision, Result);
+    END;
+(*
+    {setup viewport in one go}
+    PROCEDURE SetMyViewport(Vp : viewporttype);
+    BEGIN
+        SetViewport(Vp.X1, Vp.Y1, Vp.X2, Vp.Y2, Vp.clip);
+    END;
+
+    {------------}
+
+    {flip clipping on/off}
+    PROCEDURE SetClip(clip : BOOLEAN);
+    VAR
+        Vp             : viewporttype;
+    BEGIN
+        GetViewSettings(Vp);
+        Vp.clip := clip;
+        SetMyViewport(Vp);
+    END;
+
+    {------------}
+
+    {get current clipping flag value}
+    FUNCTION GetClip : BOOLEAN;
+    VAR
+        Vp             : viewporttype;
+    BEGIN
+        GetViewSettings(Vp);
+        GetClip := Vp.clip;
+    END;
+
+    {------------}
+*)
+    {instantiate a grid plotter object}
+    CONSTRUCTOR TXYGraph.Create(FullExtent    : TExtentRange); // i.e. 640x480
+    VAR
+        XDPI,
+        YDPI           : WORD;
+        RGBBlack       : TRGBColor;
+    BEGIN
+        INHERITED Create(FullExtent);
+
+(*
+        IF EnableXScale THEN
+            MyTextRegions.AddText(XScaleUnits,
+                                   GridColor,
+                                   LabelFont,
+                                   EHoriz,
+                                   ECENTER,
+                                   ETOP,
+                                   6,
+                                   BotXAxis,
+                                   @Self);
+        IF EnableYScale THEN
+            MyTextRegions.AddText(YScaleUnits,
+                                   GridColor,
+                                   LabelFont,
+                                   EVert,
+                                   ECENTER,
+                                   ETOP,
+                                   6,
+                                   LeftYAxis,
+                                   @Self);
+
+
+        MyFullExtent := FullExtent;
+        MyFullViewport := ViewPort;
+
+        MyGridViewport := ViewPort; // zzzz needs relief for axis labels
+
+        MyLabelHeight := CalcStringHeight(LabelFont, LabelPointSize, 0.0, 'H');
+
+        MyAutoScaleX := AutoScaleX;
+        MyAutoScaleY := AutoScaleY;
+
+        MyXMinSc := XMinSc;       {in user units}
+        MyYMinSc := YMinSc;
+        MyXMaxSc := XMaxSc;
+        MyYMaxSc := YMaxSc;
+
+        DoXScale := EnableXScale;
+        DoYScale := EnableYScale;
+
+        MyXScaleUnits := XScaleUnits;
+        MyYScaleUnits := YScaleUnits;
+
+        Virgin := TRUE;
+
+        XScaleDif := MyXMaxSc - MyXMinSc; {in user units}
+        YScaleDif := MyYMaxSc - MyYMinSc;
+
+        MyGridColor:=gdImageColorResolve(Im, GridColor.R, GridColor.G, GridColor.B);
+
+        gdImageRectangle(MyIm, MyFullViewPort.X1+1, MyFullViewPort.Y1+1, MyFullViewPort.X2-1, MyFullViewPort.Y2-1, MyGridColor); // zzzz
+
+        DoGrid := Grid;
+        MyXTicks := XTicks;
+        MyYTicks := YTicks;
+
+        XDPI := DPIFACTOR; // assume square pixels
+        YDPI := DPIFACTOR;
+
+        {used by dingbat methods}
+        PointScale := Min(XDPI, YDPI) DIV 100; {1/100" pointsize}
+
+        MyLabelFont := LabelFont;
+        MyLabelPointSize := LabelPointSize;
+*)
+        MySelf := Self;
+
+    END;
+
+    {------------}
+
+    DESTRUCTOR TXYGraph.Destroy;
+    VAR
+        Ch             : TPlotChannel;
+    BEGIN
+        // MyIm^.GrafDriveFinish; zzzz dispose of this elsewhere?
+
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+            IF MyData[Ch].DL <> NIL THEN BEGIN
+                MyData[Ch].DL.Destroy;
+                MyData[Ch].DL := NIL;
+            END;
+        END;
+
+        MyTextRegions.Destroy;
+
+        FILLCHAR(MyData, SIZEOF(MyData), #0);
+        FILLCHAR(MyMarkers, SIZEOF(MyMarkers), #0);
+        gdImageDestroy(MyIm);
+        MyIm := NIL;
+    END;
+
+    {------------}
+
+    {draw the grid}
+    PROCEDURE TXYGraph.DrawGrid;
+    VAR
+        I              : WORD;
+        R,
+        X,
+        Y              : LONGINT;
+        clip           : BOOLEAN;
+    BEGIN
+        XPixDif := MyGridViewport.X2 - MyGridViewport.X1;
+        YPixDif := MyGridViewport.Y2 - MyGridViewport.Y1;
+
+        {draw the box}
+        gdImageRectangle(MyIm, MyGridViewPort.X1, MyGridViewPort.Y1, MyGridViewPort.X2, MyGridViewPort.Y2, MyGridColor);
+
+        {draw the gridbox}
+        //SetColor(MyIm^.TranslateColor(MyGridColor));
+
+        IF DoGrid THEN BEGIN
+            {draw a grid}
+            FOR I := 1 TO MyXTicks DO BEGIN
+                {map grid lines into user scale}
+                X := ROUND(((I / MyXTicks) * XPixDif))+MyGridViewPort.X1;
+                {plot Y grid lines as user scale values}
+                gdImageLine(MyIm, X, MyGridViewPort.Y1, X, MyGridViewPort.Y2, MyGridColor);
+            END;
+            FOR I := 1 TO MyYTicks DO BEGIN
+                {map grid lines into user scale}
+                Y := ROUND(((I / MyYTicks) * YPixDif) + MyGridViewPort.Y1);
+                {plot X grid lines as user scale values}
+                gdImageLine(MyIm, MyGridViewport.X1, Y, MyGridViewPort.X2, Y, MyGridColor);
+            END;
+        END;
+
+    END;
+
+    {------------}
+
+    {calc x position from viewport and user value}
+    FUNCTION TXYGraph.TranslateX(X : DOUBLE) : LONGINT;
+    VAR
+        T              : LONGINT;
+    BEGIN
+        T := MyGridViewPort.X1 + ROUND(((MyGridViewPort.X2 - MyGridViewPort.X1) * ((X - MyXMinSc) / XScaleDif)));
+
+        IF T > MyGridViewPort.X2 THEN
+            T := MyGridViewPort.X2;
+        IF T < MyGridViewPort.X1 THEN
+            T := MyGridViewPort.X1;
+
+        TranslateX := T;
+    END;
+
+    {------------}
+
+    {calc y position from viewport and user value}
+    FUNCTION TXYGraph.TranslateY(Y : DOUBLE) : LONGINT;
+    VAR
+        T              : LONGINT;
+    BEGIN
+        T := MyGridViewPort.Y1 + ROUND(((MyGridViewPort.Y2 - MyGridViewPort.Y1) * - ((Y - MyYMaxSc) / YScaleDif)));
+
+        IF T > MyGridViewPort.Y2 THEN
+            T := MyGridViewPort.Y2;
+        IF T < MyGridViewPort.Y1 THEN
+            T := MyGridViewPort.Y1;
+
+        TranslateY := T;
+    END;
+
+    {------------}
+
+    FUNCTION TXYGraph.TranslateXY(X, Y : DOUBLE; VAR Pt:TPoint):BOOLEAN;
+    BEGIN
+        Pt.X := TranslateX(X);
+        Pt.Y := TranslateY(Y);
+        Result := TRUE; // someday, return false if clipped
+    END;
+
+    {plot a single point (small circle) at user coordinate}
+    PROCEDURE TXYGraph.PlotPoint(X, Y : DOUBLE; Color : LONGINT);
+    BEGIN
+        gdImageArc(MyIm, TranslateX(X), TranslateY(Y), PointScale * 2, PointScale * 2, 0, 360, Color);
+        Virgin := FALSE;
+    END;
+
+    {------------}
+
+    {plot single point (small circle) at absolute coordinate}
+    PROCEDURE TXYGraph.PlotPointAbs(X, Y : LONGINT; Color : LONGINT);
+    BEGIN
+        gdImageArc(MyIm, X, Y, PointScale * 2, PointScale * 2, 0, 360, Color);
+        Virgin := FALSE;
+    END;
+
+    {------------}
+    // Plot small triangle at user coordinates
+    PROCEDURE TXYGraph.PlotTriangle(X, Y : DOUBLE; Color : LONGINT);
+    VAR
+        CPX,
+        CPY :     LONGINT;
+        Points : ARRAY[0..2] OF TPoint;
+    BEGIN
+        CPX := TranslateX(X);
+        CPY := TranslateY(Y);
+        PlotTriangleAbs(CPX, CPY, Color);
+    END;
+
+    {------------}
+
+    // Plot small triangle at pixel coordinates
+    PROCEDURE TXYGraph.PlotTriangleAbs(X, Y : LONGINT; Color : LONGINT);
+    VAR
+        Points : ARRAY[0..2] OF TPoint;
+    BEGIN
+        Points[0].x := 0 + X;
+        Points[0].y := 0 + Y;
+        Points[1].x := (PointScale * 10) + X;
+        Points[1].y := 0 + Y;
+        Points[2].x := (PointScale * -5) + X;
+        Points[2].y := (PointScale * -5) + Y;
+
+        gdImagePolygon(MyIm, @Points, 3, Color);
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.PlotInvertedTriangleAbs(X, Y : LONGINT; Color : LONGINT);
+    VAR
+        Points : ARRAY[0..2] OF TPoint;
+    BEGIN
+        Points[0].x := 0 + X;
+        Points[0].y := 0 + Y;
+        Points[1].x := (PointScale * 10) + X;
+        Points[1].y := 0 + Y;
+        Points[2].x := (PointScale * -5) + X;
+        Points[2].y := (PointScale * -5) + Y;
+
+        gdImagePolygon(MyIm, @Points, 3, Color);
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.PlotSquare(X, Y : DOUBLE; Color : LONGINT);
+    VAR
+        Points : ARRAY[0..3] OF TPoint;
+        CPX,
+        CPY :     LONGINT;
+    BEGIN
+        CPX := TranslateX(X);
+        CPY := TranslateY(Y);
+        PlotSquareAbs(CPX, CPY, Color);
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.PlotSquareAbs(X, Y : LONGINT; Color : LONGINT);
+    VAR
+        Points : ARRAY[0..3] OF TPoint;
+    BEGIN
+        Points[0].x := 0 + X;
+        Points[0].y := 0 + Y;
+
+        Points[1].x := (PointScale * 10) + X;
+        Points[1].y := 0 + Y;
+
+        Points[2].x := (PointScale * 10) + X;
+        Points[2].y := (PointScale * -10) + Y;
+
+        Points[3].x := 0 + X;
+        Points[3].y := (PointScale * -10) + Y;
+
+        gdImagePolygon(MyIm, @Points, 4, Color);
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.PlotStar(X, Y : DOUBLE; Color : LONGINT);
+    BEGIN
+        PlotStarAbs(TranslateX(X), TranslateY(Y), Color);
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.PlotStarAbs(X, Y : LONGINT; Color : LONGINT);
+    VAR
+        Points : ARRAY[0..4] OF TPoint;
+    BEGIN
+        Points[0].x := 0 + X;
+        Points[0].y := 0 + Y;
+
+        Points[1].x := (PointScale * 10) + X;
+        Points[1].y := 0 + Y;
+
+        Points[2].x := (PointScale * 10) + X;
+        Points[2].y := (PointScale * -10) + Y;
+
+        Points[3].x := 0 + X;
+        Points[3].y := (PointScale * -10) + Y;
+
+        Points[4].x := 0 + X;
+        Points[4].y := (PointScale * -5) + Y;
+
+        gdImagePolygon(MyIm, @Points, 5, Color);
+(*
+        SF := - PointScale;
+        SetColor(Color);
+        Graph.MoveTo(X, Y);
+        MoveRel(- 5 * SF, - 5 * SF);
+        LineRel(5 * SF, 10 * SF);
+        LineRel(5 * SF, - 10 * SF);
+        LineRel(- 10 * SF, 6 * SF);
+        LineRel(10 * SF, 0 * SF);
+        LineRel(- 10 * SF, - 6 * SF);
+*)
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.PlotLine(X, Y : DOUBLE; Color : LONGINT);
+    VAR
+        Pt : TPoint;
+    BEGIN
+        {$R-}
+        IF Virgin THEN
+            TXYGraph.MoveTo(X, Y)
+        ELSE BEGIN
+            TranslateXY(X, Y, Pt);
+            gdImageLine(MyIm, MyCP.X, MyCP.Y, Pt.X, Pt.Y, Color);
+            MyCP := Pt;
+        END;
+
+        {$R+}
+        Virgin := FALSE;
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.DrawLine(xs, YS, XE, Ye : DOUBLE; Color : LONGINT);
+    VAR
+        Pt1,
+        Pt2:TPoint;
+    BEGIN
+        TranslateXY(Xs, Ys, Pt1);
+        TranslateXY(Xe, Ye, Pt2);
+
+        gdImageLine(MyIm, Pt1.X, Pt1.Y, Pt2.X, Pt2.Y, Color);
+        MyCP := Pt2;
+        Virgin := FALSE;
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.MoveTo(X, Y : DOUBLE);
+    BEGIN
+        {$R-}
+        TranslateXY(X,Y,MyCP); // Just move the cursor
+        {$R+}
+    END;
+
+    {------------}
+
+    {add a text label}
+    FUNCTION TXYGraph.AddLabel(MyLabel        : PCHAR;
+                            Region         : TRegion;
+                            Orient         : TLabelOrient;
+                            HJust          : JustT;
+                            VJust          : JustVT;
+                            MyColor        : TRGBColor;
+                            MyFont         : PCHAR;
+                            MyPtSize       : DOUBLE) : BOOLEAN;
+    BEGIN
+        AddLabel := MyTextRegions.AddText(MyLabel,
+                                           MyColor,
+                                           MyFont,
+                                           Orient,
+                                           HJust,
+                                           VJust,
+                                           MyPtSize,
+                                           Region,
+                                           @MySelf);
+    END;
+
+    {------------}
+    CONST
+        BreakPoints         : ARRAY[1..13] OF WORD =  (1, 2, 5, 10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000);
+
+    {draw the x/y scales, if necessary}
+    PROCEDURE TXYGraph.DrawScales;
+    VAR
+        St             : WORD;
+        R              : DOUBLE;
+        Y,
+        X,
+        T,
+        TH,
+        XTickHyt,
+        TW,
+        XWidth,
+        YMax,
+        XMax           : LONGINT;
+        Strg           : STRING;
+        BRect          : TBoundingRect;
+        P              : PCHAR;
+    BEGIN
+        {use current viewport for the grid area}
+        Y := MyGridViewPort.Y1 + ((MyGridViewPort.Y2 - MyGridViewPort.Y1) DIV 2);
+
+        {first the Y units label, if any}
+        IF DoYScale THEN BEGIN
+            IF MyYScaleUnits <> NIL THEN BEGIN
+                {draw the Y units label}
+                TH := ROUND(CalcStringHeight(MyLabelFont, MyLabelPointSize, DegToRad(90.0), MyYScaleUnits) * LEADING);
+                LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, DegToRad(90.0), MyFullViewport.X1+TH, Y, MyYScaleUnits);
+            END;
+        END;
+
+        {find optimum breakpoints}
+        St := 1;
+        WHILE (St <= 13) DO BEGIN
+            IF (YScaleDif / BreakPoints[St]) <= 15 THEN
+                BREAK;
+            INC(St);
+        END;
+
+        St := BreakPoints[St];
+        XMax := 0;
+        XWidth := 0;
+
+        {label the y axis}
+        IF DoYScale THEN BEGIN
+
+            {calc max label width}
+            R := INT(MyYMinSc);
+            WHILE R <= MyYMaxSc DO BEGIN
+                Strg := Real2Str(R, 2, 0) + '  ' + #0;
+                P := @Strg[1];
+                XWidth := Max(XWidth, CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, P));
+                R := R + St;
+            END;
+
+            {draw the yaxis label}
+            TW := CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, 'H') DIV 2; {tick length}
+            TH := CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, 'H') DIV 2; {LabelHyt/2}
+            R := INT(MyYMinSc);
+            WHILE R <= MyYMaxSc DO BEGIN
+                Y := TranslateY(R);
+                gdImageLine(MyIm, MyGridViewport.X1- TW, Y, MyGridViewport.X1, Y, MyGridColor); {tick}
+                {draw the axis label}
+                Strg := Format(YScaleFormat, [R]) + #0;
+                T := CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, @Strg[1]);
+                LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, MyGridViewport.X1-T-TH, Y+TH, @Strg[1]);
+                R := R + St;
+            END;
+
+        END;
+
+        St := 1;
+        WHILE (St <= 13) DO BEGIN
+            IF (XScaleDif / BreakPoints[St]) <= 15 THEN
+                BREAK;
+            INC(St);
+        END;
+
+        St := BreakPoints[St];
+
+        {label the x axis}
+        IF DoXScale THEN BEGIN
+            T := CalcStringHeight(MyLabelFont, MyLabelPointSize, 0.0, 'H'); {tick height}
+            XTickHyt := T DIV 2;
+
+            R := INT(MyXMinSc);
+            WHILE R <= MyXMaxSc DO BEGIN
+                gdImageLine(MyIm, TranslateX(R), MyGridViewport.Y2, TranslateX(R), MyGridViewport.Y2+XTickHyt, MyGridColor);
+                Strg := Format(XScaleFormat, [R]) + #0;
+                TW := CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, @Strg[1]); {Label width}
+                LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, TranslateX(R)-(TW DIV 2), MyGridViewport.Y2 + T + XTickHyt + 1, @Strg[1]);
+                R := R + St;
+            END;
+
+            IF MyXScaleUnits <> NIL THEN BEGIN
+                X := MyGridViewPort.X1 + ((MyGridViewPort.X2 - MyGridViewPort.X1) DIV 2) - (CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, MyXScaleUnits) DIV 2);
+                TH := ROUND(CalcStringHeight(MyLabelFont, MyLabelPointSize, 0.0, MyXScaleUnits) * 2 * LEADING) + XTickHyt;
+                LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, X, MyGridViewPort.Y2 + TH, MyXScaleUnits);
+            END;
+        END;
+
+    END;
+
+    {------------}
+
+    FUNCTION TXYGraph.AddPoint(Ch : TPlotChannel; XY : TPlotCoord) : BOOLEAN;
+    BEGIN
+        AddPoint := FALSE;
+        IF MyData[Ch].DL = NIL THEN BEGIN
+            {instantiate a new channel}
+            MyData[Ch].DL := TPlotDataList.Create;
+            IF MyData[Ch].DL = NIL THEN
+                EXIT;
+        END;
+        {attempt to add the point to the channel}
+        AddPoint := MyData[Ch].DL.AddPoint(XY);
+    END;
+
+    {------------}
+
+    FUNCTION TXYGraph.HasMarkers : BOOLEAN;
+    VAR
+        Ch             : TPlotChannel;
+    BEGIN
+        HasMarkers := FALSE;
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+            IF MyMarkers[Ch].DL <> NIL THEN BEGIN
+                HasMarkers := TRUE;
+                BREAK;
+            END;
+        END;
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.AddMarker(Ch             : TPlotChannel;
+                              MyLabel        : PCHAR;
+                              MyPos          : DOUBLE;
+                              Orient         : TLabelOrient;
+                              MyColor        : TRGBColor;
+                              MyStyle,
+                              MyPattern,
+                              MyThickness    : WORD);
+
+    BEGIN
+        WITH MyMarkers[Ch] DO BEGIN
+            DL := @MySelf;
+            Color := gdImageColorResolve(MyIm, MyColor.R, MyColor.G, MyColor.B);
+            MkrLabel := MyLabel;
+            MkrVal := MyPos;
+            Style := MyStyle;
+            Pattern := MyPattern;
+            Thickness := MyThickness;
+            MarkerOrient := Orient;
+        END;
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.PlotMarker(Ch : TPlotChannel);
+    VAR
+        //Vp             : viewporttype;
+        XMax,
+        YMax           : LONGINT;
+        BRect          : TBoundingRect;
+    BEGIN
+        //GetViewSettings(Vp);
+        XMax := MyGridViewPort.X2 - MyGridViewPort.X1;
+        YMax := MyGridViewPort.Y2 - MyGridViewPort.Y1;
+        //SetClip(FALSE);
+
+        WITH MyMarkers[Ch] DO BEGIN
+            IF (MkrVal < MyYMinSc) OR (MkrVal > MyYMaxSc) THEN BEGIN
+                //SetClip(TRUE);
+                EXIT;
+            END;
+
+            //SetLineStyle(Style, Pattern, Thickness);
+            CASE MarkerOrient OF
+                EVert :
+                    BEGIN
+                        gdImageLine(MyIm, TranslateX(MkrVal), 0, TranslateX(MkrVal), YMax, MyGridColor);
+                        //SetFont(DefaultFont, HorizDir, 7, 7, PtUnits);
+                        //SetTextJustify(CenterText, BottomText);
+                        //SetLineStyle(SolidLn, Pattern, Thickness);
+                        PlotInvertedTriangleAbs(TranslateX(MkrVal), 0, MyGridColor);
+                        {$R-}
+                        LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, TranslateX(MkrVal) + (PointScale * 12), 0, MkrLabel);
+                        //OutTextXY(TranslateX(MkrVal) + (PointScale * 12), 0, MkrLabel);
+                        {$R+}
+                    END;
+                Ehoriz :
+                    BEGIN
+                        gdImageLine(MyIm, 0, TranslateY(MkrVal), XMax, TranslateY(MkrVal), MyGridColor);
+                        //SetLineStyle(SolidLn, Pattern, Thickness);
+                        //SetFont(DefaultFont, VertDir, 7, 7, PtUnits);
+                        //SetTextJustify(CenterText, RightText);
+                        LastErrorMsg := gdImageStringFT(MyIm, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, 0, TranslateY(MkrVal), MkrLabel);
+                    END;
+            END;
+        END;
+        //SetClip(TRUE);
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.DrawTextRegions;
+    BEGIN
+        MyTextRegions.Draw(Header);
+
+//        IF HasMarkers THEN BEGIN
+//            INC(MyGridViewPort.Y1, MyLabelHeight);
+//            //SetMyViewport(Vp);
+//        END;
+
+        MyTextRegions.Draw(Footer);
+    END;
+
+    {------------}
+
+    PROCEDURE TXYGraph.PlotSelfPNG(Filename:PCHAR; Im:gdImagePtr);
+    VAR
+        X,
+        Y              : DOUBLE;
+        ItemIndex      : LONGINT;
+        XY             : TPlotCoord;
+        Ch             : TPlotChannel;
+        AllDone        : BOOLEAN;
+        F              : pFile;
+        MaxXLabelWidth,
+        MaxYLabelHeight,
+        Black,
+        White,
+        Red,
+        Green,
+        Blue : LONGINT;
+        BRect : TBoundingRect;
+        Strg : STRING;
+    BEGIN
+        // Calc MyGridViewPort
+        MyGridViewPort.Y1 := MyFullViewPort.Y1 + (ROUND(MyTextRegions.GetHeight(Header) * LEADING)); // move top down for title, if any
+        MyGridViewPort.X1 := MyFullViewPort.X1 + (ROUND(MyTextRegions.GetWidth(LeftYAxis) * LEADING)) + GetXScaleWidth; // move left side to right for xunits and xscale
+        MyGridViewPort.Y2 := MyFullViewPort.Y2 - ROUND((MyTextRegions.GetHeight(Footer) + (GetYScaleHeight*2)) * LEADING); // move bottom up for yunits and yscale
+        MyGridViewPort.X2 := MyFullViewPort.X2 - CalcStringWidth(MyLabelFont, MyLabelPointSize, 0.0, '000'); // Give a little room for far right scale
+
+        DrawTextRegions;
+
+        DrawScales;
+
+        DrawGrid;
+
+        {now plot the data in each channel}
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+            ItemIndex := 0;
+            {plot each marker/cursor}
+            IF MyMarkers[Ch].DL <> NIL THEN
+                PlotMarker(Ch);
+
+            IF MyData[Ch].DL = NIL THEN
+                CONTINUE;
+
+            {reset the datalist to the first datapoint}
+            //IF NOT MyData[Ch].DL.Count < ItemIndex THEN
+            //    CONTINUE;
+
+            Virgin := TRUE;
+
+            //SetLineStyle(MyData[Ch].Style, MyData[Ch].Pattern, MyData[Ch].Thickness);
+
+            FOR ItemIndex := 0 to MyData[Ch].DL.Count-1 DO BEGIN
+                TPlotPoint(MyData[Ch].DL.Items[ItemIndex]).GetVal(XY);
+                PlotLine(XY.X, XY.Y, MyData[Ch].Color);
+            END;
+        END;
+
+        F:=fopen(FileName, 'wb');
+
+        if (F=nil) then
+            writeln('Help, the file pointer is nil');
+
+        gdImagePng(Im, F);
+
+        fclose(F);
+
+    END;
+
+    {------------}
+
+    FUNCTION TXYGraph.GetXScaleWidth  : LONGINT;
+    VAR
+        Strg : STRING;
+        Ch   : TPlotChannel;
+        T,
+        W,
+        I : LONGINT;
+        XY : TPlotCoord;
+        PP : TPlotPoint;
+        BRect          : TBoundingRect;
+    BEGIN
+        W := 0;
+        FOR Ch := LOW(Ch) TO HIGH(Ch) DO BEGIN
+            IF MyData[Ch].DL = NIL THEN
+                CONTINUE;
+
+            FOR I := 0 to MyData[Ch].DL.Count-1 DO BEGIN
+                TPlotPoint(MyData[Ch].DL.Items[I]).GetVal(XY);
+                Strg := Format(XScaleFormat, [XY.X]) + #0;
+                gdImageStringFT(NIL, @BRect, MyGridColor, MyLabelFont, MyLabelPointSize, 0.0, 10, 10, @Strg[1]);
+                T := BRect.URX - BRect.ULY;
+                IF T > W THEN
+                    W := T;
+            END;
+        END;
+        Result := W;
+    END;
+
+    {------------}
+
+    FUNCTION TXYGraph.GetYScaleHeight : LONGINT;
+    BEGIN
+        Result := CalcStringHeight(MyLabelFont, MyLabelPointSize, 0.0, 'H');
+    END;
+
+    {------------}
+
+    {note: Only the last setting for a given channel is used}
+    PROCEDURE TXYGraph.SetChanPen(Ch             : TPlotChannel;
+                               Color          : TRGBColor;
+                               Style,
+                               Pattern,
+                               Thickness      : WORD);
+    BEGIN
+        MyData[Ch].Color := gdImageColorResolve(MyIm, Color.R, Color.G, Color.B);
+        MyData[Ch].Style := Style;
+        MyData[Ch].Pattern := Pattern;
+        MyData[Ch].Thickness := Thickness;
+    END;
+
+    {------------}
+
+END.
+
+    {------------}
+    {------------}
+

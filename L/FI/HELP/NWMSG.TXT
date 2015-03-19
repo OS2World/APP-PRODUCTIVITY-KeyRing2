@@ -1,0 +1,129 @@
+;
+;-------------------------------------------------------------------
+!TOPIC 2070 NWMsg
+
+NWMsg provides access to NetWare's broadcast message facilities. The
+routines in this unit include:
+
+   . setting and getting the workstation's broadcast mode
+   . getting a saved broadcast message
+   . sending a broadcast message to other connections
+   . sending a message to the server console
+
+!NOWRAP
+  2071Declarations            2073nwGetBroadcastMessage
+  2074nwGetBroadcastMode      2075nwSendBroadcastMessage
+  2076nwSendMessageToConsole  2077nwSetBroadcastMode
+!WRAP
+;
+;-------------------------------------------------------------------
+!TOPIC 2071 Declarations,NWMsg
+!NOINDEX
+
+The 2070NWMsg unit declares the following constants, types and
+variables:
+
+  2072TnwBroadcastMode
+
+;
+;-------------------------------------------------------------------
+!TOPIC 2072 TnwBroadcastMode
+!NOINDEX
+!NOWRAP
+;!TABLE
+type
+  TnwBroadcastMode =
+     (bmDisplayBoth,   {display both server and user messages}
+      bmDisplayServer, {display only server messages}
+      bmStoreServer,   {store only server messages}
+      bmStoreBoth);    {store both server and user messages}
+!WRAP
+
+The workstation broadcast modes used to tell the NetWare how to handle
+received messages. Use bmDisplayBoth to display messages received from a
+server and from other users. Use bmDisplayServer to display messages
+received from a server and discard messages from other users. Use
+bmStoreServer save messages received from a server for later retrieval and
+discard messages from other users. Use bmStoreBoth to save messages
+received from a server and save messages from other users. Note that a
+server only saves one message at a time for a workstation. If a new
+message arrives, the older one is overwritten.
+
+See also:  2074nwGetBroadcastMode  2077nwSetBroadcastMode
+;
+;-------------------------------------------------------------------
+!TOPIC 2073 nwGetBroadcastMessage
+!NOINDEX
+function 2070NWMsg.nwGetBroadcastMessage(Server : TnwServer;
+                               var Message : string) : TnwErrorCode;
+
+Return a broadcast message.
+
+If the workstation's broadcast mode is set to one of the 'store' options,
+this routine retrieves a stored message. If there is no message, then the
+returned string is empty.
+
+See also:  2075nwSendBroadcastMessage  2077nwSetBroadcastMode
+;
+;-------------------------------------------------------------------
+!TOPIC 2074 nwGetBroadcastMode
+!NOINDEX
+function 2070NWMsg.nwGetBroadcastMode(Server : TnwServer;
+                            var Mode : TnwBroadcastMode) : TnwErrorCode;
+
+Return the workstation's current broadcast mode.
+
+Each workstation has its own broadcast mode. Currrently there is only one
+broadcast mode per workstation, however this might change with future
+versions of the VLM Requester.
+
+See also:  2077nwSetBroadcastMode  2072TnwBroadcastMode
+;
+;-------------------------------------------------------------------
+!TOPIC 2075 nwSendBroadcastMessage
+!NOINDEX
+function 2070NWMsg.nwSendBroadcastMessage(Server : TnwServer; Message : string;
+                                var ToList : TnwConnList) : TnwErrorCode;
+
+Send a message to a list of connections.
+
+The message length is dependent on the version of NetWare. Version 3.11
+and higher allow up to 254 characters, but earlier versions allow only up
+to 58 characters. The maximum number of connection numbers in the list
+also varies with server version. For NetWare 3.11 and higher, the maximum
+number of connections that a message can be sent to is 62. For earlier
+versions of NetWare, the maximum is 254 connections.
+
+The message is not guaranteed to arrive (it depends on many things,
+including whether the receiving workstation has a relevant broadcast
+mode).
+
+See also:  2073nwGetBroadcastMessage  1699TnwConnList
+;
+;-------------------------------------------------------------------
+!TOPIC 2076 nwSendMessageToConsole
+!NOINDEX
+function 2070NWMsg.nwSendMessageToConsole(Server : TnwServer;
+                                Message : string) : TnwErrorCode;
+
+Send a message to the file server console.
+
+This routine sends a message of at most 55 characters. The message is seen
+immediately if the server is acting in console mode, but will be stored
+for later display if not.
+
+See also:  2075nwSendBroadcastMessage
+;
+;-------------------------------------------------------------------
+!TOPIC 2077 nwSetBroadcastMode
+!NOINDEX
+function 2070NWMsg.nwSetBroadcastMode(Server : TnwServer;
+                            Mode : TnwBroadcastMode) : TnwErrorCode;
+
+Set the workstation's broadcast mode.
+
+If you alter the broadcast mode for an application, it is advisable to
+save the state of the broadcast mode prior to changing it and to restore
+it to the original value before terminating the program.
+
+See also:  2074nwGetBroadcastMode  2072TnwBroadcastMode

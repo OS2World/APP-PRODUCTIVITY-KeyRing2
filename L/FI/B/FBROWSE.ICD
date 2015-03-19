@@ -1,0 +1,121 @@
+{*********************************************************}
+{*                   FBROWSE.ICD 5.50                    *}
+{*    Copyright (c) TurboPower Software 1990, 1994.      *}
+{*                 All rights reserved.                  *}
+{*********************************************************}
+
+{.F-}
+const
+  ucFBrowser         = 99;
+  otFBrowser         = 999;
+  veFBrowser         = 0;
+  otVBrowser         = 998;
+  veVBrowser         = 0;
+  ptFBrowserCommands = 999;
+  ptNullFilterFunc   = 998;
+  ptNullRefreshFunc  = 997;
+
+  {special command codes}
+  ccFirstRec  = ccTopOfFile; {Cursor to first record}
+  ccLastRec   = ccEndOfFile; {Cursor to last record}
+  ccPlus      = ccToggle;    {Reread current record}
+  ccTask0     = 180;         {user-defined task commands}
+  ccTask1     = 181;
+  ccTask2     = 182;
+  ccTask3     = 183;
+  ccTask4     = 184;
+  ccTask5     = 185;
+  ccTask6     = 186;
+  ccTask7     = 187;
+  ccTask8     = 188;
+  ccTask9     = 189;
+  ccTask10    = 190;
+  ccTask11    = 191;
+  ccTask12    = 192;
+  ccTask13    = 193;
+  ccTask14    = 194;
+  ccTask15    = 195;
+  ccTask16    = 196;
+  ccTask17    = 197;
+  ccTask18    = 198;
+  ccTask19    = 199;
+
+  {Keystroke to command mapping}
+  FBrowserKeyMax = 200;   {last available slot in FBrowserKeySet}
+  {ID string for installation programs}
+  FBrowserKeyID : string[13] = 'fbrowser keys';
+  {default key assignments}
+  FBrowserKeySet : array[0..FBrowserKeyMax] of Byte = (
+   {length keys         command type      key sequence}
+    3,     $00, $00,    ccQuit,          {^Break}
+    3,     $00, $3B,    ccHelp,          {F1}
+    3,     $00, $47,    ccHome,          {Home}
+    3,     $00, $48,    ccUp,            {Up}
+    3,     $00, $49,    ccPageUp,        {PgUp}
+    3,     $00, $4B,    ccLeft,          {Left}
+    3,     $00, $4D,    ccRight,         {Right}
+    3,     $00, $4F,    ccEnd,           {End}
+    3,     $00, $50,    ccDown,          {Down}
+    3,     $00, $51,    ccPageDn,        {PgDn}
+    3,     $00, $76,    ccLastRec,       {^PgDn}
+    3,     $00, $84,    ccFirstRec,      {^PgUp}
+    2,     $03,         ccPageDn,        {^C}
+    2,     $04,         ccRight,         {^D}
+    2,     $05,         ccUp,            {^E}
+    2,     $0D,         ccSelect,        {^M, Enter}
+    2,     $12,         ccPageUp,        {^R}
+    2,     $13,         ccLeft,          {^S}
+    2,     $17,         ccUp,            {^W}
+    2,     $18,         ccDown,          {^X}
+    2,     $1A,         ccDown,          {^Z}
+    2,     $1B,         ccQuit,          {Esc}
+    2,     $2B,         ccPlus,          {+}
+    3,     $11, $03,    ccLastRec,       {^Q^C}
+    3,     $11, $04,    ccEnd,           {^Q^D}
+    3,     $11, $12,    ccFirstRec,      {^Q^R}
+    3,     $11, $13,    ccHome,          {^Q^S}
+  {$IFDEF UseMouse}
+    3,     $00, $EF,    ccMouseSel,      {click left  = mouse select}
+    3,     $00, $EE,    ccQuit,          {click right = ESC}
+    3,     $00, $ED,    ccHelp,          {click both  = help}
+  {$ELSE}
+                      0, 0, 0, 0,        {100}
+    0, 0, 0, 0, 0, 0, 0, 0,              {110}
+  {$ENDIF}
+    {-----------pad to end of array----------}
+                            0, 0,        {110}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,        {120}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,        {130}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,        {140}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,        {150}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,        {160}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,        {170}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,        {180}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0,        {190}
+    0, 0, 0, 0, 0, 0, 0, 0, 0, 0);       {200}
+
+const
+  FBrowserCfgEnd : Byte = 0;
+{.F+}
+
+  {error codes}
+const
+  ecWinTooSmall     = 06000; {init error--window/max rows too small}
+  ecNoIndex         = 06001; {init error--Fileblock is not indexed}
+  ecIsamError       = 06002; {fatal Isam error--IsamError has actual code}
+  ecNoKeysFound     = 06003; {no keys found in requested range}
+  ecRecordGone      = 06004; {tried to select record that no longer exists}
+  ecRecordLocked    = 06005; {tried to select record and lock error occurred}
+  ecFileBlockLocked = 06006; {non-fatal error due to locked fileblock}
+
+  {error messages}
+const
+  emIsamError       : string[40] = 'Fatal error accessing data or index file';
+const
+  emNoKeysFound     : string[35] = 'No records found in requested range';
+const
+  emRecordGone      : string[32] = 'Selected record no longer exists';
+const
+  emRecordLocked    : string[40] = 'Lock error while reading selected record';
+const
+  emFileBlockLocked : string[14] = 'File is locked';
